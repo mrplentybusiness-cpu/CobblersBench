@@ -9,7 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Product, Order, OrderItem } from "@shared/schema";
@@ -312,7 +315,7 @@ export default function Admin() {
                     <Plus className="mr-2 h-4 w-4" /> Add New Product
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Product</DialogTitle>
                   </DialogHeader>
@@ -336,6 +339,8 @@ export default function Admin() {
                     <TableRow>
                       <TableHead>Image</TableHead>
                       <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Inventory</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Price</TableHead>
                       <TableHead>Actions</TableHead>
@@ -352,9 +357,49 @@ export default function Admin() {
                             data-testid={`product-image-${product.id}`}
                           />
                         </TableCell>
-                        <TableCell className="font-medium" data-testid={`product-name-${product.id}`}>{product.name}</TableCell>
+                        <TableCell className="font-medium" data-testid={`product-name-${product.id}`}>
+                          {product.name}
+                          {product.sku && (
+                            <span className="block text-xs text-muted-foreground">SKU: {product.sku}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              product.status === 'active' ? 'default' : 
+                              product.status === 'draft' ? 'secondary' : 'outline'
+                            }
+                            className={product.status === 'archived' ? 'opacity-50' : ''}
+                            data-testid={`product-status-${product.id}`}
+                          >
+                            {product.status === 'active' && <CheckCircle className="h-3 w-3 mr-1" />}
+                            {product.status === 'archived' && <Archive className="h-3 w-3 mr-1" />}
+                            {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell data-testid={`product-inventory-${product.id}`}>
+                          {product.trackInventory ? (
+                            <span className={product.inventory !== null && product.inventory <= 5 ? 'text-destructive font-medium' : ''}>
+                              {product.inventory !== null && product.inventory <= 5 && (
+                                <AlertCircle className="h-3 w-3 inline mr-1" />
+                              )}
+                              {product.inventory ?? 0} in stock
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">Not tracked</span>
+                          )}
+                        </TableCell>
                         <TableCell data-testid={`product-category-${product.id}`}>{product.category}</TableCell>
-                        <TableCell data-testid={`product-price-${product.id}`}>${product.price}</TableCell>
+                        <TableCell data-testid={`product-price-${product.id}`}>
+                          <div>
+                            ${product.price}
+                            {product.compareAtPrice && (
+                              <span className="block text-xs text-muted-foreground line-through">
+                                ${product.compareAtPrice}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button 
@@ -541,7 +586,7 @@ export default function Admin() {
 
       {/* Edit Product Dialog */}
       <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>
@@ -561,13 +606,21 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
   const [price, setPrice] = useState(product?.price?.toString() || "");
+  const [compareAtPrice, setCompareAtPrice] = useState(product?.compareAtPrice?.toString() || "");
+  const [cost, setCost] = useState(product?.cost?.toString() || "");
   const [category, setCategory] = useState(product?.category || "");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
+  const [status, setStatus] = useState(product?.status || "active");
+  const [trackInventory, setTrackInventory] = useState(product?.trackInventory || false);
+  const [inventory, setInventory] = useState(product?.inventory?.toString() || "0");
+  const [sku, setSku] = useState(product?.sku || "");
+  const [tags, setTags] = useState(product?.tags || "");
+  
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const createProductMutation = useMutation({
-    mutationFn: async (productData: { name: string; description: string; price: string; category: string; imageUrl: string }) => {
+    mutationFn: async (productData: Record<string, any>) => {
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -590,7 +643,7 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: async ({ id, ...productData }: { id: number; name: string; description: string; price: string; category: string; imageUrl: string }) => {
+    mutationFn: async ({ id, ...productData }: { id: number } & Record<string, any>) => {
       const response = await fetch(`/api/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -640,8 +693,15 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
       name: name.trim(), 
       description: description.trim(), 
       price, 
+      compareAtPrice: compareAtPrice || null,
+      cost: cost || null,
       category, 
-      imageUrl 
+      imageUrl,
+      status,
+      trackInventory,
+      inventory: trackInventory ? parseInt(inventory) || 0 : null,
+      sku: sku.trim() || null,
+      tags: tags.trim() || null,
     };
     
     if (product) {
@@ -653,80 +713,289 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
 
   const isPending = createProductMutation.isPending || updateProductMutation.isPending;
 
+  // Calculate profit margin
+  const calculateMargin = () => {
+    const priceNum = parseFloat(price) || 0;
+    const costNum = parseFloat(cost) || 0;
+    if (priceNum > 0 && costNum > 0) {
+      const margin = ((priceNum - costNum) / priceNum) * 100;
+      return margin.toFixed(1);
+    }
+    return null;
+  };
+
+  const margin = calculateMargin();
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Product Name</Label>
-        <Input 
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Boot Resole Service"
-          data-testid="input-product-name"
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Tabs defaultValue="basic" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="basic">Basic</TabsTrigger>
+          <TabsTrigger value="pricing">Pricing</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="media">Media</TabsTrigger>
+        </TabsList>
 
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea 
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe your product or service..."
-          rows={3}
-          data-testid="input-product-description"
-        />
-      </div>
+        <TabsContent value="basic" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Details</CardTitle>
+              <CardDescription>Basic information about your product</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="name">Product Name</Label>
+                <Input 
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Boot Resole Service"
+                  data-testid="input-product-name"
+                />
+              </div>
 
-      <div>
-        <Label htmlFor="price">Price ($)</Label>
-        <Input 
-          id="price"
-          type="number"
-          step="0.01"
-          min="0.01"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="0.00"
-          data-testid="input-product-price"
-        />
-      </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea 
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe your product or service..."
+                  rows={4}
+                  data-testid="input-product-description"
+                />
+              </div>
 
-      <div>
-        <Label htmlFor="category">Category</Label>
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger data-testid="select-product-category">
-            <SelectValue placeholder="Select category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="repair">Repair</SelectItem>
-            <SelectItem value="care">Shoe Care</SelectItem>
-            <SelectItem value="goods">Leather Goods</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger data-testid="select-product-category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="repair">Repair</SelectItem>
+                    <SelectItem value="care">Shoe Care</SelectItem>
+                    <SelectItem value="goods">Leather Goods</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-      <div>
-        <Label>Product Image</Label>
-        <div className="mt-2">
-          <ImageUploader
-            value={imageUrl}
-            onChange={setImageUrl}
-            disabled={isPending}
-          />
-        </div>
-      </div>
+              <div>
+                <Label htmlFor="tags">Tags</Label>
+                <Input 
+                  id="tags"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="boots, leather, resole (comma separated)"
+                  data-testid="input-product-tags"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Separate tags with commas</p>
+              </div>
+            </CardContent>
+          </Card>
 
-      <Button 
-        type="submit" 
-        className="w-full"
-        disabled={isPending}
-        data-testid="button-save-product"
-      >
-        {isPending 
-          ? "Saving..." 
-          : product ? "Update Product" : "Create Product"}
-      </Button>
+          <Card>
+            <CardHeader>
+              <CardTitle>Status</CardTitle>
+              <CardDescription>Control product visibility</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger data-testid="select-product-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span>Active</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="draft">
+                    <div className="flex items-center gap-2">
+                      <Edit className="h-4 w-4 text-yellow-500" />
+                      <span>Draft</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="archived">
+                    <div className="flex items-center gap-2">
+                      <Archive className="h-4 w-4 text-gray-500" />
+                      <span>Archived</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-2">
+                {status === 'active' && "This product is visible on your storefront"}
+                {status === 'draft' && "This product is hidden from customers"}
+                {status === 'archived' && "This product is archived and hidden"}
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pricing" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pricing</CardTitle>
+              <CardDescription>Set your product pricing</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="price">Price ($)</Label>
+                  <Input 
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    data-testid="input-product-price"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="compareAtPrice">Compare-at Price ($)</Label>
+                  <Input 
+                    id="compareAtPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={compareAtPrice}
+                    onChange={(e) => setCompareAtPrice(e.target.value)}
+                    placeholder="0.00"
+                    data-testid="input-product-compare-price"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Original price for sale items</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <Label htmlFor="cost">Cost per Item ($)</Label>
+                <Input 
+                  id="cost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="0.00"
+                  data-testid="input-product-cost"
+                />
+                <p className="text-xs text-muted-foreground mt-1">For profit calculation (not shown to customers)</p>
+              </div>
+
+              {margin && (
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Profit Margin</span>
+                    <span className={`text-lg font-bold ${parseFloat(margin) > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                      {margin}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-sm text-muted-foreground">Profit per item</span>
+                    <span className="text-sm font-medium">
+                      ${((parseFloat(price) || 0) - (parseFloat(cost) || 0)).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="inventory" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Inventory</CardTitle>
+              <CardDescription>Track stock levels for this product</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="trackInventory" className="text-base">Track quantity</Label>
+                  <p className="text-sm text-muted-foreground">Enable inventory tracking for this product</p>
+                </div>
+                <Switch
+                  id="trackInventory"
+                  checked={trackInventory}
+                  onCheckedChange={setTrackInventory}
+                  data-testid="switch-track-inventory"
+                />
+              </div>
+
+              {trackInventory && (
+                <div>
+                  <Label htmlFor="inventory">Quantity in Stock</Label>
+                  <Input 
+                    id="inventory"
+                    type="number"
+                    min="0"
+                    value={inventory}
+                    onChange={(e) => setInventory(e.target.value)}
+                    placeholder="0"
+                    data-testid="input-product-inventory"
+                  />
+                  {parseInt(inventory) <= 5 && parseInt(inventory) >= 0 && (
+                    <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Low stock warning
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <Separator />
+
+              <div>
+                <Label htmlFor="sku">SKU (Stock Keeping Unit)</Label>
+                <Input 
+                  id="sku"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="e.g., BOOT-RESOLE-001"
+                  data-testid="input-product-sku"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Unique identifier for this product</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="media" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Image</CardTitle>
+              <CardDescription>Upload an image for this product</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImageUploader
+                value={imageUrl}
+                onChange={setImageUrl}
+                disabled={isPending}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex gap-4 pt-4 border-t">
+        <Button 
+          type="submit" 
+          className="flex-1"
+          disabled={isPending}
+          data-testid="button-save-product"
+        >
+          {isPending 
+            ? "Saving..." 
+            : product ? "Update Product" : "Create Product"}
+        </Button>
+      </div>
     </form>
   );
 }

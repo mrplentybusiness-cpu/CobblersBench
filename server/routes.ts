@@ -60,16 +60,20 @@ export async function registerRoutes(
         name: req.body.name,
         description: req.body.description,
         price: req.body.price,
-        compareAtPrice: req.body.compareAtPrice || null,
-        cost: req.body.cost || null,
+        compareAtPrice: req.body.compareAtPrice ?? null,
+        cost: req.body.cost ?? null,
         imageUrl: req.body.imageUrl,
         category: req.body.category,
-        status: req.body.status || "active",
-        trackInventory: req.body.trackInventory || false,
-        inventory: req.body.inventory || null,
-        sku: req.body.sku || null,
-        tags: req.body.tags || null,
+        status: req.body.status ?? "active",
+        trackInventory: req.body.trackInventory ?? false,
+        inventory: req.body.inventory ?? null,
+        sku: req.body.sku ?? null,
+        tags: req.body.tags ?? null,
       };
+      
+      if (!productData.name || !productData.description || !productData.price || !productData.imageUrl || !productData.category) {
+        return res.status(400).json({ error: "Missing required fields: name, description, price, imageUrl, category" });
+      }
       
       const product = await storage.createProduct(productData);
       res.status(201).json(product);
@@ -88,15 +92,15 @@ export async function registerRoutes(
       if (req.body.name !== undefined) productData.name = req.body.name;
       if (req.body.description !== undefined) productData.description = req.body.description;
       if (req.body.price !== undefined) productData.price = req.body.price;
-      if (req.body.compareAtPrice !== undefined) productData.compareAtPrice = req.body.compareAtPrice || null;
-      if (req.body.cost !== undefined) productData.cost = req.body.cost || null;
+      if (req.body.compareAtPrice !== undefined) productData.compareAtPrice = req.body.compareAtPrice;
+      if (req.body.cost !== undefined) productData.cost = req.body.cost;
       if (req.body.imageUrl !== undefined) productData.imageUrl = req.body.imageUrl;
       if (req.body.category !== undefined) productData.category = req.body.category;
       if (req.body.status !== undefined) productData.status = req.body.status;
       if (req.body.trackInventory !== undefined) productData.trackInventory = req.body.trackInventory;
       if (req.body.inventory !== undefined) productData.inventory = req.body.inventory;
-      if (req.body.sku !== undefined) productData.sku = req.body.sku || null;
-      if (req.body.tags !== undefined) productData.tags = req.body.tags || null;
+      if (req.body.sku !== undefined) productData.sku = req.body.sku;
+      if (req.body.tags !== undefined) productData.tags = req.body.tags;
       
       const product = await storage.updateProduct(id, productData);
       

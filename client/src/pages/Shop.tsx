@@ -9,9 +9,9 @@ export default function Shop() {
   const [filter, setFilter] = useState<'all' | 'repair' | 'goods' | 'care'>('all');
 
   const { data: products = [], isLoading, error } = useQuery<Product[]>({
-    queryKey: ['/api/products'],
+    queryKey: ['/api/products/active'],
     queryFn: async () => {
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/products/active');
       if (!response.ok) throw new Error('Failed to fetch products');
       return response.json();
     },
