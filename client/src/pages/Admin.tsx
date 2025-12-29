@@ -13,8 +13,8 @@ import { Trash2, Plus, Package, Edit, Eye, Mail, MapPin } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Product, Order, OrderItem } from "@shared/schema";
-import { useUpload } from "@/hooks/use-upload";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUploader } from "@/components/ImageUploader";
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -545,18 +545,8 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
   const [price, setPrice] = useState(product?.price?.toString() || "");
   const [category, setCategory] = useState(product?.category || "");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
-  const [imagePreview, setImagePreview] = useState(product?.imageUrl || "");
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { uploadFile, isUploading } = useUpload({
-    onSuccess: (response) => {
-      setImageUrl(response.objectPath);
-      toast({ title: "Image uploaded successfully" });
-    },
-    onError: (error) => {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
-    },
-  });
 
   const createProductMutation = useMutation({
     mutationFn: async (productData: { name: string; description: string; price: string; category: string; imageUrl: string }) => {
@@ -565,13 +555,19 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productData),
       });
-      if (!response.ok) throw new Error('Failed to create product');
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to create product');
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       toast({ title: "Product created successfully" });
       onSuccess();
+    },
+    onError: (error) => {
+      toast({ title: "Failed to create product", description: error.message, variant: "destructive" });
     },
   });
 
@@ -582,7 +578,10 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productData),
       });
-      if (!response.ok) throw new Error('Failed to update product');
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to update product');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -590,20 +589,42 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
       toast({ title: "Product updated successfully" });
       onSuccess();
     },
+    onError: (error) => {
+      toast({ title: "Failed to update product", description: error.message, variant: "destructive" });
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imageUrl) {
-      toast({ title: "Please upload an image", variant: "destructive" });
+    
+    if (!name.trim()) {
+      toast({ title: "Please enter a product name", variant: "destructive" });
+      return;
+    }
+    if (!description.trim()) {
+      toast({ title: "Please enter a description", variant: "destructive" });
+      return;
+    }
+    if (!price || parseFloat(price) <= 0) {
+      toast({ title: "Please enter a valid price", variant: "destructive" });
       return;
     }
     if (!category) {
       toast({ title: "Please select a category", variant: "destructive" });
       return;
     }
+    if (!imageUrl) {
+      toast({ title: "Please upload an image first", variant: "destructive" });
+      return;
+    }
     
-    const productData = { name, description, price, category, imageUrl };
+    const productData = { 
+      name: name.trim(), 
+      description: description.trim(), 
+      price, 
+      category, 
+      imageUrl 
+    };
     
     if (product) {
       updateProductMutation.mutate({ id: product.id, ...productData });
@@ -612,15 +633,7 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => setImagePreview(e.target?.result as string);
-      reader.readAsDataURL(file);
-      await uploadFile(file);
-    }
-  };
+  const isPending = createProductMutation.isPending || updateProductMutation.isPending;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -630,7 +643,7 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          required
+          placeholder="e.g., Boot Resole Service"
           data-testid="input-product-name"
         />
       </div>
@@ -641,7 +654,7 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          required
+          placeholder="Describe your product or service..."
           rows={3}
           data-testid="input-product-description"
         />
@@ -653,9 +666,10 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
           id="price"
           type="number"
           step="0.01"
+          min="0.01"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          required
+          placeholder="0.00"
           data-testid="input-product-price"
         />
       </div>
@@ -676,34 +690,22 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
 
       <div>
         <Label>Product Image</Label>
-        {imagePreview && (
-          <div className="mb-2">
-            <img 
-              src={imagePreview} 
-              alt="Preview" 
-              className="h-24 w-24 rounded object-cover bg-muted"
-              data-testid="product-image-preview"
-            />
-          </div>
-        )}
-        <Input 
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          disabled={isUploading}
-          data-testid="input-product-image"
-        />
-        {isUploading && <p className="text-sm text-muted-foreground mt-1">Uploading...</p>}
-        {imageUrl && !isUploading && <p className="text-sm text-green-600 mt-1">✓ Image ready</p>}
+        <div className="mt-2">
+          <ImageUploader
+            value={imageUrl}
+            onChange={setImageUrl}
+            disabled={isPending}
+          />
+        </div>
       </div>
 
       <Button 
         type="submit" 
         className="w-full"
-        disabled={createProductMutation.isPending || updateProductMutation.isPending || isUploading}
+        disabled={isPending}
         data-testid="button-save-product"
       >
-        {(createProductMutation.isPending || updateProductMutation.isPending) 
+        {isPending 
           ? "Saving..." 
           : product ? "Update Product" : "Create Product"}
       </Button>
