@@ -4,9 +4,19 @@ import { Link } from "wouter";
 import heroBg from "@assets/stock_images/leather_cobbler_work_faee252e.jpg";
 import { ArrowRight, Star, ShieldCheck, Clock } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/lib/mockData";
+import { useQuery } from "@tanstack/react-query";
+import type { Product } from "@shared/schema";
 
 export default function Home() {
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ['/api/products/active'],
+    queryFn: async () => {
+      const response = await fetch('/api/products/active');
+      if (!response.ok) throw new Error('Failed to fetch products');
+      return response.json();
+    },
+  });
+  
   const featuredProducts = products.slice(0, 3);
 
   return (
