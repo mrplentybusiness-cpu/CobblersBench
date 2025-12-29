@@ -5,6 +5,7 @@ import * as schema from "@shared/schema";
 import type { 
   Product, 
   InsertProduct, 
+  ProductImage,
   Order, 
   InsertOrder,
   OrderItem,
@@ -16,10 +17,18 @@ const { Pool } = pg;
 export interface IStorage {
   // Products
   getAllProducts(): Promise<Product[]>;
+  getActiveProducts(): Promise<Product[]>;
   getProductById(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: number): Promise<boolean>;
+
+  // Product Images
+  getProductImages(productId: number): Promise<ProductImage[]>;
+  addProductImage(productId: number, url: string, altText?: string, sortOrder?: number): Promise<ProductImage>;
+  updateProductImage(id: number, data: { url?: string; altText?: string; sortOrder?: number }): Promise<ProductImage | undefined>;
+  deleteProductImage(id: number): Promise<boolean>;
+  reorderProductImages(productId: number, imageIds: number[]): Promise<void>;
 
   // Orders
   getAllOrders(): Promise<(Order & { items: OrderItem[] })[]>;
@@ -44,6 +53,12 @@ export class DatabaseStorage implements IStorage {
     return this.db.select().from(schema.products).orderBy(desc(schema.products.createdAt));
   }
 
+  async getActiveProducts(): Promise<Product[]> {
+    return this.db.select().from(schema.products)
+      .where(eq(schema.products.status, "active"))
+      .orderBy(desc(schema.products.createdAt));
+  }
+
   async getProductById(id: number): Promise<Product | undefined> {
     const results = await this.db.select().from(schema.products).where(eq(schema.products.id, id));
     return results[0];
@@ -66,6 +81,51 @@ export class DatabaseStorage implements IStorage {
   async deleteProduct(id: number): Promise<boolean> {
     const result = await this.db.delete(schema.products).where(eq(schema.products.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Product Images
+  async getProductImages(productId: number): Promise<ProductImage[]> {
+    return this.db.select().from(schema.productImages)
+      .where(eq(schema.productImages.productId, productId))
+      .orderBy(schema.productImages.sortOrder);
+  }
+
+  async addProductImage(productId: number, url: string, altText?: string, sortOrder?: number): Promise<ProductImage> {
+    const maxOrder = await this.db.select().from(schema.productImages)
+      .where(eq(schema.productImages.productId, productId))
+      .orderBy(desc(schema.productImages.sortOrder))
+      .limit(1);
+    
+    const newSortOrder = sortOrder ?? (maxOrder[0]?.sortOrder ?? -1) + 1;
+    
+    const results = await this.db.insert(schema.productImages).values({
+      productId,
+      url,
+      altText,
+      sortOrder: newSortOrder,
+    }).returning();
+    return results[0];
+  }
+
+  async updateProductImage(id: number, data: { url?: string; altText?: string; sortOrder?: number }): Promise<ProductImage | undefined> {
+    const results = await this.db.update(schema.productImages)
+      .set(data)
+      .where(eq(schema.productImages.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteProductImage(id: number): Promise<boolean> {
+    const result = await this.db.delete(schema.productImages).where(eq(schema.productImages.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async reorderProductImages(productId: number, imageIds: number[]): Promise<void> {
+    for (let i = 0; i < imageIds.length; i++) {
+      await this.db.update(schema.productImages)
+        .set({ sortOrder: i })
+        .where(eq(schema.productImages.id, imageIds[i]));
+    }
   }
 
   // Orders

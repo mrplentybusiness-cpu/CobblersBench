@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { insertProductSchema, insertOrderSchema } from "@shared/schema";
+import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -10,18 +10,28 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // Register object storage routes for image uploads
   registerObjectStorageRoutes(app);
 
   // ===== PRODUCTS =====
   
-  // Get all products
+  // Get all products (admin - includes all statuses)
   app.get("/api/products", async (req, res) => {
     try {
       const products = await storage.getAllProducts();
       res.json(products);
     } catch (error) {
       console.error("Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  // Get active products only (storefront)
+  app.get("/api/products/active", async (req, res) => {
+    try {
+      const products = await storage.getActiveProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching active products:", error);
       res.status(500).json({ error: "Failed to fetch products" });
     }
   });
@@ -46,13 +56,24 @@ export async function registerRoutes(
   // Create product
   app.post("/api/products", async (req, res) => {
     try {
-      const validatedData = insertProductSchema.parse(req.body);
-      const product = await storage.createProduct(validatedData);
+      const productData = {
+        name: req.body.name,
+        description: req.body.description,
+        price: req.body.price,
+        compareAtPrice: req.body.compareAtPrice || null,
+        cost: req.body.cost || null,
+        imageUrl: req.body.imageUrl,
+        category: req.body.category,
+        status: req.body.status || "active",
+        trackInventory: req.body.trackInventory || false,
+        inventory: req.body.inventory || null,
+        sku: req.body.sku || null,
+        tags: req.body.tags || null,
+      };
+      
+      const product = await storage.createProduct(productData);
       res.status(201).json(product);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid product data", details: error.errors });
-      }
       console.error("Error creating product:", error);
       res.status(500).json({ error: "Failed to create product" });
     }
@@ -62,8 +83,22 @@ export async function registerRoutes(
   app.patch("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = insertProductSchema.partial().parse(req.body);
-      const product = await storage.updateProduct(id, validatedData);
+      const productData: Record<string, any> = {};
+      
+      if (req.body.name !== undefined) productData.name = req.body.name;
+      if (req.body.description !== undefined) productData.description = req.body.description;
+      if (req.body.price !== undefined) productData.price = req.body.price;
+      if (req.body.compareAtPrice !== undefined) productData.compareAtPrice = req.body.compareAtPrice || null;
+      if (req.body.cost !== undefined) productData.cost = req.body.cost || null;
+      if (req.body.imageUrl !== undefined) productData.imageUrl = req.body.imageUrl;
+      if (req.body.category !== undefined) productData.category = req.body.category;
+      if (req.body.status !== undefined) productData.status = req.body.status;
+      if (req.body.trackInventory !== undefined) productData.trackInventory = req.body.trackInventory;
+      if (req.body.inventory !== undefined) productData.inventory = req.body.inventory;
+      if (req.body.sku !== undefined) productData.sku = req.body.sku || null;
+      if (req.body.tags !== undefined) productData.tags = req.body.tags || null;
+      
+      const product = await storage.updateProduct(id, productData);
       
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
@@ -71,9 +106,6 @@ export async function registerRoutes(
       
       res.json(product);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid product data", details: error.errors });
-      }
       console.error("Error updating product:", error);
       res.status(500).json({ error: "Failed to update product" });
     }
@@ -93,6 +125,92 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting product:", error);
       res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
+
+  // ===== PRODUCT IMAGES =====
+
+  // Get product images
+  app.get("/api/products/:id/images", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const images = await storage.getProductImages(productId);
+      res.json(images);
+    } catch (error) {
+      console.error("Error fetching product images:", error);
+      res.status(500).json({ error: "Failed to fetch images" });
+    }
+  });
+
+  // Add product image
+  app.post("/api/products/:id/images", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { url, altText, sortOrder } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "Image URL is required" });
+      }
+      
+      const image = await storage.addProductImage(productId, url, altText, sortOrder);
+      res.status(201).json(image);
+    } catch (error) {
+      console.error("Error adding product image:", error);
+      res.status(500).json({ error: "Failed to add image" });
+    }
+  });
+
+  // Update product image
+  app.patch("/api/product-images/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { url, altText, sortOrder } = req.body;
+      
+      const image = await storage.updateProductImage(id, { url, altText, sortOrder });
+      
+      if (!image) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      res.json(image);
+    } catch (error) {
+      console.error("Error updating product image:", error);
+      res.status(500).json({ error: "Failed to update image" });
+    }
+  });
+
+  // Delete product image
+  app.delete("/api/product-images/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteProductImage(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting product image:", error);
+      res.status(500).json({ error: "Failed to delete image" });
+    }
+  });
+
+  // Reorder product images
+  app.post("/api/products/:id/images/reorder", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { imageIds } = req.body;
+      
+      if (!Array.isArray(imageIds)) {
+        return res.status(400).json({ error: "imageIds array is required" });
+      }
+      
+      await storage.reorderProductImages(productId, imageIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering images:", error);
+      res.status(500).json({ error: "Failed to reorder images" });
     }
   });
 
@@ -131,18 +249,13 @@ export async function registerRoutes(
     try {
       const { order, items } = req.body;
       
-      const validatedOrder = insertOrderSchema.parse(order);
-      
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: "Order must contain at least one item" });
       }
 
-      const createdOrder = await storage.createOrder(validatedOrder, items);
+      const createdOrder = await storage.createOrder(order, items);
       res.status(201).json(createdOrder);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid order data", details: error.errors });
-      }
       console.error("Error creating order:", error);
       res.status(500).json({ error: "Failed to create order" });
     }
@@ -176,12 +289,8 @@ export async function registerRoutes(
     try {
       const id = parseInt(req.params.id);
       const { trackingNumber } = req.body;
-      
-      if (!trackingNumber || typeof trackingNumber !== "string") {
-        return res.status(400).json({ error: "Tracking number is required" });
-      }
 
-      const order = await storage.updateOrderTracking(id, trackingNumber);
+      const order = await storage.updateOrderTracking(id, trackingNumber || "");
       
       if (!order) {
         return res.status(404).json({ error: "Order not found" });

@@ -1,5 +1,4 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, decimal, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,9 +7,24 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  compareAtPrice: decimal("compare_at_price", { precision: 10, scale: 2 }),
+  cost: decimal("cost", { precision: 10, scale: 2 }),
   imageUrl: text("image_url").notNull(),
   category: text("category").notNull(),
+  status: text("status").notNull().default("active"),
+  trackInventory: boolean("track_inventory").default(false),
+  inventory: integer("inventory"),
+  sku: text("sku"),
+  tags: text("tags"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const productImages = pgTable("product_images", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  altText: text("alt_text"),
+  sortOrder: integer("sort_order").notNull().default(0),
 });
 
 export const orders = pgTable("orders", {
@@ -40,6 +54,10 @@ export const insertProductSchema = createInsertSchema(products).omit({
   createdAt: true,
 });
 
+export const insertProductImageSchema = createInsertSchema(productImages).omit({
+  id: true,
+});
+
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
   createdAt: true,
@@ -53,6 +71,9 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
+
+export type InsertProductImage = z.infer<typeof insertProductImageSchema>;
+export type ProductImage = typeof productImages.$inferSelect;
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
