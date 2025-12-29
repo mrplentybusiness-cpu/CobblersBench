@@ -125,8 +125,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </p>
           </div>
         </div>
-        <div className="container mx-auto px-4 mt-8 pt-8 border-t border-primary-foreground/20 text-center text-xs text-primary-foreground/60">
-          © {new Date().getFullYear()} Cobbler's Bench. All rights reserved.
+        <div className="container mx-auto px-4 mt-8 pt-8 border-t border-primary-foreground/20 flex flex-col md:flex-row justify-between items-center text-xs text-primary-foreground/60">
+          <span>© {new Date().getFullYear()} Cobbler's Bench. All rights reserved.</span>
+          <Link href="/admin" className="hover:text-primary-foreground transition-colors mt-2 md:mt-0">Admin Login</Link>
         </div>
       </footer>
     </div>
