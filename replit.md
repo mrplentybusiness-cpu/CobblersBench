@@ -33,12 +33,23 @@ The backend serves both the API endpoints and static files in production. In dev
 - **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts` - shared between client and server
 - **Migrations**: Drizzle Kit with push-based migrations (`db:push`)
-- **Tables**: products, orders, order_items with proper foreign key relationships
+- **Tables**: products, product_images, orders, order_items with proper foreign key relationships
+
+### Product Management (Shopify-like)
+The products table includes comprehensive fields for professional product management:
+- **Status**: active/draft/archived - only active products shown on storefront
+- **Inventory**: Optional tracking with low-stock warnings (5 or fewer items)
+- **Pricing**: Price, compare-at price (for sales), cost per item (for margin calculation)
+- **SKU**: Stock keeping unit for internal tracking
+- **Tags**: Comma-separated tags for organization
 
 ### API Structure
 RESTful API endpoints under `/api/`:
-- `GET/POST /api/products` - List and create products
-- `GET/PUT/DELETE /api/products/:id` - Product CRUD operations
+- `GET /api/products` - List all products (admin)
+- `GET /api/products/active` - List active products only (storefront)
+- `POST /api/products` - Create product
+- `GET/PATCH/DELETE /api/products/:id` - Product CRUD operations
+- `GET/POST /api/products/:id/images` - Product image management
 - `GET/POST /api/orders` - List and create orders
 - `GET/PUT /api/orders/:id` - Order management and status updates
 - `POST /api/uploads/request-url` - Presigned URL generation for file uploads
