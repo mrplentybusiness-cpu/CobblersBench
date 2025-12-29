@@ -30,18 +30,11 @@ export default function Home() {
             Master craftsmanship for your beloved footwear and leather goods. 
             We restore quality, comfort, and style, one stitch at a time.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in slide-in-from-bottom-5 duration-700 delay-300">
-            <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-6 rounded-full" asChild>
-              <Link href="/shop">
-                View Services <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" className="text-white border-white/40 hover:bg-white/10 hover:text-white text-lg px-8 py-6 rounded-full" asChild>
-              <Link href="/admin">
-                Admin Access
-              </Link>
-            </Button>
-          </div>
+          <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-6 rounded-full animate-in slide-in-from-bottom-5 duration-700 delay-300" asChild>
+            <Link href="/shop">
+              View Services <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
         </div>
       </section>
 

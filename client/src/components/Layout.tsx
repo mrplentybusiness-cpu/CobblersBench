@@ -41,6 +41,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <nav className="hidden md:flex items-center gap-8">
             <NavLink href="/">Home</NavLink>
             <NavLink href="/shop">Shop & Services</NavLink>
+            <NavLink href="/admin">Admin</NavLink>
             {/* <NavLink href="/about">Our Story</NavLink> */}
             <Button variant="ghost" size="icon" className="relative text-foreground hover:text-primary" asChild>
               <Link href="/cart">
