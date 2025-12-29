@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Package, Edit } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Trash2, Plus, Package, Edit, Eye, Mail, MapPin } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Product, Order, OrderItem } from "@shared/schema";
@@ -20,6 +21,8 @@ export default function Admin() {
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState<'products' | 'orders'>('orders');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<(Order & { items: OrderItem[] }) | null>(null);
   const [editingTracking, setEditingTracking] = useState<number | null>(null);
   const [trackingNumber, setTrackingNumber] = useState("");
   const queryClient = useQueryClient();
@@ -34,7 +37,6 @@ export default function Admin() {
     }
   };
 
-  // Fetch orders
   const { data: orders = [], isLoading: ordersLoading } = useQuery<(Order & { items: OrderItem[] })[]>({
     queryKey: ['/api/orders'],
     queryFn: async () => {
@@ -45,7 +47,6 @@ export default function Admin() {
     enabled: isAuthenticated && activeTab === 'orders',
   });
 
-  // Fetch products
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ['/api/products'],
     queryFn: async () => {
@@ -56,7 +57,6 @@ export default function Admin() {
     enabled: isAuthenticated && activeTab === 'products',
   });
 
-  // Update order status
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
       const response = await fetch(`/api/orders/${id}/status`, {
@@ -67,32 +67,36 @@ export default function Admin() {
       if (!response.ok) throw new Error('Failed to update status');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedOrder) => {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+        setSelectedOrder({ ...selectedOrder, status: updatedOrder.status });
+      }
       toast({ title: "Status updated successfully" });
     },
   });
 
-  // Update tracking number
   const updateTrackingMutation = useMutation({
     mutationFn: async ({ id, trackingNumber }: { id: number; trackingNumber: string }) => {
       const response = await fetch(`/api/orders/${id}/tracking`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackingNumber }),
+        body: JSON.stringify({ trackingNumber: trackingNumber || "" }),
       });
       if (!response.ok) throw new Error('Failed to update tracking');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedOrder) => {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       setEditingTracking(null);
       setTrackingNumber("");
+      if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+        setSelectedOrder({ ...selectedOrder, trackingNumber: updatedOrder.trackingNumber });
+      }
       toast({ title: "Tracking number updated successfully" });
     },
   });
 
-  // Delete product
   const deleteProductMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
@@ -134,7 +138,6 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-muted/20 flex">
-      {/* Sidebar */}
       <div className="w-64 bg-card border-r p-6 hidden md:block">
         <div className="flex items-center gap-2 mb-8">
            <img src={logo} alt="Logo" className="h-8 w-8 object-contain" />
@@ -167,7 +170,6 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 p-8 overflow-auto">
         <div className="flex justify-between items-center mb-8">
            <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : 'Product Management'}</h1>
@@ -203,7 +205,7 @@ export default function Admin() {
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
-                    <TableRow key={order.id} data-testid={`order-row-${order.id}`}>
+                    <TableRow key={order.id} data-testid={`order-row-${order.id}`} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedOrder(order)}>
                       <TableCell className="font-medium">#{order.id}</TableCell>
                       <TableCell>{order.customerName}</TableCell>
                       <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
@@ -216,7 +218,7 @@ export default function Admin() {
                           {order.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         {editingTracking === order.id ? (
                           <div className="flex gap-2">
                             <Input 
@@ -242,7 +244,8 @@ export default function Admin() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setEditingTracking(order.id);
                                 setTrackingNumber(order.trackingNumber || "");
                               }}
@@ -253,18 +256,28 @@ export default function Admin() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <select 
-                          className="text-sm border rounded p-1"
-                          value={order.status}
-                          onChange={(e) => updateStatusMutation.mutate({ id: order.id, status: e.target.value })}
-                          data-testid={`select-status-${order.id}`}
-                        >
-                          <option>Pending Payment</option>
-                          <option>Paid</option>
-                          <option>Shipped</option>
-                          <option>Cancelled</option>
-                        </select>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedOrder(order)}
+                            data-testid={`button-view-order-${order.id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <select 
+                            className="text-sm border rounded p-1"
+                            value={order.status}
+                            onChange={(e) => updateStatusMutation.mutate({ id: order.id, status: e.target.value })}
+                            data-testid={`select-status-${order.id}`}
+                          >
+                            <option>Pending Payment</option>
+                            <option>Paid</option>
+                            <option>Shipped</option>
+                            <option>Cancelled</option>
+                          </select>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -285,7 +298,7 @@ export default function Admin() {
                   <DialogHeader>
                     <DialogTitle>Add New Product</DialogTitle>
                   </DialogHeader>
-                  <AddProductForm onSuccess={() => setIsAddProductOpen(false)} />
+                  <ProductForm onSuccess={() => setIsAddProductOpen(false)} />
                 </DialogContent>
               </Dialog>
             </div>
@@ -325,19 +338,29 @@ export default function Admin() {
                         <TableCell data-testid={`product-category-${product.id}`}>{product.category}</TableCell>
                         <TableCell data-testid={`product-price-${product.id}`}>${product.price}</TableCell>
                         <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-destructive"
-                            onClick={() => {
-                              if (confirm(`Delete ${product.name}?`)) {
-                                deleteProductMutation.mutate(product.id);
-                              }
-                            }}
-                            data-testid={`button-delete-product-${product.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => setEditingProduct(product)}
+                              data-testid={`button-edit-product-${product.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-destructive"
+                              onClick={() => {
+                                if (confirm(`Delete ${product.name}?`)) {
+                                  deleteProductMutation.mutate(product.id);
+                                }
+                              }}
+                              data-testid={`button-delete-product-${product.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -348,16 +371,181 @@ export default function Admin() {
           </div>
         )}
       </div>
+
+      {/* Order Detail Dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">Order #{selectedOrder?.id}</DialogTitle>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <Badge variant={
+                  selectedOrder.status === 'Paid' ? 'secondary' : 
+                  selectedOrder.status === 'Shipped' ? 'default' : 'outline'
+                } className="text-base px-3 py-1" data-testid="order-detail-status">
+                  {selectedOrder.status}
+                </Badge>
+                <span className="text-muted-foreground">
+                  Placed on {new Date(selectedOrder.createdAt).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </div>
+
+              <Separator />
+
+              {/* Customer Contact Information */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Mail className="h-5 w-5" /> Customer Information
+                </h3>
+                <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <span className="font-medium min-w-24">Name:</span>
+                    <span data-testid="order-detail-customer-name">{selectedOrder.customerName}</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="font-medium min-w-24">Email:</span>
+                    <a 
+                      href={`mailto:${selectedOrder.customerEmail}`} 
+                      className="text-primary hover:underline"
+                      data-testid="order-detail-customer-email"
+                    >
+                      {selectedOrder.customerEmail}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shipping Address */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <MapPin className="h-5 w-5" /> Shipping Address
+                </h3>
+                <div className="bg-muted/30 rounded-lg p-4" data-testid="order-detail-address">
+                  <p>{selectedOrder.shippingAddress}</p>
+                  <p>{selectedOrder.shippingCity}, {selectedOrder.shippingZip}</p>
+                </div>
+              </div>
+
+              {/* Order Items */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Package className="h-5 w-5" /> Order Items
+                </h3>
+                <div className="bg-muted/30 rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-right">Subtotal</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedOrder.items.map((item) => (
+                        <TableRow key={item.id} data-testid={`order-detail-item-${item.id}`}>
+                          <TableCell className="font-medium">{item.productName}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">${item.productPrice}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${(parseFloat(item.productPrice.toString()) * item.quantity).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/50">
+                        <TableCell colSpan={3} className="text-right font-bold">Total</TableCell>
+                        <TableCell className="text-right font-bold text-lg" data-testid="order-detail-total">
+                          ${selectedOrder.total}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Tracking Information */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Tracking Number</h3>
+                <div className="flex gap-2">
+                  <Input 
+                    value={selectedOrder.trackingNumber || ""}
+                    onChange={(e) => setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })}
+                    placeholder="Enter tracking number (or leave empty to clear)"
+                    data-testid="order-detail-tracking-input"
+                  />
+                  <Button 
+                    onClick={() => {
+                      updateTrackingMutation.mutate({ 
+                        id: selectedOrder.id, 
+                        trackingNumber: selectedOrder.trackingNumber || "" 
+                      });
+                    }}
+                    disabled={updateTrackingMutation.isPending}
+                    data-testid="order-detail-save-tracking"
+                  >
+                    {updateTrackingMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Status Update */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Update Status</h3>
+                <Select 
+                  value={selectedOrder.status} 
+                  onValueChange={(value) => {
+                    updateStatusMutation.mutate({ id: selectedOrder.id, status: value });
+                    setSelectedOrder({ ...selectedOrder, status: value });
+                  }}
+                >
+                  <SelectTrigger data-testid="order-detail-status-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending Payment">Pending Payment</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Shipped">Shipped</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Product</DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <ProductForm 
+              product={editingProduct} 
+              onSuccess={() => setEditingProduct(null)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () => void }) {
+  const [name, setName] = useState(product?.name || "");
+  const [description, setDescription] = useState(product?.description || "");
+  const [price, setPrice] = useState(product?.price?.toString() || "");
+  const [category, setCategory] = useState(product?.category || "");
+  const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
+  const [imagePreview, setImagePreview] = useState(product?.imageUrl || "");
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { uploadFile, isUploading } = useUpload({
@@ -371,11 +559,11 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
   });
 
   const createProductMutation = useMutation({
-    mutationFn: async (product: { name: string; description: string; price: string; category: string; imageUrl: string }) => {
+    mutationFn: async (productData: { name: string; description: string; price: string; category: string; imageUrl: string }) => {
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(product),
+        body: JSON.stringify(productData),
       });
       if (!response.ok) throw new Error('Failed to create product');
       return response.json();
@@ -387,13 +575,51 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
     },
   });
 
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, ...productData }: { id: number; name: string; description: string; price: string; category: string; imageUrl: string }) => {
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData),
+      });
+      if (!response.ok) throw new Error('Failed to update product');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({ title: "Product updated successfully" });
+      onSuccess();
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!imageUrl) {
       toast({ title: "Please upload an image", variant: "destructive" });
       return;
     }
-    createProductMutation.mutate({ name, description, price, category, imageUrl });
+    if (!category) {
+      toast({ title: "Please select a category", variant: "destructive" });
+      return;
+    }
+    
+    const productData = { name, description, price, category, imageUrl };
+    
+    if (product) {
+      updateProductMutation.mutate({ id: product.id, ...productData });
+    } else {
+      createProductMutation.mutate(productData);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+      await uploadFile(file);
+    }
   };
 
   return (
@@ -436,7 +662,7 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div>
         <Label htmlFor="category">Category</Label>
-        <Select value={category} onValueChange={setCategory} required>
+        <Select value={category} onValueChange={setCategory}>
           <SelectTrigger data-testid="select-product-category">
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
@@ -450,28 +676,36 @@ function AddProductForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div>
         <Label>Product Image</Label>
-        <div className="flex gap-2 items-center">
-          <Input 
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) uploadFile(file);
-            }}
-            disabled={isUploading}
-            data-testid="input-product-image"
-          />
-          {imageUrl && <span className="text-sm text-green-600">✓ Uploaded</span>}
-        </div>
+        {imagePreview && (
+          <div className="mb-2">
+            <img 
+              src={imagePreview} 
+              alt="Preview" 
+              className="h-24 w-24 rounded object-cover bg-muted"
+              data-testid="product-image-preview"
+            />
+          </div>
+        )}
+        <Input 
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          disabled={isUploading}
+          data-testid="input-product-image"
+        />
+        {isUploading && <p className="text-sm text-muted-foreground mt-1">Uploading...</p>}
+        {imageUrl && !isUploading && <p className="text-sm text-green-600 mt-1">✓ Image ready</p>}
       </div>
 
       <Button 
         type="submit" 
         className="w-full"
-        disabled={createProductMutation.isPending || isUploading}
-        data-testid="button-create-product"
+        disabled={createProductMutation.isPending || updateProductMutation.isPending || isUploading}
+        data-testid="button-save-product"
       >
-        {createProductMutation.isPending ? "Creating..." : "Create Product"}
+        {(createProductMutation.isPending || updateProductMutation.isPending) 
+          ? "Saving..." 
+          : product ? "Update Product" : "Create Product"}
       </Button>
     </form>
   );
