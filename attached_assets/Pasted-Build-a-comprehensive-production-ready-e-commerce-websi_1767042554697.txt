@@ -1,0 +1,53 @@
+Build a comprehensive, production-ready e-commerce website for a cobbler business called "Cobbler's Corner".
+
+Tech Stack & Infrastructure:
+
+Backend: Node.js with Express.
+
+Database: PostgreSQL (configure to use process.env.DATABASE_URL for Railway compatibility).
+
+Image Hosting: Cloudinary (CRITICAL: Use the Cloudinary API for image uploads so images persist after deployment; do not store images on the local file system).
+
+Frontend: EJS templates styled with TailwindCSS.
+
+Core Features:
+
+Public Storefront:
+
+Modern, Clean, and Responsive Design: The website must be visually appealing and fully responsive across all platforms, including Android and Apple mobile devices, tablets, and all major desktop browsers.
+
+Branding: Prominently feature the "Cobbler's Bench Shoe & Leather Repair" logo from image_0.png on the homepage and throughout the site.
+
+Shop Section: Grid view of products with images, prices, and descriptions.
+
+Cart: Functional shopping cart system.
+
+Checkout & Payment (Manual Venmo/Zelle Flow):
+
+Do not integrate a credit card processor like Stripe.
+
+Build a checkout form that collects Name, Email, and Shipping Address.
+
+Process: When the user clicks "Place Order", save the order to the database with a status of "Pending Payment".
+
+Confirmation Page: Display the text: "Order Placed! To finalize your shipment, please send the total amount via Venmo to [Insert Handle] or Zelle to [Insert Info]. We will process your order immediately upon receipt."
+
+Admin Dashboard (Protected Route):
+
+Simple secure login (e.g., using a hardcoded password in .env).
+
+Product Management: Full ability to Add, Edit, and Delete products. This must include an image upload feature that pushes files to Cloudinary and saves the URL in the database.
+
+Order Management: A table view of all orders. Include functionality to:
+
+View customer shipping details.
+
+Update Order Status (options: Pending Payment, Paid, Shipped, Cancelled, Refunded).
+
+Input/Edit Shipping Tracking numbers.
+
+Deployment Configuration:
+
+Generate a Dockerfile optimized for deployment on Railway.
+
+Ensure all configuration (DB connection, Cloudinary keys, Session secrets) is handled via Environment Variables.
