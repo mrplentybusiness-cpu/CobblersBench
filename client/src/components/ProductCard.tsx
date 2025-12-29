@@ -1,11 +1,14 @@
+import { useState } from "react";
 import type { Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
+import { ImageOff } from "lucide-react";
 
 export default function ProductCard({ product }: { product: Product }) {
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
+  const [imageError, setImageError] = useState(false);
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -18,12 +21,19 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <div className="group relative overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md flex flex-col h-full" data-testid={`product-card-${product.id}`}>
       <div className="aspect-square w-full overflow-hidden bg-muted">
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
-          data-testid={`product-image-${product.id}`}
-        />
+        {imageError ? (
+          <div className="h-full w-full flex items-center justify-center bg-muted text-muted-foreground">
+            <ImageOff className="h-12 w-12" />
+          </div>
+        ) : (
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+            data-testid={`product-image-${product.id}`}
+            onError={() => setImageError(true)}
+          />
+        )}
       </div>
       <div className="p-4 flex flex-col flex-1">
         <div className="flex justify-between items-start mb-2">
