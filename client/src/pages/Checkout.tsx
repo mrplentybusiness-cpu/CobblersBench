@@ -2,13 +2,13 @@ import Layout from "@/components/Layout";
 import { useCart } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Name is required"),
@@ -19,8 +19,10 @@ const formSchema = z.object({
 });
 
 export default function Checkout() {
-  const { total, clearCart } = useCart();
+  const { items, total, clearCart, setLastOrderId } = useCart();
   const [, setLocation] = useLocation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,15 +35,53 @@ export default function Checkout() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, we would send this to the backend
-    console.log(values);
-    clearCart();
-    setLocation("/confirmation");
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const orderData = {
+        order: {
+          customerName: values.fullName,
+          customerEmail: values.email,
+          shippingAddress: values.address,
+          shippingCity: values.city,
+          shippingZip: values.zipCode,
+          total: total().toFixed(2),
+        },
+        items: items.map(item => ({
+          productId: item.id,
+          productName: item.name,
+          productPrice: item.price.toString(),
+          quantity: item.quantity,
+        })),
+      };
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const order = await response.json();
+      setLastOrderId(order.id);
+      clearCart();
+      setLocation("/confirmation");
+    } catch (err) {
+      console.error('Error creating order:', err);
+      setError('Failed to place order. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   if (total() === 0) {
-    // Redirect empty cart
     setLocation("/cart");
     return null;
   }
@@ -50,6 +90,12 @@ export default function Checkout() {
     <Layout>
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="font-serif text-3xl font-bold mb-8 text-center">Checkout</h1>
+
+        {error && (
+          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded mb-6" data-testid="error-checkout">
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* Form */}
@@ -68,7 +114,7 @@ export default function Checkout() {
                     <FormItem>
                       <FormLabel>Full Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                        <Input placeholder="John Doe" {...field} data-testid="input-fullName" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -82,7 +128,7 @@ export default function Checkout() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="john@example.com" type="email" {...field} />
+                        <Input placeholder="john@example.com" type="email" {...field} data-testid="input-email" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -96,7 +142,7 @@ export default function Checkout() {
                     <FormItem>
                       <FormLabel>Street Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="123 Cobbler Ln" {...field} />
+                        <Input placeholder="123 Cobbler Ln" {...field} data-testid="input-address" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -111,7 +157,7 @@ export default function Checkout() {
                       <FormItem>
                         <FormLabel>City</FormLabel>
                         <FormControl>
-                          <Input placeholder="New York" {...field} />
+                          <Input placeholder="New York" {...field} data-testid="input-city" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -124,7 +170,7 @@ export default function Checkout() {
                       <FormItem>
                         <FormLabel>Zip Code</FormLabel>
                         <FormControl>
-                          <Input placeholder="10001" {...field} />
+                          <Input placeholder="10001" {...field} data-testid="input-zipCode" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -133,8 +179,13 @@ export default function Checkout() {
                 </div>
 
                 <div className="pt-6">
-                  <Button type="submit" className="w-full text-lg h-12 bg-primary hover:bg-primary/90">
-                    Place Order (${total().toFixed(2)})
+                  <Button 
+                    type="submit" 
+                    className="w-full text-lg h-12 bg-primary hover:bg-primary/90"
+                    disabled={isSubmitting}
+                    data-testid="button-submit-order"
+                  >
+                    {isSubmitting ? "Placing Order..." : `Place Order ($${total().toFixed(2)})`}
                   </Button>
                   <p className="text-xs text-muted-foreground mt-4 text-center">
                     By placing this order, you agree to our Terms of Service. 

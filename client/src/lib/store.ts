@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product } from '@/lib/mockData';
+import type { Product } from '@shared/schema';
 
 export interface CartItem extends Product {
   quantity: number;
@@ -8,10 +8,12 @@ export interface CartItem extends Product {
 
 interface CartStore {
   items: CartItem[];
+  lastOrderId: number | null;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
+  setLastOrderId: (orderId: number) => void;
   total: () => number;
 }
 
@@ -19,6 +21,7 @@ export const useCart = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      lastOrderId: null,
       addToCart: (product) => {
         const items = get().items;
         const existingItem = items.find((item) => item.id === product.id);
@@ -50,9 +53,10 @@ export const useCart = create<CartStore>()(
         });
       },
       clearCart: () => set({ items: [] }),
+      setLastOrderId: (orderId) => set({ lastOrderId: orderId }),
       total: () => {
         return get().items.reduce(
-          (total, item) => total + item.price * item.quantity,
+          (total, item) => total + parseFloat(item.price.toString()) * item.quantity,
           0
         );
       },
