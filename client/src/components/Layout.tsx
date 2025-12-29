@@ -112,16 +112,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div>
             <h4 className="font-bold mb-4">Visit Us</h4>
             <p className="text-sm text-primary-foreground/80">
-              123 Leather Lane<br />
-              Craftsman Valley, CV 90210<br />
-              (555) 123-4567
+              1600 Falmouth Rd<br />
+              Centerville, MA 02632<br />
+              +1 (508) 775-6221
             </p>
           </div>
           <div>
             <h4 className="font-bold mb-4">Hours</h4>
             <p className="text-sm text-primary-foreground/80">
-              Mon - Fri: 9am - 6pm<br />
-              Sat: 10am - 4pm<br />
+              Mon - Fri: 8:00 AM – 4:00 PM<br />
+              Sat: 8:00 AM – 12:00 PM<br />
               Sun: Closed
             </p>
           </div>
