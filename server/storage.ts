@@ -36,6 +36,7 @@ export interface IStorage {
   createOrder(order: InsertOrder, items: Omit<InsertOrderItem, "orderId">[]): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
   updateOrderTracking(id: number, trackingNumber: string): Promise<Order | undefined>;
+  deleteOrder(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -192,6 +193,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.orders.id, id))
       .returning();
     return results[0];
+  }
+
+  async deleteOrder(id: number): Promise<boolean> {
+    const results = await this.db
+      .delete(schema.orders)
+      .where(eq(schema.orders.id, id))
+      .returning();
+    return results.length > 0;
   }
 }
 

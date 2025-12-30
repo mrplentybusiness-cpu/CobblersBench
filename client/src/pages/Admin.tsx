@@ -101,6 +101,20 @@ export default function Admin() {
     },
   });
 
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/orders/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete order');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      setSelectedOrder(null);
+      toast({ title: "Order deleted successfully" });
+    },
+  });
+
   const deleteProductMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
@@ -298,6 +312,19 @@ export default function Admin() {
                             <option>Shipped</option>
                             <option>Cancelled</option>
                           </select>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this order?')) {
+                                deleteOrderMutation.mutate(order.id);
+                              }
+                            }}
+                            data-testid={`button-delete-order-${order.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
