@@ -1,0 +1,132 @@
+2025-12-29 17:59:46.31
+ee775ba8
+User
+errno: -3001,
+2025-12-29 17:59:46.31
+ee775ba8
+User
+at /home/runner/workspace/dist/index.cjs:64:13326
+2025-12-29 17:59:46.31
+ee775ba8
+User
+syscall: 'getaddrinfo',
+2025-12-29 17:59:46.31
+ee775ba8
+User
+10:59:46 PM [express] POST /api/products 500 in 6ms :: {"error":"Failed to create product"}
+2025-12-29 17:59:46.97
+ee775ba8
+User
+code: 'EAI_AGAIN',
+2025-12-29 17:59:46.97
+ee775ba8
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-12-29 17:59:46.97
+ee775ba8
+User
+hostname: 'helium'
+2025-12-29 17:59:46.97
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:31398
+2025-12-29 17:59:46.97
+ee775ba8
+User
+syscall: 'getaddrinfo',
+2025-12-29 17:59:46.97
+ee775ba8
+User
+errno: -3001,
+2025-12-29 17:59:46.97
+ee775ba8
+User
+}
+2025-12-29 17:59:46.97
+ee775ba8
+User
+at /home/runner/workspace/dist/index.cjs:64:13326
+2025-12-29 17:59:46.97
+ee775ba8
+User
+Error creating product: Error: getaddrinfo EAI_AGAIN helium
+2025-12-29 17:59:46.97
+ee775ba8
+User
+at async Yd.createProduct (/home/runner/workspace/dist/index.cjs:70:100032)
+2025-12-29 17:59:46.97
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:106865 {
+2025-12-29 17:59:46.97
+ee775ba8
+User
+10:59:46 PM [express] POST /api/products 500 in 7ms :: {"error":"Failed to create product"}
+2025-12-29 17:59:52.74
+ee775ba8
+User
+errno: -3001,
+2025-12-29 17:59:52.74
+ee775ba8
+User
+at /home/runner/workspace/dist/index.cjs:64:13326
+2025-12-29 17:59:52.74
+ee775ba8
+User
+syscall: 'getaddrinfo',
+2025-12-29 17:59:52.74
+ee775ba8
+User
+}
+2025-12-29 17:59:52.74
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:31398
+2025-12-29 17:59:52.74
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:106865 {
+2025-12-29 17:59:52.74
+ee775ba8
+User
+code: 'EAI_AGAIN',
+2025-12-29 17:59:52.74
+ee775ba8
+User
+hostname: 'helium'
+2025-12-29 17:59:52.74
+ee775ba8
+User
+Error creating product: Error: getaddrinfo EAI_AGAIN helium
+2025-12-29 17:59:52.74
+ee775ba8
+User
+at async Yd.createProduct (/home/runner/workspace/dist/index.cjs:70:100032)
+2025-12-29 17:59:52.74
+ee775ba8
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-12-29 17:59:52.74
+ee775ba8
+User
+10:59:52 PM [express] POST /api/products 500 in 10ms :: {"error":"Failed to create product"}
+2025-12-29 17:59:53.31
+ee775ba8
+User
+errno: -3001,
+2025-12-29 17:59:53.31
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:106865 {
+2025-12-29 17:59:53.31
+ee775ba8
+User
+syscall: 'getaddrinfo',
+2025-12-29 17:59:53.31
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:31398
+2025-12-29 17:59:53.31
+ee775ba8
+User
+hostname: 'helium'

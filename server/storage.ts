@@ -42,8 +42,10 @@ export class DatabaseStorage implements IStorage {
   private db: ReturnType<typeof drizzle>;
 
   constructor() {
+    const dbUrl = process.env.DATABASE_URL;
+    console.log(`[DB] Connecting to database, URL starts with: ${dbUrl?.substring(0, 30)}...`);
     const pool = new Pool({
-      connectionString: process.env.DATABASE_URL!,
+      connectionString: dbUrl!,
     });
     this.db = drizzle(pool, { schema });
   }
