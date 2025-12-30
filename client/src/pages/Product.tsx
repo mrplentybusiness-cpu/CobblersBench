@@ -29,11 +29,12 @@ export default function ProductPage() {
   const { data: product, isLoading, error } = useQuery<Product>({
     queryKey: ['/api/products', productId],
     queryFn: async () => {
+      if (!productId) throw new Error('Invalid product ID');
       const response = await fetch(`/api/products/${productId}`);
       if (!response.ok) throw new Error('Failed to fetch product');
       return response.json();
     },
-    enabled: !!productId,
+    enabled: productId !== null && productId > 0,
   });
 
   const handleAddToCart = () => {
