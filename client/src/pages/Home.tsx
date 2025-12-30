@@ -41,8 +41,8 @@ export default function Home() {
             We restore quality, comfort, and style, one stitch at a time.
           </p>
           <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-6 rounded-full animate-in slide-in-from-bottom-5 duration-700 delay-300" asChild>
-            <Link href="/shop">
-              View Services <ArrowRight className="ml-2 h-5 w-5" />
+            <Link href="/services">
+              Our Services <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
         </div>
