@@ -2,11 +2,23 @@ import Layout from "@/components/Layout";
 import ProductCard from "@/components/ProductCard";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
+import { Loader2, Grid3X3, LayoutGrid } from "lucide-react";
+
+type FilterType = 'all' | 'repair' | 'goods' | 'care';
+
+const filterConfig: { key: FilterType; label: string; description: string }[] = [
+  { key: 'all', label: 'All Products', description: 'Browse our complete collection' },
+  { key: 'repair', label: 'Repair Services', description: 'Professional shoe & leather repair' },
+  { key: 'care', label: 'Shoe Care', description: 'Premium care products' },
+  { key: 'goods', label: 'Leather Goods', description: 'Handcrafted leather accessories' },
+];
 
 export default function Shop() {
-  const [filter, setFilter] = useState<'all' | 'repair' | 'goods' | 'care'>('all');
+  const [filter, setFilter] = useState<FilterType>('all');
+  const [gridSize, setGridSize] = useState<'normal' | 'large'>('normal');
 
   const { data: products = [], isLoading, error } = useQuery<Product[]>({
     queryKey: ['/api/products/active'],
@@ -21,81 +33,131 @@ export default function Shop() {
     ? products 
     : products.filter(p => p.category === filter);
 
+  const getCategoryCount = (category: FilterType) => {
+    if (category === 'all') return products.length;
+    return products.filter(p => p.category === category).length;
+  };
+
+  const currentFilterConfig = filterConfig.find(f => f.key === filter);
+
   return (
     <Layout>
-      <div className="bg-muted/30 py-12">
+      <div className="bg-gradient-to-b from-muted/50 to-background py-16 border-b">
         <div className="container mx-auto px-4">
-          <h1 className="font-serif text-4xl font-bold mb-4">Shop & Services</h1>
-          <p className="text-muted-foreground max-w-2xl">
-            Browse our repair services, care products, and handcrafted leather goods. 
-            Select a service to add it to your order.
+          <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4" data-testid="shop-title">
+            {currentFilterConfig?.label || 'Shop'}
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl" data-testid="shop-description">
+            {currentFilterConfig?.description}
           </p>
+          {!isLoading && (
+            <p className="text-sm text-muted-foreground mt-4" data-testid="product-count">
+              {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          <Button 
-            variant={filter === 'all' ? "default" : "outline"}
-            onClick={() => setFilter('all')}
-            className="rounded-full"
-            data-testid="filter-all"
-          >
-            All Items
-          </Button>
-          <Button 
-            variant={filter === 'repair' ? "default" : "outline"}
-            onClick={() => setFilter('repair')}
-            className="rounded-full"
-            data-testid="filter-repair"
-          >
-            Repairs
-          </Button>
-          <Button 
-            variant={filter === 'care' ? "default" : "outline"}
-            onClick={() => setFilter('care')}
-            className="rounded-full"
-            data-testid="filter-care"
-          >
-            Shoe Care
-          </Button>
-          <Button 
-            variant={filter === 'goods' ? "default" : "outline"}
-            onClick={() => setFilter('goods')}
-            className="rounded-full"
-            data-testid="filter-goods"
-          >
-            Leather Goods
-          </Button>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div className="flex flex-wrap gap-2">
+            {filterConfig.map(({ key, label }) => (
+              <Button 
+                key={key}
+                variant={filter === key ? "default" : "outline"}
+                onClick={() => setFilter(key)}
+                className="rounded-full"
+                data-testid={`filter-${key}`}
+              >
+                {label}
+                <Badge 
+                  variant={filter === key ? "secondary" : "outline"} 
+                  className="ml-2 text-xs"
+                >
+                  {getCategoryCount(key)}
+                </Badge>
+              </Button>
+            ))}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden md:inline">View:</span>
+            <div className="flex border rounded-lg overflow-hidden">
+              <Button
+                variant={gridSize === 'normal' ? "secondary" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none"
+                onClick={() => setGridSize('normal')}
+                data-testid="grid-normal"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={gridSize === 'large' ? "secondary" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none"
+                onClick={() => setGridSize('large')}
+                data-testid="grid-large"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {/* Loading State */}
         {isLoading && (
-          <div className="text-center py-12" data-testid="loading-products">
+          <div className="flex flex-col items-center justify-center py-24" data-testid="loading-products">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground">Loading products...</p>
           </div>
         )}
 
-        {/* Error State */}
         {error && (
-          <div className="text-center py-12" data-testid="error-products">
-            <p className="text-destructive">Failed to load products. Please try again.</p>
+          <div className="text-center py-24 border rounded-lg bg-muted/20" data-testid="error-products">
+            <p className="text-destructive mb-4">Failed to load products.</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
           </div>
         )}
 
-        {/* Grid */}
         {!isLoading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <>
             {filteredProducts.length === 0 ? (
-              <div className="col-span-full text-center py-12" data-testid="no-products">
-                <p className="text-muted-foreground">No products found</p>
+              <div className="text-center py-24 border rounded-lg bg-muted/20" data-testid="no-products">
+                <p className="text-muted-foreground mb-2">No products found</p>
+                <p className="text-sm text-muted-foreground">
+                  Try selecting a different category
+                </p>
               </div>
             ) : (
-              filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))
+              <div 
+                className={`grid gap-6 ${
+                  gridSize === 'large' 
+                    ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
+                    : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                }`}
+              >
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
             )}
+          </>
+        )}
+
+        {!isLoading && !error && filteredProducts.length > 0 && (
+          <div className="mt-16 py-12 border-t text-center">
+            <h2 className="font-serif text-2xl font-semibold mb-4">Need Something Custom?</h2>
+            <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
+              We specialize in custom leather work and specialty repairs. 
+              Contact us to discuss your unique project.
+            </p>
+            <Button variant="outline" size="lg" asChild>
+              <a href="tel:+15087756221" data-testid="button-call-us">
+                Call (508) 775-6221
+              </a>
+            </Button>
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
+import Product from "@/pages/Product";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
 import Confirmation from "@/pages/Confirmation";
@@ -17,6 +18,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/shop" component={Shop} />
+      <Route path="/product/:id" component={Product} />
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/confirmation" component={Confirmation} />
