@@ -36,6 +36,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <span className="text-xs text-muted-foreground tracking-widest uppercase">Shoe & Leather Repair</span>
             </div>
           </Link>
+          <span className="hidden lg:block text-sm italic text-foreground ml-4">"We doctor your shoes and save your sole."</span>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
