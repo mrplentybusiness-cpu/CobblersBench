@@ -1,7 +1,7 @@
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { CheckCircle2, Copy, Package } from "lucide-react";
+import { CheckCircle2, Copy, Package, Wrench, MapPin, Phone, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/store";
 import { useQuery } from "@tanstack/react-query";
@@ -88,7 +88,60 @@ export default function Confirmation() {
                   ))}
                 </div>
               </div>
+
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Shipping To
+                </h3>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>{order.customerName}</p>
+                  <p>{order.shippingAddress}</p>
+                  <p>{order.shippingCity}{order.shippingState ? `, ${order.shippingState}` : ''} {order.shippingZip}</p>
+                  {order.customerPhone && (
+                    <p className="flex items-center gap-1 mt-2">
+                      <Phone className="h-3 w-3" /> {order.customerPhone}
+                    </p>
+                  )}
+                  <p className="flex items-center gap-1">
+                    <Mail className="h-3 w-3" /> {order.customerEmail}
+                  </p>
+                </div>
+              </div>
+
+              {order.repairDescription && (
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Wrench className="h-4 w-4" />
+                    Repair Description
+                  </h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded" data-testid="text-repair-description">
+                    {order.repairDescription}
+                  </p>
+                </div>
+              )}
             </div>
+
+            {order.repairDescription && (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-8 shadow-sm mb-8 text-left">
+                <h2 className="font-serif text-xl font-bold mb-4 flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Next Step: Ship Your Items
+                </h2>
+                <p className="mb-4 text-muted-foreground">
+                  Please mail your items for repair to:
+                </p>
+                <address className="not-italic bg-background p-4 rounded border mb-4">
+                  <strong>Cobbler's Bench</strong><br />
+                  1600 Falmouth Rd (Route 28)<br />
+                  Centerville, MA 02632
+                </address>
+                <p className="text-sm text-muted-foreground">
+                  Print this confirmation page and include it with your package. 
+                  We will call you at {order.customerPhone || 'the phone number provided'} to verify and discuss your repair.
+                </p>
+              </div>
+            )}
 
             <div className="bg-card border rounded-xl p-8 shadow-sm mb-8 text-left">
               <h2 className="font-serif text-2xl font-bold mb-4 text-center border-b pb-4">Final Step: Payment</h2>
