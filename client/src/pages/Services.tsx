@@ -103,13 +103,25 @@ export default function Services() {
                 ))}
               </ul>
             </div>
-            <div className="rounded-xl overflow-hidden shadow-lg">
-              <img 
-                src={bootRepair} 
-                alt="Boot repair before and after - leather restored and polished" 
-                className="w-full h-auto"
-                data-testid="img-boot-repair"
-              />
+            <div>
+              <div className="rounded-xl overflow-hidden shadow-lg mb-6">
+                <img 
+                  src={bootRepair} 
+                  alt="Boot repair before and after - leather restored and polished" 
+                  className="w-full h-auto"
+                  data-testid="img-boot-repair"
+                />
+              </div>
+              <div className="bg-muted rounded-xl p-6">
+                <h3 className="font-serif text-xl font-bold text-foreground mb-2 flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-red-500" />
+                  Do you have a Shoe-Eating Dog?
+                </h3>
+                <p className="text-muted-foreground">
+                  Training a puppy is not always easy, especially if your shoes are part of the learning curve. 
+                  Bring us your chewed shoes — we've seen it all and can restore most damage!
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -179,17 +191,7 @@ export default function Services() {
                   We specialize in restoring the iconic red soles and keeping your designer shoes looking like new.
                 </p>
               </div>
-              <div className="bg-muted rounded-xl p-6">
-                <h3 className="font-serif text-xl font-bold text-foreground mb-2 flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-red-500" />
-                  Do you have a Shoe-Eating Dog?
-                </h3>
-                <p className="text-muted-foreground">
-                  Training a puppy is not always easy, especially if your shoes are part of the learning curve. 
-                  Bring us your chewed shoes — we've seen it all and can restore most damage!
-                </p>
               </div>
-            </div>
             <div className="rounded-xl overflow-hidden shadow-lg">
               <img 
                 src={louboutinRepair} 
