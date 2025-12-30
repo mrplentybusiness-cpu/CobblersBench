@@ -40,7 +40,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
             <NavLink href="/">Home</NavLink>
-            <NavLink href="/shop">Shop & Services</NavLink>
+            <NavLink href="/services">Our Services</NavLink>
+            <NavLink href="/shop">Shop</NavLink>
             <NavLink href="/admin">Admin</NavLink>
             {/* <NavLink href="/about">Our Story</NavLink> */}
             <Button variant="ghost" size="icon" className="relative text-foreground hover:text-primary" asChild>
@@ -79,8 +80,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <Link href="/" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Home
                   </Link>
+                  <Link href="/services" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
+                    Our Services
+                  </Link>
                   <Link href="/shop" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
-                    Shop & Services
+                    Shop
                   </Link>
                   <Link href="/cart" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Cart ({cartCount})
