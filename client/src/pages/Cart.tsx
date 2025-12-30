@@ -27,7 +27,7 @@ export default function Cart() {
               {items.map((item) => (
                 <div key={item.id} className="flex gap-4 p-4 rounded-lg border bg-card">
                   <div className="h-24 w-24 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                    <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
                   </div>
                   
                   <div className="flex-1 flex flex-col justify-between">
@@ -36,7 +36,7 @@ export default function Cart() {
                         <h3 className="font-serif font-medium text-lg">{item.name}</h3>
                         <p className="text-sm text-muted-foreground">{item.category}</p>
                       </div>
-                      <p className="font-bold">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-bold">${(parseFloat(String(item.price)) * item.quantity).toFixed(2)}</p>
                     </div>
                     
                     <div className="flex justify-between items-center mt-4">
