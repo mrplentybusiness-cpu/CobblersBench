@@ -1,0 +1,132 @@
+2025-12-29 16:54:43.62
+ee775ba8
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2025-12-29 16:54:43.62
+ee775ba8
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-12-29 16:54:45.74
+ee775ba8
+User
+9:54:45 PM [express] serving on port 5000
+2025-12-29 16:55:36.11
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:106373 {
+2025-12-29 16:55:36.11
+ee775ba8
+User
+errno: -3001,
+2025-12-29 16:55:36.11
+ee775ba8
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-12-29 16:55:36.11
+ee775ba8
+User
+Error fetching products: Error: getaddrinfo EAI_AGAIN helium
+2025-12-29 16:55:36.11
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:31398
+2025-12-29 16:55:36.11
+ee775ba8
+User
+code: 'EAI_AGAIN',
+2025-12-29 16:55:36.11
+ee775ba8
+User
+}
+2025-12-29 16:55:36.11
+ee775ba8
+User
+at /home/runner/workspace/dist/index.cjs:64:13326
+2025-12-29 16:55:36.11
+ee775ba8
+User
+hostname: 'helium'
+2025-12-29 16:55:36.11
+ee775ba8
+User
+syscall: 'getaddrinfo',
+2025-12-29 16:55:36.11
+ee775ba8
+User
+9:55:36 PM [express] GET /api/products 500 in 29ms :: {"error":"Failed to fetch products"}
+2025-12-29 16:55:39.58
+ee775ba8
+User
+syscall: 'getaddrinfo',
+2025-12-29 16:55:39.58
+ee775ba8
+User
+}
+2025-12-29 16:55:39.58
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:31398
+2025-12-29 16:55:39.58
+ee775ba8
+User
+code: 'EAI_AGAIN',
+2025-12-29 16:55:39.58
+ee775ba8
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-12-29 16:55:39.58
+ee775ba8
+User
+at /home/runner/workspace/dist/index.cjs:64:13326
+2025-12-29 16:55:39.58
+ee775ba8
+User
+Error fetching products: Error: getaddrinfo EAI_AGAIN helium
+2025-12-29 16:55:39.58
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:106373 {
+2025-12-29 16:55:39.58
+ee775ba8
+User
+hostname: 'helium'
+2025-12-29 16:55:39.58
+ee775ba8
+User
+errno: -3001,
+2025-12-29 16:55:39.58
+ee775ba8
+User
+9:55:39 PM [express] GET /api/products 500 in 6ms :: {"error":"Failed to fetch products"}
+2025-12-29 16:55:52.16
+ee775ba8
+User
+at async Yd.getAllOrders (/home/runner/workspace/dist/index.cjs:70:100316)
+2025-12-29 16:55:52.16
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:31398
+2025-12-29 16:55:52.16
+ee775ba8
+User
+at async /home/runner/workspace/dist/index.cjs:70:107875 {
+2025-12-29 16:55:52.16
+ee775ba8
+User
+code: 'EAI_AGAIN',
+2025-12-29 16:55:52.16
+ee775ba8
+User
+hostname: 'helium'
+2025-12-29 16:55:52.16
+ee775ba8
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-12-29 16:55:52.16
+ee775ba8
+User
+syscall: 'getaddrinfo',
+2025-12-29 16:55:52.16
+ee775ba8
+User
+Error fetching orders: Error: getaddrinfo EAI_AGAIN helium
