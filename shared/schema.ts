@@ -93,3 +93,25 @@ export type Order = typeof orders.$inferSelect;
 
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
+
+export const serviceInquiries = pgTable("service_inquiries", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  customerPhone: text("customer_phone"),
+  serviceType: text("service_type").notNull(),
+  description: text("description").notNull(),
+  status: text("status").notNull().default("new"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertServiceInquirySchema = createInsertSchema(serviceInquiries).omit({
+  id: true,
+  createdAt: true,
+  status: true,
+  adminNotes: true,
+});
+
+export type InsertServiceInquiry = z.infer<typeof insertServiceInquirySchema>;
+export type ServiceInquiry = typeof serviceInquiries.$inferSelect;

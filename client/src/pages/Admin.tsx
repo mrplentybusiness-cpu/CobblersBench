@@ -12,10 +12,10 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Product, Order, OrderItem } from "@shared/schema";
+import type { Product, Order, OrderItem, ServiceInquiry } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploader } from "@/components/ImageUploader";
 
@@ -23,7 +23,7 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders'>('orders');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries'>('orders');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<(Order & { items: OrderItem[] }) | null>(null);
@@ -32,6 +32,9 @@ export default function Admin() {
   const [orderFilter, setOrderFilter] = useState<'active' | 'archived' | 'all'>('active');
   const [editingNotes, setEditingNotes] = useState<number | null>(null);
   const [notesText, setNotesText] = useState("");
+  const [selectedInquiry, setSelectedInquiry] = useState<ServiceInquiry | null>(null);
+  const [editingInquiryNotes, setEditingInquiryNotes] = useState<number | null>(null);
+  const [inquiryNotesText, setInquiryNotesText] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -77,6 +80,70 @@ export default function Admin() {
       return response.json();
     },
     enabled: isAuthenticated && activeTab === 'products',
+  });
+
+  const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<ServiceInquiry[]>({
+    queryKey: ['/api/service-inquiries'],
+    queryFn: async () => {
+      const response = await fetch('/api/service-inquiries');
+      if (!response.ok) throw new Error('Failed to fetch inquiries');
+      return response.json();
+    },
+    enabled: isAuthenticated && activeTab === 'inquiries',
+  });
+
+  const updateInquiryStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await fetch(`/api/service-inquiries/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error('Failed to update status');
+      return response.json();
+    },
+    onSuccess: (updatedInquiry) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/service-inquiries'] });
+      if (selectedInquiry && selectedInquiry.id === updatedInquiry.id) {
+        setSelectedInquiry(updatedInquiry);
+      }
+      toast({ title: "Status updated" });
+    },
+  });
+
+  const updateInquiryNotesMutation = useMutation({
+    mutationFn: async ({ id, adminNotes }: { id: number; adminNotes: string }) => {
+      const response = await fetch(`/api/service-inquiries/${id}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminNotes }),
+      });
+      if (!response.ok) throw new Error('Failed to update notes');
+      return response.json();
+    },
+    onSuccess: (updatedInquiry) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/service-inquiries'] });
+      setEditingInquiryNotes(null);
+      setInquiryNotesText("");
+      if (selectedInquiry && selectedInquiry.id === updatedInquiry.id) {
+        setSelectedInquiry(updatedInquiry);
+      }
+      toast({ title: "Notes saved" });
+    },
+  });
+
+  const deleteInquiryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/service-inquiries/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete inquiry');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/service-inquiries'] });
+      setSelectedInquiry(null);
+      toast({ title: "Inquiry deleted" });
+    },
   });
 
   const updateStatusMutation = useMutation({
@@ -292,6 +359,17 @@ export default function Admin() {
           >
             <Plus className="mr-2 h-4 w-4" /> Products
           </Button>
+          <Button 
+            variant={activeTab === 'inquiries' ? 'default' : 'ghost'} 
+            className="w-full justify-start"
+            onClick={() => setActiveTab('inquiries')}
+            data-testid="tab-inquiries"
+          >
+            <MessageSquare className="mr-2 h-4 w-4" /> Service Inquiries
+            {inquiries.filter(i => i.status === 'new').length > 0 && (
+              <Badge variant="destructive" className="ml-auto">{inquiries.filter(i => i.status === 'new').length}</Badge>
+            )}
+          </Button>
         </nav>
 
         <div className="mt-auto pt-8">
@@ -303,7 +381,7 @@ export default function Admin() {
 
       <div className="flex-1 p-8 overflow-auto">
         <div className="flex justify-between items-center mb-8">
-           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : 'Product Management'}</h1>
+           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : 'Service Inquiries'}</h1>
            <div className="md:hidden">
               <Link href="/" className="text-sm text-primary">
                 Back to Store
@@ -490,7 +568,7 @@ export default function Admin() {
               )}
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'products' ? (
           <div className="space-y-6">
             <div className="flex justify-end">
               <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
@@ -616,8 +694,287 @@ export default function Admin() {
               )}
             </div>
           </div>
-        )}
+        ) : activeTab === 'inquiries' ? (
+          <div className="space-y-4">
+            <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+              {inquiriesLoading ? (
+                <div className="p-8 text-center text-muted-foreground" data-testid="loading-inquiries">
+                  Loading inquiries...
+                </div>
+              ) : inquiries.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground" data-testid="no-inquiries">
+                  No service inquiries yet. When customers submit the form on the Services page, they'll appear here.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Service Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inquiries.map((inquiry) => (
+                      <TableRow 
+                        key={inquiry.id} 
+                        data-testid={`inquiry-row-${inquiry.id}`} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setSelectedInquiry(inquiry)}
+                      >
+                        <TableCell className="text-muted-foreground">
+                          {new Date(inquiry.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{inquiry.customerName}</div>
+                            <div className="text-xs text-muted-foreground">{inquiry.customerEmail}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell data-testid={`inquiry-service-${inquiry.id}`}>
+                          {inquiry.serviceType}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Select 
+                            value={inquiry.status} 
+                            onValueChange={(value) => updateInquiryStatusMutation.mutate({ id: inquiry.id, status: value })}
+                          >
+                            <SelectTrigger className="w-32 h-8" data-testid={`inquiry-status-${inquiry.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="new">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-3 w-3 text-blue-500" />
+                                  New
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="in-progress">
+                                <div className="flex items-center gap-2">
+                                  <MessageSquare className="h-3 w-3 text-yellow-500" />
+                                  In Progress
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="closed">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-3 w-3 text-green-500" />
+                                  Closed
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setSelectedInquiry(inquiry)}
+                              data-testid={`button-view-inquiry-${inquiry.id}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this inquiry?')) {
+                                  deleteInquiryMutation.mutate(inquiry.id);
+                                }
+                              }}
+                              data-testid={`button-delete-inquiry-${inquiry.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
+
+      {/* Inquiry Detail Dialog */}
+      <Dialog open={!!selectedInquiry} onOpenChange={() => setSelectedInquiry(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl flex items-center gap-3">
+              Service Inquiry #{selectedInquiry?.id}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedInquiry && (
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge 
+                  variant={selectedInquiry.status === 'new' ? 'default' : selectedInquiry.status === 'in-progress' ? 'secondary' : 'outline'}
+                  className={`text-sm px-3 py-1 ${
+                    selectedInquiry.status === 'new' ? 'bg-blue-600' : 
+                    selectedInquiry.status === 'in-progress' ? 'bg-yellow-500 text-black' : 
+                    'bg-green-600 text-white'
+                  }`}
+                  data-testid="inquiry-detail-status"
+                >
+                  {selectedInquiry.status === 'new' && <Clock className="h-4 w-4 mr-1" />}
+                  {selectedInquiry.status === 'in-progress' && <MessageSquare className="h-4 w-4 mr-1" />}
+                  {selectedInquiry.status === 'closed' && <CheckCircle className="h-4 w-4 mr-1" />}
+                  {selectedInquiry.status.charAt(0).toUpperCase() + selectedInquiry.status.slice(1)}
+                </Badge>
+                <span className="text-muted-foreground text-sm">
+                  Submitted on {new Date(selectedInquiry.createdAt).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </div>
+
+              <Separator />
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <Mail className="h-5 w-5" /> Customer Information
+                  </h3>
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium min-w-24">Name:</span>
+                      <span data-testid="inquiry-detail-name">{selectedInquiry.customerName}</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium min-w-24">Email:</span>
+                      <a 
+                        href={`mailto:${selectedInquiry.customerEmail}`} 
+                        className="text-primary hover:underline"
+                        data-testid="inquiry-detail-email"
+                      >
+                        {selectedInquiry.customerEmail}
+                      </a>
+                    </div>
+                    {selectedInquiry.customerPhone && (
+                      <div className="flex items-start gap-3">
+                        <span className="font-medium min-w-24">Phone:</span>
+                        <a 
+                          href={`tel:${selectedInquiry.customerPhone}`} 
+                          className="text-primary hover:underline flex items-center gap-1"
+                          data-testid="inquiry-detail-phone"
+                        >
+                          <Phone className="h-4 w-4" />
+                          {selectedInquiry.customerPhone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <Package className="h-5 w-5" /> Service Type
+                  </h3>
+                  <div className="bg-muted/30 rounded-lg p-4" data-testid="inquiry-detail-service">
+                    <p className="font-medium">{selectedInquiry.serviceType}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Description
+                </h3>
+                <div className="bg-muted/30 rounded-lg p-4" data-testid="inquiry-detail-description">
+                  <p className="whitespace-pre-wrap">{selectedInquiry.description}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Admin Notes
+                </h3>
+                {editingInquiryNotes === selectedInquiry.id ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={inquiryNotesText}
+                      onChange={(e) => setInquiryNotesText(e.target.value)}
+                      placeholder="Add internal notes about this inquiry..."
+                      rows={3}
+                      data-testid="inquiry-notes-input"
+                    />
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm"
+                        onClick={() => updateInquiryNotesMutation.mutate({ id: selectedInquiry.id, adminNotes: inquiryNotesText })}
+                        data-testid="button-save-inquiry-notes"
+                      >
+                        Save Notes
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => { setEditingInquiryNotes(null); setInquiryNotesText(""); }}
+                        data-testid="button-cancel-inquiry-notes"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div 
+                    className="bg-muted/30 rounded-lg p-4 cursor-pointer hover:bg-muted/50 min-h-16"
+                    onClick={() => { setEditingInquiryNotes(selectedInquiry.id); setInquiryNotesText(selectedInquiry.adminNotes || ""); }}
+                    data-testid="inquiry-notes-display"
+                  >
+                    {selectedInquiry.adminNotes ? (
+                      <p className="whitespace-pre-wrap">{selectedInquiry.adminNotes}</p>
+                    ) : (
+                      <p className="text-muted-foreground italic">Click to add notes...</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="flex justify-between items-center">
+                <Select 
+                  value={selectedInquiry.status} 
+                  onValueChange={(value) => updateInquiryStatusMutation.mutate({ id: selectedInquiry.id, status: value })}
+                >
+                  <SelectTrigger className="w-40" data-testid="inquiry-detail-status-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm('Are you sure you want to delete this inquiry?')) {
+                      deleteInquiryMutation.mutate(selectedInquiry.id);
+                    }
+                  }}
+                  data-testid="button-delete-inquiry-detail"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Inquiry
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Order Detail Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>

@@ -1,7 +1,13 @@
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
-import { ArrowRight, Footprints, Briefcase, Sparkles, Heart, Ship, Accessibility } from "lucide-react";
+import { ArrowRight, Footprints, Briefcase, Sparkles, Heart, Ship, Accessibility, MessageSquare, Send, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import bootRepair from "@assets/Screenshot_2025-12-29_at_7.34.18_PM_1767055015932.png";
 import boatCanvas from "@assets/Screenshot_2025-12-29_at_7.36.31_PM_1767055017502.png";
 import vuittonBefore from "@assets/vuitton-handbag01_1767055020889.jpg";
@@ -64,7 +70,53 @@ const canvasCoverTypes = [
   "Custom Canvas Covers",
 ];
 
+const serviceTypes = [
+  "Shoe Repair",
+  "Boot Repair",
+  "Leather & Bag Repair",
+  "Designer Shoe Repair",
+  "Orthotics & Orthopedics",
+  "Boat Canvas & Sail Repair",
+  "Custom Leather Work",
+  "Other",
+];
+
 export default function Services() {
+  const [formData, setFormData] = useState({
+    customerName: "",
+    customerEmail: "",
+    customerPhone: "",
+    serviceType: "",
+    description: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  const submitInquiry = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const response = await fetch("/api/service-inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to submit inquiry");
+      return response.json();
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+      setFormData({
+        customerName: "",
+        customerEmail: "",
+        customerPhone: "",
+        serviceType: "",
+        description: "",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitInquiry.mutate(formData);
+  };
   return (
     <Layout>
       <section className="py-16 bg-muted/30">
@@ -294,24 +346,157 @@ export default function Services() {
         </div>
       </section>
 
-      <section className="py-24 bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="font-serif text-3xl md:text-5xl font-bold mb-6">Ready to get started?</h2>
-          <p className="text-primary-foreground/80 max-w-xl mx-auto mb-10 text-lg">
-            Browse our repair services and products, or contact us for a custom quote on your project.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-background text-foreground hover:bg-background/90 text-lg px-8" asChild>
-              <Link href="/shop" data-testid="link-shop-services">
-                Shop Services <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10 text-lg px-8" asChild>
-              <a href="tel:+15087756221" data-testid="link-call-us">
-                Call Us: (508) 775-6221
-              </a>
-            </Button>
+      <section id="request-quote" className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center gap-3 mb-6 justify-center">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <h2 className="font-serif text-3xl font-bold text-foreground">Request a Quote</h2>
+            </div>
+            <p className="text-muted-foreground text-center mb-8">
+              Every repair job is unique, so pricing varies depending on the item and work needed. 
+              Fill out this form and we'll get back to you with an estimate, or call us directly.
+            </p>
+
+            {submitted ? (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center" data-testid="inquiry-success">
+                <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                <h3 className="font-serif text-xl font-bold text-foreground mb-2">Thank You!</h3>
+                <p className="text-muted-foreground mb-4">
+                  We've received your inquiry and will get back to you soon.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSubmitted(false)}
+                  data-testid="button-new-inquiry"
+                >
+                  Submit Another Inquiry
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="bg-background rounded-xl p-6 shadow-lg space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="customerName">Name *</Label>
+                    <Input
+                      id="customerName"
+                      required
+                      value={formData.customerName}
+                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                      placeholder="Your full name"
+                      data-testid="input-inquiry-name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customerEmail">Email *</Label>
+                    <Input
+                      id="customerEmail"
+                      type="email"
+                      required
+                      value={formData.customerEmail}
+                      onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                      placeholder="your@email.com"
+                      data-testid="input-inquiry-email"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="customerPhone">Phone (optional)</Label>
+                    <Input
+                      id="customerPhone"
+                      type="tel"
+                      value={formData.customerPhone}
+                      onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                      placeholder="(508) 123-4567"
+                      data-testid="input-inquiry-phone"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="serviceType">Service Type *</Label>
+                    <Select
+                      value={formData.serviceType}
+                      onValueChange={(value) => setFormData({ ...formData, serviceType: value })}
+                      required
+                    >
+                      <SelectTrigger data-testid="select-service-type">
+                        <SelectValue placeholder="Select a service" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceTypes.map((type) => (
+                          <SelectItem key={type} value={type} data-testid={`option-service-${type}`}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Describe Your Item & Repair Needed *</Label>
+                  <Textarea
+                    id="description"
+                    required
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Please describe the item you need repaired and what work is needed. Include details like brand, condition, and any specific concerns."
+                    rows={4}
+                    data-testid="input-inquiry-description"
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  size="lg"
+                  disabled={submitInquiry.isPending || !formData.serviceType}
+                  data-testid="button-submit-inquiry"
+                >
+                  {submitInquiry.isPending ? (
+                    "Submitting..."
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Submit Inquiry
+                    </>
+                  )}
+                </Button>
+
+                {submitInquiry.isError && (
+                  <p className="text-red-600 text-sm text-center" data-testid="inquiry-error">
+                    Something went wrong. Please try again or call us directly.
+                  </p>
+                )}
+              </form>
+            )}
+
+            <div className="mt-8 text-center">
+              <p className="text-muted-foreground mb-2">Prefer to call?</p>
+              <Button variant="outline" size="lg" asChild>
+                <a href="tel:+15087756221" data-testid="link-call-us">
+                  Call Us: (508) 775-6221
+                </a>
+              </Button>
+            </div>
           </div>
+        </div>
+      </section>
+
+      <section className="py-16 bg-primary text-primary-foreground">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="font-serif text-3xl md:text-4xl font-bold mb-6">Shop Our Products</h2>
+          <p className="text-primary-foreground/80 max-w-xl mx-auto mb-8 text-lg">
+            Browse our collection of leather goods and accessories available for purchase.
+          </p>
+          <Button size="lg" className="bg-background text-foreground hover:bg-background/90 text-lg px-8" asChild>
+            <Link href="/shop" data-testid="link-shop-services">
+              Visit Shop <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
         </div>
       </section>
     </Layout>

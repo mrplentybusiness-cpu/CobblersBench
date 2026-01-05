@@ -9,7 +9,9 @@ import type {
   Order, 
   InsertOrder,
   OrderItem,
-  InsertOrderItem
+  InsertOrderItem,
+  ServiceInquiry,
+  InsertServiceInquiry
 } from "@shared/schema";
 
 const { Pool } = pg;
@@ -41,6 +43,14 @@ export interface IStorage {
   updateOrderNotes(id: number, adminNotes: string): Promise<Order | undefined>;
   archiveOrder(id: number, archived: boolean): Promise<Order | undefined>;
   deleteOrder(id: number): Promise<boolean>;
+
+  // Service Inquiries
+  getAllServiceInquiries(): Promise<ServiceInquiry[]>;
+  getServiceInquiryById(id: number): Promise<ServiceInquiry | undefined>;
+  createServiceInquiry(inquiry: InsertServiceInquiry): Promise<ServiceInquiry>;
+  updateServiceInquiryStatus(id: number, status: string): Promise<ServiceInquiry | undefined>;
+  updateServiceInquiryNotes(id: number, adminNotes: string): Promise<ServiceInquiry | undefined>;
+  deleteServiceInquiry(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -245,6 +255,47 @@ export class DatabaseStorage implements IStorage {
     const results = await this.db
       .delete(schema.orders)
       .where(eq(schema.orders.id, id))
+      .returning();
+    return results.length > 0;
+  }
+
+  // Service Inquiries
+  async getAllServiceInquiries(): Promise<ServiceInquiry[]> {
+    return this.db.select().from(schema.serviceInquiries).orderBy(desc(schema.serviceInquiries.createdAt));
+  }
+
+  async getServiceInquiryById(id: number): Promise<ServiceInquiry | undefined> {
+    const results = await this.db.select().from(schema.serviceInquiries).where(eq(schema.serviceInquiries.id, id));
+    return results[0];
+  }
+
+  async createServiceInquiry(inquiry: InsertServiceInquiry): Promise<ServiceInquiry> {
+    const results = await this.db.insert(schema.serviceInquiries).values(inquiry).returning();
+    return results[0];
+  }
+
+  async updateServiceInquiryStatus(id: number, status: string): Promise<ServiceInquiry | undefined> {
+    const results = await this.db
+      .update(schema.serviceInquiries)
+      .set({ status })
+      .where(eq(schema.serviceInquiries.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async updateServiceInquiryNotes(id: number, adminNotes: string): Promise<ServiceInquiry | undefined> {
+    const results = await this.db
+      .update(schema.serviceInquiries)
+      .set({ adminNotes })
+      .where(eq(schema.serviceInquiries.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteServiceInquiry(id: number): Promise<boolean> {
+    const results = await this.db
+      .delete(schema.serviceInquiries)
+      .where(eq(schema.serviceInquiries.id, id))
       .returning();
     return results.length > 0;
   }

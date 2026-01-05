@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-import { insertProductSchema } from "@shared/schema";
+import { insertProductSchema, insertServiceInquirySchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -436,6 +436,114 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting order:", error);
       res.status(500).json({ error: "Failed to delete order" });
+    }
+  });
+
+  // ===== SERVICE INQUIRIES =====
+
+  // Get all service inquiries (admin)
+  app.get("/api/service-inquiries", async (req, res) => {
+    try {
+      const inquiries = await storage.getAllServiceInquiries();
+      res.json(inquiries);
+    } catch (error) {
+      console.error("Error fetching service inquiries:", error);
+      res.status(500).json({ error: "Failed to fetch service inquiries" });
+    }
+  });
+
+  // Get service inquiry by ID
+  app.get("/api/service-inquiries/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const inquiry = await storage.getServiceInquiryById(id);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      res.json(inquiry);
+    } catch (error) {
+      console.error("Error fetching inquiry:", error);
+      res.status(500).json({ error: "Failed to fetch inquiry" });
+    }
+  });
+
+  // Create service inquiry (public - from Services page form)
+  app.post("/api/service-inquiries", async (req, res) => {
+    try {
+      const parseResult = insertServiceInquirySchema.safeParse(req.body);
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid inquiry data", details: parseResult.error.errors });
+      }
+
+      const inquiry = await storage.createServiceInquiry(parseResult.data);
+      res.status(201).json(inquiry);
+    } catch (error) {
+      console.error("Error creating service inquiry:", error);
+      res.status(500).json({ error: "Failed to create inquiry" });
+    }
+  });
+
+  // Update inquiry status (admin)
+  const inquiryStatusSchema = z.enum(["new", "in-progress", "closed"]);
+
+  app.patch("/api/service-inquiries/:id/status", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const parseResult = inquiryStatusSchema.safeParse(req.body.status);
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Valid status required (new, in-progress, closed)" });
+      }
+
+      const inquiry = await storage.updateServiceInquiryStatus(id, parseResult.data);
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      res.json(inquiry);
+    } catch (error) {
+      console.error("Error updating inquiry status:", error);
+      res.status(500).json({ error: "Failed to update inquiry status" });
+    }
+  });
+
+  // Update inquiry notes (admin)
+  app.patch("/api/service-inquiries/:id/notes", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { adminNotes } = req.body;
+
+      const inquiry = await storage.updateServiceInquiryNotes(id, adminNotes || "");
+      
+      if (!inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      res.json(inquiry);
+    } catch (error) {
+      console.error("Error updating inquiry notes:", error);
+      res.status(500).json({ error: "Failed to update inquiry notes" });
+    }
+  });
+
+  // Delete service inquiry (admin)
+  app.delete("/api/service-inquiries/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteServiceInquiry(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting inquiry:", error);
+      res.status(500).json({ error: "Failed to delete inquiry" });
     }
   });
 
