@@ -308,17 +308,21 @@ export async function registerRoutes(
     }
   });
 
+  // Validation schemas for order updates
+  const paymentStatusSchema = z.enum(["unpaid", "paid"]);
+  const fulfillmentStatusSchema = z.enum(["unfulfilled", "shipped", "delivered", "fulfilled"]);
+
   // Update order payment status
   app.patch("/api/orders/:id/payment", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { paymentStatus } = req.body;
+      const parseResult = paymentStatusSchema.safeParse(req.body.paymentStatus);
       
-      if (!paymentStatus || !["unpaid", "paid"].includes(paymentStatus)) {
+      if (!parseResult.success) {
         return res.status(400).json({ error: "Valid payment status required (unpaid or paid)" });
       }
 
-      const order = await storage.updateOrderPaymentStatus(id, paymentStatus);
+      const order = await storage.updateOrderPaymentStatus(id, parseResult.data);
       
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
@@ -335,13 +339,13 @@ export async function registerRoutes(
   app.patch("/api/orders/:id/fulfillment", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { fulfillmentStatus } = req.body;
+      const parseResult = fulfillmentStatusSchema.safeParse(req.body.fulfillmentStatus);
       
-      if (!fulfillmentStatus || !["unfulfilled", "fulfilled", "shipped", "delivered"].includes(fulfillmentStatus)) {
-        return res.status(400).json({ error: "Valid fulfillment status required" });
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Valid fulfillment status required (unfulfilled, shipped, delivered, fulfilled)" });
       }
 
-      const order = await storage.updateOrderFulfillmentStatus(id, fulfillmentStatus);
+      const order = await storage.updateOrderFulfillmentStatus(id, parseResult.data);
       
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
@@ -377,13 +381,13 @@ export async function registerRoutes(
   app.patch("/api/orders/:id/archive", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { archived } = req.body;
+      const archivedResult = z.boolean().safeParse(req.body.archived);
       
-      if (typeof archived !== "boolean") {
+      if (!archivedResult.success) {
         return res.status(400).json({ error: "Archived status (boolean) is required" });
       }
 
-      const order = await storage.archiveOrder(id, archived);
+      const order = await storage.archiveOrder(id, archivedResult.data);
       
       if (!order) {
         return res.status(404).json({ error: "Order not found" });

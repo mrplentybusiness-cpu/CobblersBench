@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Product, Order, OrderItem } from "@shared/schema";
@@ -29,6 +29,9 @@ export default function Admin() {
   const [selectedOrder, setSelectedOrder] = useState<(Order & { items: OrderItem[] }) | null>(null);
   const [editingTracking, setEditingTracking] = useState<number | null>(null);
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [orderFilter, setOrderFilter] = useState<'active' | 'archived' | 'all'>('active');
+  const [editingNotes, setEditingNotes] = useState<number | null>(null);
+  const [notesText, setNotesText] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -42,11 +45,16 @@ export default function Admin() {
   };
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery<(Order & { items: OrderItem[] })[]>({
-    queryKey: ['/api/orders'],
+    queryKey: ['/api/orders', orderFilter],
     queryFn: async () => {
-      const response = await fetch('/api/orders');
+      const includeArchived = orderFilter === 'archived' || orderFilter === 'all';
+      const response = await fetch(`/api/orders?includeArchived=${includeArchived}`);
       if (!response.ok) throw new Error('Failed to fetch orders');
-      return response.json();
+      const allOrders = await response.json();
+      if (orderFilter === 'archived') {
+        return allOrders.filter((o: Order) => o.archived);
+      }
+      return allOrders;
     },
     enabled: isAuthenticated && activeTab === 'orders',
   });
@@ -72,7 +80,7 @@ export default function Admin() {
       return response.json();
     },
     onSuccess: (updatedOrder) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
       if (selectedOrder && selectedOrder.id === updatedOrder.id) {
         setSelectedOrder({ ...selectedOrder, status: updatedOrder.status });
       }
@@ -91,7 +99,7 @@ export default function Admin() {
       return response.json();
     },
     onSuccess: (updatedOrder) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
       setEditingTracking(null);
       setTrackingNumber("");
       if (selectedOrder && selectedOrder.id === updatedOrder.id) {
@@ -109,9 +117,87 @@ export default function Admin() {
       if (!response.ok) throw new Error('Failed to delete order');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
       setSelectedOrder(null);
       toast({ title: "Order deleted successfully" });
+    },
+  });
+
+  const updatePaymentStatusMutation = useMutation({
+    mutationFn: async ({ id, paymentStatus }: { id: number; paymentStatus: string }) => {
+      const response = await fetch(`/api/orders/${id}/payment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentStatus }),
+      });
+      if (!response.ok) throw new Error('Failed to update payment status');
+      return response.json();
+    },
+    onSuccess: (updatedOrder) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
+      if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+        setSelectedOrder({ ...selectedOrder, ...updatedOrder });
+      }
+      toast({ title: `Marked as ${updatedOrder.paymentStatus}` });
+    },
+  });
+
+  const updateFulfillmentStatusMutation = useMutation({
+    mutationFn: async ({ id, fulfillmentStatus }: { id: number; fulfillmentStatus: string }) => {
+      const response = await fetch(`/api/orders/${id}/fulfillment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fulfillmentStatus }),
+      });
+      if (!response.ok) throw new Error('Failed to update fulfillment status');
+      return response.json();
+    },
+    onSuccess: (updatedOrder) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
+      if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+        setSelectedOrder({ ...selectedOrder, ...updatedOrder });
+      }
+      toast({ title: "Fulfillment status updated" });
+    },
+  });
+
+  const archiveOrderMutation = useMutation({
+    mutationFn: async ({ id, archived }: { id: number; archived: boolean }) => {
+      const response = await fetch(`/api/orders/${id}/archive`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived }),
+      });
+      if (!response.ok) throw new Error('Failed to archive order');
+      return response.json();
+    },
+    onSuccess: (updatedOrder) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
+      if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+        setSelectedOrder({ ...selectedOrder, ...updatedOrder });
+      }
+      toast({ title: updatedOrder.archived ? "Order archived" : "Order restored" });
+    },
+  });
+
+  const updateNotesMutation = useMutation({
+    mutationFn: async ({ id, adminNotes }: { id: number; adminNotes: string }) => {
+      const response = await fetch(`/api/orders/${id}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminNotes }),
+      });
+      if (!response.ok) throw new Error('Failed to update notes');
+      return response.json();
+    },
+    onSuccess: (updatedOrder) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
+      setEditingNotes(null);
+      setNotesText("");
+      if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+        setSelectedOrder({ ...selectedOrder, ...updatedOrder });
+      }
+      toast({ title: "Notes saved" });
     },
   });
 
@@ -216,122 +302,183 @@ export default function Admin() {
         </div>
 
         {activeTab === 'orders' ? (
-          <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-            {ordersLoading ? (
-              <div className="p-8 text-center text-muted-foreground" data-testid="loading-orders">
-                Loading orders...
+          <div className="space-y-4">
+            {/* Order Filters */}
+            <div className="flex items-center gap-4 bg-card rounded-lg border p-4">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filter:</span>
+              <div className="flex gap-2">
+                <Button
+                  variant={orderFilter === 'active' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOrderFilter('active')}
+                  data-testid="filter-active-orders"
+                >
+                  Active
+                </Button>
+                <Button
+                  variant={orderFilter === 'archived' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOrderFilter('archived')}
+                  data-testid="filter-archived-orders"
+                >
+                  Archived
+                </Button>
+                <Button
+                  variant={orderFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOrderFilter('all')}
+                  data-testid="filter-all-orders"
+                >
+                  All
+                </Button>
               </div>
-            ) : orders.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground" data-testid="no-orders">
-                No orders yet
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Tracking</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => (
-                    <TableRow key={order.id} data-testid={`order-row-${order.id}`} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedOrder(order)}>
-                      <TableCell className="font-medium">#{order.id}</TableCell>
-                      <TableCell>{order.customerName}</TableCell>
-                      <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell data-testid={`order-total-${order.id}`}>${order.total}</TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          order.status === 'Paid' ? 'secondary' : 
-                          order.status === 'Shipped' ? 'default' : 'outline'
-                        } data-testid={`order-status-${order.id}`}>
-                          {order.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {editingTracking === order.id ? (
-                          <div className="flex gap-2">
-                            <Input 
-                              value={trackingNumber}
-                              onChange={(e) => setTrackingNumber(e.target.value)}
-                              placeholder="Tracking #"
-                              className="w-32"
-                              data-testid={`input-tracking-${order.id}`}
-                            />
-                            <Button 
-                              size="sm"
-                              onClick={() => updateTrackingMutation.mutate({ id: order.id, trackingNumber })}
-                              data-testid={`button-save-tracking-${order.id}`}
-                            >
-                              Save
-                            </Button>
-                          </div>
-                        ) : (
+            </div>
+
+            <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+              {ordersLoading ? (
+                <div className="p-8 text-center text-muted-foreground" data-testid="loading-orders">
+                  Loading orders...
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground" data-testid="no-orders">
+                  {orderFilter === 'archived' ? 'No archived orders' : orderFilter === 'all' ? 'No orders yet' : 'No active orders'}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Fulfillment</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => (
+                      <TableRow 
+                        key={order.id} 
+                        data-testid={`order-row-${order.id}`} 
+                        className={`cursor-pointer hover:bg-muted/50 ${order.archived ? 'opacity-60' : ''}`}
+                        onClick={() => setSelectedOrder(order)}
+                      >
+                        <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm" data-testid={`tracking-number-${order.id}`}>
-                              {order.trackingNumber || 'None'}
-                            </span>
+                            #{order.id}
+                            {order.archived && (
+                              <Badge variant="outline" className="text-xs">
+                                <Archive className="h-3 w-3 mr-1" />
+                                Archived
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{order.customerName}</div>
+                            <div className="text-xs text-muted-foreground">{order.customerEmail}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell data-testid={`order-total-${order.id}`} className="font-medium">${order.total}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Badge 
+                            variant={order.paymentStatus === 'paid' ? 'default' : 'secondary'}
+                            className={`cursor-pointer ${order.paymentStatus === 'paid' ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-500 hover:bg-yellow-600 text-black'}`}
+                            onClick={() => updatePaymentStatusMutation.mutate({ 
+                              id: order.id, 
+                              paymentStatus: order.paymentStatus === 'paid' ? 'unpaid' : 'paid' 
+                            })}
+                            data-testid={`order-payment-${order.id}`}
+                          >
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Select 
+                            value={order.fulfillmentStatus || 'unfulfilled'} 
+                            onValueChange={(value) => updateFulfillmentStatusMutation.mutate({ id: order.id, fulfillmentStatus: value })}
+                          >
+                            <SelectTrigger className="w-32 h-8" data-testid={`order-fulfillment-${order.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unfulfilled">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-3 w-3 text-yellow-500" />
+                                  Unfulfilled
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="shipped">
+                                <div className="flex items-center gap-2">
+                                  <Truck className="h-3 w-3 text-blue-500" />
+                                  Shipped
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="delivered">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-3 w-3 text-green-500" />
+                                  Delivered
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="fulfilled">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-3 w-3 text-green-500" />
+                                  Fulfilled
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingTracking(order.id);
-                                setTrackingNumber(order.trackingNumber || "");
-                              }}
-                              data-testid={`button-edit-tracking-${order.id}`}
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setSelectedOrder(order)}
+                              data-testid={`button-view-order-${order.id}`}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => archiveOrderMutation.mutate({ id: order.id, archived: !order.archived })}
+                              data-testid={`button-archive-order-${order.id}`}
+                            >
+                              {order.archived ? (
+                                <ArchiveRestore className="h-4 w-4" />
+                              ) : (
+                                <Archive className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to permanently delete this order?')) {
+                                  deleteOrderMutation.mutate(order.id);
+                                }
+                              }}
+                              data-testid={`button-delete-order-${order.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedOrder(order)}
-                            data-testid={`button-view-order-${order.id}`}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <select 
-                            className="text-sm border rounded p-1"
-                            value={order.status}
-                            onChange={(e) => updateStatusMutation.mutate({ id: order.id, status: e.target.value })}
-                            data-testid={`select-status-${order.id}`}
-                          >
-                            <option>Pending Payment</option>
-                            <option>Paid</option>
-                            <option>Shipped</option>
-                            <option>Cancelled</option>
-                          </select>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                            onClick={() => {
-                              if (confirm('Are you sure you want to delete this order?')) {
-                                deleteOrderMutation.mutate(order.id);
-                              }
-                            }}
-                            data-testid={`button-delete-order-${order.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -464,20 +611,46 @@ export default function Admin() {
 
       {/* Order Detail Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-serif text-2xl">Order #{selectedOrder?.id}</DialogTitle>
+            <DialogTitle className="font-serif text-2xl flex items-center gap-3">
+              Order #{selectedOrder?.id}
+              {selectedOrder?.archived && (
+                <Badge variant="outline" className="text-sm">
+                  <Archive className="h-3 w-3 mr-1" />
+                  Archived
+                </Badge>
+              )}
+            </DialogTitle>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <Badge variant={
-                  selectedOrder.status === 'Paid' ? 'secondary' : 
-                  selectedOrder.status === 'Shipped' ? 'default' : 'outline'
-                } className="text-base px-3 py-1" data-testid="order-detail-status">
-                  {selectedOrder.status}
+              {/* Status Badges Row */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge 
+                  variant={selectedOrder.paymentStatus === 'paid' ? 'default' : 'secondary'}
+                  className={`text-sm px-3 py-1 cursor-pointer ${selectedOrder.paymentStatus === 'paid' ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-500 hover:bg-yellow-600 text-black'}`}
+                  onClick={() => updatePaymentStatusMutation.mutate({ 
+                    id: selectedOrder.id, 
+                    paymentStatus: selectedOrder.paymentStatus === 'paid' ? 'unpaid' : 'paid' 
+                  })}
+                  data-testid="order-detail-payment-status"
+                >
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  {selectedOrder.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
                 </Badge>
-                <span className="text-muted-foreground">
+                <Badge 
+                  variant="outline"
+                  className="text-sm px-3 py-1"
+                  data-testid="order-detail-fulfillment-status"
+                >
+                  {selectedOrder.fulfillmentStatus === 'shipped' && <Truck className="h-4 w-4 mr-1 text-blue-500" />}
+                  {selectedOrder.fulfillmentStatus === 'delivered' && <CheckCircle className="h-4 w-4 mr-1 text-green-500" />}
+                  {selectedOrder.fulfillmentStatus === 'fulfilled' && <CheckCircle className="h-4 w-4 mr-1 text-green-500" />}
+                  {(selectedOrder.fulfillmentStatus === 'unfulfilled' || !selectedOrder.fulfillmentStatus) && <Package className="h-4 w-4 mr-1 text-yellow-500" />}
+                  {(selectedOrder.fulfillmentStatus || 'unfulfilled').charAt(0).toUpperCase() + (selectedOrder.fulfillmentStatus || 'unfulfilled').slice(1)}
+                </Badge>
+                <span className="text-muted-foreground text-sm">
                   Placed on {new Date(selectedOrder.createdAt).toLocaleDateString('en-US', { 
                     weekday: 'long', 
                     year: 'numeric', 
@@ -489,39 +662,66 @@ export default function Admin() {
 
               <Separator />
 
-              {/* Customer Contact Information */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <Mail className="h-5 w-5" /> Customer Information
-                </h3>
-                <div className="bg-muted/30 rounded-lg p-4 space-y-2">
-                  <div className="flex items-start gap-3">
-                    <span className="font-medium min-w-24">Name:</span>
-                    <span data-testid="order-detail-customer-name">{selectedOrder.customerName}</span>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Customer Contact Information */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <Mail className="h-5 w-5" /> Customer Information
+                  </h3>
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium min-w-24">Name:</span>
+                      <span data-testid="order-detail-customer-name">{selectedOrder.customerName}</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="font-medium min-w-24">Email:</span>
+                      <a 
+                        href={`mailto:${selectedOrder.customerEmail}`} 
+                        className="text-primary hover:underline"
+                        data-testid="order-detail-customer-email"
+                      >
+                        {selectedOrder.customerEmail}
+                      </a>
+                    </div>
+                    {selectedOrder.customerPhone && (
+                      <div className="flex items-start gap-3">
+                        <span className="font-medium min-w-24">Phone:</span>
+                        <a 
+                          href={`tel:${selectedOrder.customerPhone}`} 
+                          className="text-primary hover:underline flex items-center gap-1"
+                          data-testid="order-detail-customer-phone"
+                        >
+                          <Phone className="h-4 w-4" />
+                          {selectedOrder.customerPhone}
+                        </a>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-start gap-3">
-                    <span className="font-medium min-w-24">Email:</span>
-                    <a 
-                      href={`mailto:${selectedOrder.customerEmail}`} 
-                      className="text-primary hover:underline"
-                      data-testid="order-detail-customer-email"
-                    >
-                      {selectedOrder.customerEmail}
-                    </a>
+                </div>
+
+                {/* Shipping Address */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <MapPin className="h-5 w-5" /> Shipping Address
+                  </h3>
+                  <div className="bg-muted/30 rounded-lg p-4" data-testid="order-detail-address">
+                    <p>{selectedOrder.shippingAddress}</p>
+                    <p>{selectedOrder.shippingCity}{selectedOrder.shippingState ? `, ${selectedOrder.shippingState}` : ''} {selectedOrder.shippingZip}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Shipping Address */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <MapPin className="h-5 w-5" /> Shipping Address
-                </h3>
-                <div className="bg-muted/30 rounded-lg p-4" data-testid="order-detail-address">
-                  <p>{selectedOrder.shippingAddress}</p>
-                  <p>{selectedOrder.shippingCity}, {selectedOrder.shippingZip}</p>
+              {/* Repair Description */}
+              {selectedOrder.repairDescription && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <FileText className="h-5 w-5" /> Repair/Work Order Details
+                  </h3>
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4" data-testid="order-detail-repair-description">
+                    <p className="whitespace-pre-wrap">{selectedOrder.repairDescription}</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Order Items */}
               <div>
@@ -560,51 +760,142 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Tracking Information */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3">Tracking Number</h3>
-                <div className="flex gap-2">
-                  <Input 
-                    value={selectedOrder.trackingNumber || ""}
-                    onChange={(e) => setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })}
-                    placeholder="Enter tracking number (or leave empty to clear)"
-                    data-testid="order-detail-tracking-input"
-                  />
-                  <Button 
-                    onClick={() => {
-                      updateTrackingMutation.mutate({ 
-                        id: selectedOrder.id, 
-                        trackingNumber: selectedOrder.trackingNumber || "" 
-                      });
+              {/* Status Controls */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Fulfillment Status</h3>
+                  <Select 
+                    value={selectedOrder.fulfillmentStatus || 'unfulfilled'} 
+                    onValueChange={(value) => {
+                      updateFulfillmentStatusMutation.mutate({ id: selectedOrder.id, fulfillmentStatus: value });
                     }}
-                    disabled={updateTrackingMutation.isPending}
-                    data-testid="order-detail-save-tracking"
                   >
-                    {updateTrackingMutation.isPending ? "Saving..." : "Save"}
-                  </Button>
+                    <SelectTrigger data-testid="order-detail-fulfillment-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unfulfilled">Unfulfilled</SelectItem>
+                      <SelectItem value="shipped">Shipped</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Tracking Number</h3>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={selectedOrder.trackingNumber || ""}
+                      onChange={(e) => setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })}
+                      placeholder="Enter tracking number"
+                      data-testid="order-detail-tracking-input"
+                    />
+                    <Button 
+                      onClick={() => {
+                        updateTrackingMutation.mutate({ 
+                          id: selectedOrder.id, 
+                          trackingNumber: selectedOrder.trackingNumber || "" 
+                        });
+                      }}
+                      disabled={updateTrackingMutation.isPending}
+                      data-testid="order-detail-save-tracking"
+                    >
+                      {updateTrackingMutation.isPending ? "..." : "Save"}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              {/* Status Update */}
+              {/* Admin Notes */}
               <div>
-                <h3 className="font-semibold text-lg mb-3">Update Status</h3>
-                <Select 
-                  value={selectedOrder.status} 
-                  onValueChange={(value) => {
-                    updateStatusMutation.mutate({ id: selectedOrder.id, status: value });
-                    setSelectedOrder({ ...selectedOrder, status: value });
-                  }}
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Admin Notes
+                </h3>
+                <div className="space-y-2">
+                  <Textarea 
+                    value={editingNotes === selectedOrder.id ? notesText : (selectedOrder.adminNotes || "")}
+                    onChange={(e) => {
+                      if (editingNotes !== selectedOrder.id) {
+                        setEditingNotes(selectedOrder.id);
+                        setNotesText(e.target.value);
+                      } else {
+                        setNotesText(e.target.value);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (editingNotes !== selectedOrder.id) {
+                        setEditingNotes(selectedOrder.id);
+                        setNotesText(selectedOrder.adminNotes || "");
+                      }
+                    }}
+                    placeholder="Add internal notes about this order..."
+                    rows={3}
+                    data-testid="order-detail-notes"
+                  />
+                  {editingNotes === selectedOrder.id && (
+                    <div className="flex gap-2 justify-end">
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingNotes(null);
+                          setNotesText("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => {
+                          updateNotesMutation.mutate({ 
+                            id: selectedOrder.id, 
+                            adminNotes: notesText 
+                          });
+                        }}
+                        disabled={updateNotesMutation.isPending}
+                        data-testid="order-detail-save-notes"
+                      >
+                        {updateNotesMutation.isPending ? "Saving..." : "Save Notes"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                <Button 
+                  variant="outline"
+                  onClick={() => archiveOrderMutation.mutate({ id: selectedOrder.id, archived: !selectedOrder.archived })}
+                  data-testid="order-detail-archive"
                 >
-                  <SelectTrigger data-testid="order-detail-status-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Pending Payment">Pending Payment</SelectItem>
-                    <SelectItem value="Paid">Paid</SelectItem>
-                    <SelectItem value="Shipped">Shipped</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {selectedOrder.archived ? (
+                    <>
+                      <ArchiveRestore className="h-4 w-4 mr-2" />
+                      Restore Order
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="h-4 w-4 mr-2" />
+                      Archive Order
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    if (confirm('Are you sure you want to permanently delete this order? This cannot be undone.')) {
+                      deleteOrderMutation.mutate(selectedOrder.id);
+                    }
+                  }}
+                  data-testid="order-detail-delete"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Permanently
+                </Button>
               </div>
             </div>
           )}

@@ -43,6 +43,16 @@ The products table includes comprehensive fields for professional product manage
 - **SKU**: Stock keeping unit for internal tracking
 - **Tags**: Comma-separated tags for organization
 
+### Order Management (Shopify-like)
+The orders table includes comprehensive fields for professional order management:
+- **Payment Status**: unpaid/paid - toggle directly from order list or detail view
+- **Fulfillment Status**: unfulfilled/shipped/delivered/fulfilled
+- **Archive**: Orders can be archived (hidden from main view) without deleting
+- **Admin Notes**: Internal notes visible only to admin
+- **Tracking Number**: For shipment tracking
+- **Customer Details**: Name, email, phone, full shipping address with state
+- **Repair Description**: Special work order instructions from customers
+
 ### API Structure
 RESTful API endpoints under `/api/`:
 - `GET /api/products` - List all products (admin)
@@ -50,8 +60,16 @@ RESTful API endpoints under `/api/`:
 - `POST /api/products` - Create product
 - `GET/PATCH/DELETE /api/products/:id` - Product CRUD operations
 - `GET/POST /api/products/:id/images` - Product image management
-- `GET/POST /api/orders` - List and create orders
-- `GET/PUT /api/orders/:id` - Order management and status updates
+- `GET /api/orders?includeArchived=true` - List orders with archive filter
+- `POST /api/orders` - Create order
+- `GET /api/orders/:id` - Get order details
+- `PATCH /api/orders/:id/status` - Update order status
+- `PATCH /api/orders/:id/payment` - Toggle payment status (paid/unpaid)
+- `PATCH /api/orders/:id/fulfillment` - Update fulfillment status
+- `PATCH /api/orders/:id/tracking` - Update tracking number
+- `PATCH /api/orders/:id/notes` - Update admin notes
+- `PATCH /api/orders/:id/archive` - Archive/restore order
+- `DELETE /api/orders/:id` - Permanently delete order
 - `POST /api/uploads/request-url` - Presigned URL generation for file uploads
 
 ### Object Storage Integration
