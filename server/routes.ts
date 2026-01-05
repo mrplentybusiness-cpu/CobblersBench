@@ -12,6 +12,28 @@ export async function registerRoutes(
   
   registerObjectStorageRoutes(app);
 
+  // ===== ADMIN AUTH =====
+  app.post("/api/admin/auth", async (req, res) => {
+    try {
+      const { password } = req.body;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      
+      if (!adminPassword) {
+        console.error("ADMIN_PASSWORD environment variable not set");
+        return res.status(500).json({ error: "Admin authentication not configured" });
+      }
+      
+      if (password === adminPassword) {
+        res.json({ success: true });
+      } else {
+        res.status(401).json({ error: "Invalid password" });
+      }
+    } catch (error) {
+      console.error("Error during admin auth:", error);
+      res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
   // ===== PRODUCTS =====
   
   // Get all products (admin - includes all statuses)

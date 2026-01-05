@@ -35,12 +35,22 @@ export default function Admin() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "admin123") {
-      setIsAuthenticated(true);
-    } else {
-      alert("Invalid password (hint: admin123)");
+    try {
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      
+      if (response.ok) {
+        setIsAuthenticated(true);
+      } else {
+        alert("Invalid password");
+      }
+    } catch (error) {
+      alert("Authentication failed");
     }
   };
 
