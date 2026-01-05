@@ -39,9 +39,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <span className="hidden lg:block text-sm italic text-foreground ml-4">"We doctor your shoes and save your sole."</span>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             <NavLink href="/">Home</NavLink>
             <NavLink href="/services">Our Services</NavLink>
+            <NavLink href="/plantar-fasciitis">Knowledge</NavLink>
             <NavLink href="/shop">Shop</NavLink>
             <NavLink href="/admin">Admin</NavLink>
             {/* <NavLink href="/about">Our Story</NavLink> */}
@@ -83,6 +84,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   </Link>
                   <Link href="/services" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Our Services
+                  </Link>
+                  <Link href="/plantar-fasciitis" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
+                    Knowledge
                   </Link>
                   <Link href="/shop" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Shop
