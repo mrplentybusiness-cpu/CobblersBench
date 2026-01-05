@@ -29,7 +29,7 @@ const whySoleSupports = [
   },
   {
     title: "Arch Support",
-    description: "Custom orthotics provide the specific arch support your feet need, preventing the fascia from overstretching.",
+    description: "Orthotics provide the specific arch support your feet need, preventing the fascia from overstretching.",
   },
   {
     title: "Shock Absorption",
@@ -50,7 +50,7 @@ const whySoleSupports = [
 ];
 
 const treatments = [
-  "Custom orthotic insoles tailored to your foot shape",
+  "Orthotic insoles tailored to your foot shape",
   "Heel cups and cushioned inserts",
   "Shoe modifications for better support",
   "Stretching exercises and physical therapy",
@@ -175,10 +175,10 @@ export default function PlantarFasciitis() {
                 </div>
                 <div>
                   <h2 className="font-serif text-2xl md:text-3xl font-bold text-foreground mb-2">
-                    The Importance of Custom Orthotics
+                    The Importance of Orthotics
                   </h2>
                   <p className="text-muted-foreground">
-                    While over-the-counter insoles can provide temporary relief, custom orthotics offer superior benefits.
+                    While over-the-counter insoles can provide temporary relief, orthotics offer superior benefits.
                   </p>
                 </div>
               </div>
@@ -186,11 +186,11 @@ export default function PlantarFasciitis() {
               <div className="space-y-4 mb-8">
                 <p className="text-foreground">
                   <strong>Every foot is unique.</strong> Generic insoles are designed for an "average" foot, but no two feet 
-                  are exactly alike. Custom orthotics are molded specifically to your foot's contours, providing targeted 
+                  are exactly alike. Orthotics are molded specifically to your foot's contours, providing targeted 
                   support exactly where you need it most.
                 </p>
                 <p className="text-foreground">
-                  <strong>Long-term investment in your health.</strong> While custom orthotics have a higher upfront cost, 
+                  <strong>Long-term investment in your health.</strong> While orthotics have a higher upfront cost, 
                   they typically last 2-5 years with proper care. More importantly, they address the underlying biomechanical 
                   issues that cause plantar fasciitis, potentially saving you from chronic pain and more expensive treatments 
                   down the road.
