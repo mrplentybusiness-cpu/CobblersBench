@@ -33,7 +33,7 @@ The backend serves both the API endpoints and static files in production. In dev
 - **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts` - shared between client and server
 - **Migrations**: Drizzle Kit with push-based migrations (`db:push`)
-- **Tables**: products, product_images, orders, order_items with proper foreign key relationships
+- **Tables**: products, product_images, orders, order_items, service_inquiries with proper foreign key relationships
 
 ### Product Management (Shopify-like)
 The products table includes comprehensive fields for professional product management:
@@ -53,6 +53,13 @@ The orders table includes comprehensive fields for professional order management
 - **Customer Details**: Name, email, phone, full shipping address with state
 - **Repair Description**: Special work order instructions from customers
 
+### Service Inquiry Management
+Service inquiries allow customers to request quotes for repair services (pricing varies per job):
+- **Form Submission**: Customers submit via Services page with name, email, phone, service type, description
+- **Status Tracking**: new/in-progress/closed - managed from admin dashboard
+- **Admin Notes**: Internal notes for tracking communications and quotes
+- **Admin Tab**: Dedicated tab in admin dashboard with list view, status management, and detail dialog
+
 ### API Structure
 RESTful API endpoints under `/api/`:
 - `GET /api/products` - List all products (admin)
@@ -70,6 +77,12 @@ RESTful API endpoints under `/api/`:
 - `PATCH /api/orders/:id/notes` - Update admin notes
 - `PATCH /api/orders/:id/archive` - Archive/restore order
 - `DELETE /api/orders/:id` - Permanently delete order
+- `GET /api/service-inquiries` - List all service inquiries
+- `POST /api/service-inquiries` - Create inquiry (public)
+- `GET /api/service-inquiries/:id` - Get inquiry by ID
+- `PATCH /api/service-inquiries/:id/status` - Update inquiry status
+- `PATCH /api/service-inquiries/:id/notes` - Update inquiry admin notes
+- `DELETE /api/service-inquiries/:id` - Delete inquiry
 - `POST /api/uploads/request-url` - Presigned URL generation for file uploads
 
 ### Object Storage Integration
