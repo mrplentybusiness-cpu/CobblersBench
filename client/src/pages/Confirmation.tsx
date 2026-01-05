@@ -146,40 +146,23 @@ export default function Confirmation() {
             <div className="bg-card border rounded-xl p-8 shadow-sm mb-8 text-left">
               <h2 className="font-serif text-2xl font-bold mb-4 text-center border-b pb-4">Final Step: Payment</h2>
               <p className="mb-6 text-center">
-                To finalize your shipment, please send <strong className="text-primary">${order.total}</strong> via Venmo or Zelle. 
+                To finalize your order, please send <strong className="text-primary">${order.total}</strong> via Venmo. 
                 We will process your order immediately upon receipt.
               </p>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#008CFF] text-white p-2 rounded font-bold text-xs">Venmo</div>
-                    <span className="font-medium">@CobblersBench-Pay</span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => copyToClipboard("@CobblersBench-Pay")}
-                    data-testid="button-copy-venmo"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="bg-[#008CFF] text-white p-2 rounded font-bold text-xs">Venmo</div>
+                  <span className="font-medium">@Victor-Hadawar</span>
                 </div>
-
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#6D1ED4] text-white p-2 rounded font-bold text-xs">Zelle</div>
-                    <span className="font-medium">pay@cobblersbench.com</span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => copyToClipboard("pay@cobblersbench.com")}
-                    data-testid="button-copy-zelle"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => copyToClipboard("@Victor-Hadawar")}
+                  data-testid="button-copy-venmo"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </>
