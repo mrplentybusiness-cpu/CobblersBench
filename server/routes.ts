@@ -220,10 +220,11 @@ export async function registerRoutes(
 
   // ===== ORDERS =====
   
-  // Get all orders
+  // Get all orders (with optional archive filter)
   app.get("/api/orders", async (req, res) => {
     try {
-      const orders = await storage.getAllOrders();
+      const includeArchived = req.query.includeArchived === "true";
+      const orders = await storage.getAllOrders(includeArchived);
       res.json(orders);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -304,6 +305,94 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating tracking number:", error);
       res.status(500).json({ error: "Failed to update tracking number" });
+    }
+  });
+
+  // Update order payment status
+  app.patch("/api/orders/:id/payment", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { paymentStatus } = req.body;
+      
+      if (!paymentStatus || !["unpaid", "paid"].includes(paymentStatus)) {
+        return res.status(400).json({ error: "Valid payment status required (unpaid or paid)" });
+      }
+
+      const order = await storage.updateOrderPaymentStatus(id, paymentStatus);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      res.status(500).json({ error: "Failed to update payment status" });
+    }
+  });
+
+  // Update order fulfillment status
+  app.patch("/api/orders/:id/fulfillment", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { fulfillmentStatus } = req.body;
+      
+      if (!fulfillmentStatus || !["unfulfilled", "fulfilled", "shipped", "delivered"].includes(fulfillmentStatus)) {
+        return res.status(400).json({ error: "Valid fulfillment status required" });
+      }
+
+      const order = await storage.updateOrderFulfillmentStatus(id, fulfillmentStatus);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error updating fulfillment status:", error);
+      res.status(500).json({ error: "Failed to update fulfillment status" });
+    }
+  });
+
+  // Update order admin notes
+  app.patch("/api/orders/:id/notes", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { adminNotes } = req.body;
+
+      const order = await storage.updateOrderNotes(id, adminNotes || "");
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error updating admin notes:", error);
+      res.status(500).json({ error: "Failed to update admin notes" });
+    }
+  });
+
+  // Archive/unarchive order
+  app.patch("/api/orders/:id/archive", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { archived } = req.body;
+      
+      if (typeof archived !== "boolean") {
+        return res.status(400).json({ error: "Archived status (boolean) is required" });
+      }
+
+      const order = await storage.archiveOrder(id, archived);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      res.json(order);
+    } catch (error) {
+      console.error("Error updating archive status:", error);
+      res.status(500).json({ error: "Failed to update archive status" });
     }
   });
 
