@@ -234,7 +234,7 @@ export default function Services() {
                 For over 3 generations, we've been committed to providing the best orthopedic services 
                 and referral sources in the Cape Cod area.
               </p>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
                 {orthopedicServices.map((service, index) => (
                   <li key={index} className="flex items-start gap-2 text-foreground" data-testid={`service-ortho-${index}`}>
                     <span className="text-primary mt-1">•</span>
@@ -242,6 +242,12 @@ export default function Services() {
                   </li>
                 ))}
               </ul>
+              <Link href="/plantar-fasciitis">
+                <Button variant="outline" className="gap-2" data-testid="link-plantar-fasciitis">
+                  Learn About Plantar Fasciitis
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
