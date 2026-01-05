@@ -1008,8 +1008,8 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
       toast({ title: "Please enter a valid price", variant: "destructive" });
       return;
     }
-    if (!category) {
-      toast({ title: "Please select a category", variant: "destructive" });
+    if (!category.trim()) {
+      toast({ title: "Please enter a category", variant: "destructive" });
       return;
     }
     if (!imageUrl) {
@@ -1096,16 +1096,25 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
 
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger data-testid="select-product-category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="repair">Repair</SelectItem>
-                    <SelectItem value="care">Shoe Care</SelectItem>
-                    <SelectItem value="goods">Leather Goods</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input 
+                  id="category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="e.g., Repair, Shoe Care, Leather Goods"
+                  list="category-suggestions"
+                  data-testid="input-product-category"
+                />
+                <datalist id="category-suggestions">
+                  {Array.from(new Set(products.map(p => p.category))).map((cat) => (
+                    <option key={cat} value={cat} />
+                  ))}
+                  <option value="Repair" />
+                  <option value="Shoe Care" />
+                  <option value="Leather Goods" />
+                  <option value="Orthotics" />
+                  <option value="Accessories" />
+                </datalist>
+                <p className="text-xs text-muted-foreground mt-1">Select existing or type a new category</p>
               </div>
 
               <div>
