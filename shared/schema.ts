@@ -38,9 +38,14 @@ export const orders = pgTable("orders", {
   shippingZip: text("shipping_zip").notNull(),
   repairDescription: text("repair_description"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull().default("Pending Payment"),
+  status: text("status").notNull().default("Pending"),
+  paymentStatus: text("payment_status").notNull().default("unpaid"),
+  fulfillmentStatus: text("fulfillment_status").notNull().default("unfulfilled"),
+  archived: boolean("archived").default(false),
+  adminNotes: text("admin_notes"),
   trackingNumber: text("tracking_number"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const orderItems = pgTable("order_items", {
@@ -64,7 +69,12 @@ export const insertProductImageSchema = createInsertSchema(productImages).omit({
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
   status: true,
+  paymentStatus: true,
+  fulfillmentStatus: true,
+  archived: true,
+  adminNotes: true,
   trackingNumber: true,
 });
 

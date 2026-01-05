@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, not } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
@@ -31,11 +31,15 @@ export interface IStorage {
   reorderProductImages(productId: number, imageIds: number[]): Promise<void>;
 
   // Orders
-  getAllOrders(): Promise<(Order & { items: OrderItem[] })[]>;
+  getAllOrders(includeArchived?: boolean): Promise<(Order & { items: OrderItem[] })[]>;
   getOrderById(id: number): Promise<(Order & { items: OrderItem[] }) | undefined>;
   createOrder(order: InsertOrder, items: Omit<InsertOrderItem, "orderId">[]): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
+  updateOrderPaymentStatus(id: number, paymentStatus: string): Promise<Order | undefined>;
+  updateOrderFulfillmentStatus(id: number, fulfillmentStatus: string): Promise<Order | undefined>;
   updateOrderTracking(id: number, trackingNumber: string): Promise<Order | undefined>;
+  updateOrderNotes(id: number, adminNotes: string): Promise<Order | undefined>;
+  archiveOrder(id: number, archived: boolean): Promise<Order | undefined>;
   deleteOrder(id: number): Promise<boolean>;
 }
 
@@ -132,8 +136,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Orders
-  async getAllOrders(): Promise<(Order & { items: OrderItem[] })[]> {
-    const orders = await this.db.select().from(schema.orders).orderBy(desc(schema.orders.createdAt));
+  async getAllOrders(includeArchived: boolean = false): Promise<(Order & { items: OrderItem[] })[]> {
+    let query = this.db.select().from(schema.orders);
+    
+    if (!includeArchived) {
+      query = query.where(eq(schema.orders.archived, false)) as typeof query;
+    }
+    
+    const orders = await query.orderBy(desc(schema.orders.createdAt));
     
     const ordersWithItems = await Promise.all(
       orders.map(async (order) => {
@@ -189,7 +199,43 @@ export class DatabaseStorage implements IStorage {
   async updateOrderTracking(id: number, trackingNumber: string): Promise<Order | undefined> {
     const results = await this.db
       .update(schema.orders)
-      .set({ trackingNumber })
+      .set({ trackingNumber, updatedAt: new Date() })
+      .where(eq(schema.orders.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async updateOrderPaymentStatus(id: number, paymentStatus: string): Promise<Order | undefined> {
+    const results = await this.db
+      .update(schema.orders)
+      .set({ paymentStatus, updatedAt: new Date() })
+      .where(eq(schema.orders.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async updateOrderFulfillmentStatus(id: number, fulfillmentStatus: string): Promise<Order | undefined> {
+    const results = await this.db
+      .update(schema.orders)
+      .set({ fulfillmentStatus, updatedAt: new Date() })
+      .where(eq(schema.orders.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async updateOrderNotes(id: number, adminNotes: string): Promise<Order | undefined> {
+    const results = await this.db
+      .update(schema.orders)
+      .set({ adminNotes, updatedAt: new Date() })
+      .where(eq(schema.orders.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async archiveOrder(id: number, archived: boolean): Promise<Order | undefined> {
+    const results = await this.db
+      .update(schema.orders)
+      .set({ archived, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
       .returning();
     return results[0];
