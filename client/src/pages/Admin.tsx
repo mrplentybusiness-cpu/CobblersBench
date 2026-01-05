@@ -503,7 +503,7 @@ export default function Admin() {
                   <DialogHeader>
                     <DialogTitle>Add New Product</DialogTitle>
                   </DialogHeader>
-                  <ProductForm onSuccess={() => setIsAddProductOpen(false)} />
+                  <ProductForm onSuccess={() => setIsAddProductOpen(false)} existingCategories={Array.from(new Set(products.map(p => p.category)))} />
                 </DialogContent>
               </Dialog>
             </div>
@@ -921,7 +921,8 @@ export default function Admin() {
           {editingProduct && (
             <ProductForm 
               product={editingProduct} 
-              onSuccess={() => setEditingProduct(null)} 
+              onSuccess={() => setEditingProduct(null)}
+              existingCategories={Array.from(new Set(products.map(p => p.category)))}
             />
           )}
         </DialogContent>
@@ -930,7 +931,7 @@ export default function Admin() {
   );
 }
 
-function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () => void }) {
+function ProductForm({ product, onSuccess, existingCategories = [] }: { product?: Product; onSuccess: () => void; existingCategories?: string[] }) {
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
   const [price, setPrice] = useState(product?.price?.toString() || "");
@@ -1105,7 +1106,7 @@ function ProductForm({ product, onSuccess }: { product?: Product; onSuccess: () 
                   data-testid="input-product-category"
                 />
                 <datalist id="category-suggestions">
-                  {Array.from(new Set(products.map(p => p.category))).map((cat) => (
+                  {existingCategories.map((cat) => (
                     <option key={cat} value={cat} />
                   ))}
                   <option value="Repair" />
