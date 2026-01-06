@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { insertProductSchema, insertServiceInquirySchema } from "@shared/schema";
 import { z } from "zod";
+import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -31,6 +32,37 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error during admin auth:", error);
       res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
+  // ===== IMAGE UPLOAD =====
+  
+  // Check if image upload is available
+  app.get("/api/uploads/status", (req, res) => {
+    res.json({
+      imgbb: isImgBBConfigured(),
+      replitStorage: !!process.env.PRIVATE_OBJECT_DIR,
+    });
+  });
+
+  // Upload image via ImgBB (base64)
+  app.post("/api/uploads/imgbb", async (req, res) => {
+    try {
+      if (!isImgBBConfigured()) {
+        return res.status(400).json({ error: "ImgBB not configured. Please set IMGBB_API_KEY or use a direct image URL." });
+      }
+
+      const { image, name } = req.body;
+      
+      if (!image) {
+        return res.status(400).json({ error: "Missing required field: image (base64)" });
+      }
+
+      const imageUrl = await uploadToImgBB(image, name);
+      res.json({ url: imageUrl });
+    } catch (error) {
+      console.error("Error uploading to ImgBB:", error);
+      res.status(500).json({ error: "Failed to upload image" });
     }
   });
 
