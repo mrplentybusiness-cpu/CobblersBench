@@ -2,13 +2,15 @@ import { useState } from "react";
 import type { Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCart } from "@/lib/store";
+import { useCart, useCompare } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import { ImageOff, ShoppingBag } from "lucide-react";
+import { ImageOff, ShoppingBag, GitCompareArrows, Check } from "lucide-react";
 import { Link } from "wouter";
 
 export default function ProductCard({ product }: { product: Product }) {
   const addToCart = useCart((state) => state.addToCart);
+  const { addToCompare, removeFromCompare, isInCompare, canAddMore } = useCompare();
+  const inCompare = isInCompare(product.id);
   const { toast } = useToast();
   const [imageError, setImageError] = useState(false);
 
@@ -20,6 +22,30 @@ export default function ProductCard({ product }: { product: Product }) {
       title: "Added to cart",
       description: `${product.name} has been added to your cart.`,
     });
+  };
+
+  const handleCompareToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inCompare) {
+      removeFromCompare(product.id);
+      toast({
+        title: "Removed from compare",
+        description: `${product.name} removed from comparison.`,
+      });
+    } else if (canAddMore()) {
+      addToCompare(product.id);
+      toast({
+        title: "Added to compare",
+        description: `${product.name} added to comparison.`,
+      });
+    } else {
+      toast({
+        title: "Compare limit reached",
+        description: "You can compare up to 4 products at a time.",
+        variant: "destructive",
+      });
+    }
   };
 
   const hasComparePrice = product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price);
@@ -78,16 +104,28 @@ export default function ProductCard({ product }: { product: Product }) {
             </p>
           )}
           
-          <Button 
-            onClick={handleAddToCart} 
-            className="w-full"
-            variant="default"
-            disabled={Boolean(product.trackInventory && product.inventory === 0)}
-            data-testid={`button-add-to-cart-${product.id}`}
-          >
-            <ShoppingBag className="h-4 w-4 mr-2" />
-            {product.trackInventory && product.inventory === 0 ? 'Out of Stock' : 'Add to Order'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleAddToCart} 
+              className="flex-1"
+              variant="default"
+              disabled={Boolean(product.trackInventory && product.inventory === 0)}
+              data-testid={`button-add-to-cart-${product.id}`}
+            >
+              <ShoppingBag className="h-4 w-4 mr-2" />
+              {product.trackInventory && product.inventory === 0 ? 'Out of Stock' : 'Add to Order'}
+            </Button>
+            <Button
+              onClick={handleCompareToggle}
+              variant={inCompare ? "secondary" : "outline"}
+              size="icon"
+              className={inCompare ? "bg-primary/10 border-primary" : ""}
+              data-testid={`button-compare-${product.id}`}
+              title={inCompare ? "Remove from compare" : "Add to compare"}
+            >
+              {inCompare ? <Check className="h-4 w-4 text-primary" /> : <GitCompareArrows className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </div>
     </Link>

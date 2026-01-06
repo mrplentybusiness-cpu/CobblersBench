@@ -5,8 +5,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import logo from "@assets/Cobbler's_Bench_Logo_1767715154008.png";
+import CompareTray from "@/components/CompareTray";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+interface LayoutProps {
+  children: React.ReactNode;
+  hideCompareTray?: boolean;
+}
+
+export default function Layout({ children, hideCompareTray = false }: LayoutProps) {
   const [location] = useLocation();
   const cartItems = useCart((state) => state.items);
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -100,9 +106,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 pb-20">
         {children}
       </main>
+      
+      {!hideCompareTray && <CompareTray />}
 
       <footer className="bg-primary text-primary-foreground py-12">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">

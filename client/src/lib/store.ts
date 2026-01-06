@@ -6,6 +6,41 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+const MAX_COMPARE_ITEMS = 4;
+
+interface CompareStore {
+  productIds: number[];
+  addToCompare: (productId: number) => boolean;
+  removeFromCompare: (productId: number) => void;
+  clearCompare: () => void;
+  isInCompare: (productId: number) => boolean;
+  canAddMore: () => boolean;
+}
+
+export const useCompare = create<CompareStore>()(
+  persist(
+    (set, get) => ({
+      productIds: [],
+      addToCompare: (productId) => {
+        const ids = get().productIds;
+        if (ids.length >= MAX_COMPARE_ITEMS) return false;
+        if (ids.includes(productId)) return false;
+        set({ productIds: [...ids, productId] });
+        return true;
+      },
+      removeFromCompare: (productId) => {
+        set({ productIds: get().productIds.filter(id => id !== productId) });
+      },
+      clearCompare: () => set({ productIds: [] }),
+      isInCompare: (productId) => get().productIds.includes(productId),
+      canAddMore: () => get().productIds.length < MAX_COMPARE_ITEMS,
+    }),
+    {
+      name: 'cobblers-compare',
+    }
+  )
+);
+
 const MA_TAX_RATE = 0.0625; // Massachusetts state tax 6.25%
 const SHIPPING_RATE = 8.99; // Standard shipping rate
 const FREE_SHIPPING_THRESHOLD = 100; // Free shipping for orders $100+
