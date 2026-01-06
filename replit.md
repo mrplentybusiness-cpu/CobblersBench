@@ -132,12 +132,47 @@ Uses Replit's Object Storage (Google Cloud Storage compatible) for image uploads
 
 ### Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string
-- `PUBLIC_OBJECT_SEARCH_PATHS`: Paths for public object storage access (optional)
-- Admin password configured in application code (currently hardcoded as `admin123`)
+- `GMAIL_APP_PASSWORD`: Gmail app password for SMTP email sending
+- `ADMIN_PASSWORD`: Admin dashboard password (required secret)
+- `RAILWAY_PUBLIC_DOMAIN`: (Railway only) Set automatically by Railway for email logo URL
 
 ### Email Notifications
-- Uses Gmail API via Replit Google Mail integration
+- Uses Nodemailer SMTP with Gmail app password authentication
 - All order emails sent from: cobblersbenchcapecod@gmail.com
 - Customer confirmation emails sent on checkout
 - Admin notification emails sent for new orders
 - Order status update emails sent when payment/fulfillment changes
+- Business logo embedded in all email templates
+
+### Image Uploads
+- **Primary Method**: URL input from external image hosts (Imgur, Postimages, etc.)
+- **Alternative**: Direct file upload when Replit Object Storage is available
+- URL input works on all hosting platforms (Replit, Railway, etc.)
+
+## Railway Deployment
+
+### Required Environment Variables
+Set these in Railway's Variables tab:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` |
+| `GMAIL_APP_PASSWORD` | Gmail app password (16-char) | `abcd efgh ijkl mnop` |
+| `ADMIN_PASSWORD` | Admin dashboard password | `your-secure-password` |
+| `NODE_ENV` | Set to production | `production` |
+| `PORT` | Server port (Railway sets this) | `5000` |
+
+### Build & Start Commands
+- **Build**: `npm run build`
+- **Start**: `npm run start`
+
+### Database Setup
+1. Add PostgreSQL plugin to your Railway project
+2. Copy the `DATABASE_URL` from Railway's database service
+3. Run database migrations after first deploy
+
+### Important Notes for Railway
+- Email logo is served from `/images/email-logo.png` (static asset)
+- Product images use URL input method (external image hosts like Imgur)
+- Replit Object Storage is NOT available on Railway
+- RAILWAY_PUBLIC_DOMAIN is auto-set by Railway for deployed apps

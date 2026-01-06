@@ -198,7 +198,7 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
       ` : ''}
       
       <p style="margin-top: 20px;">
-        <a href="${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : ''}/admin" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Admin Dashboard</a>
+        <a href="${getBaseUrl()}/admin" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Admin Dashboard</a>
       </p>
     </body>
     </html>
