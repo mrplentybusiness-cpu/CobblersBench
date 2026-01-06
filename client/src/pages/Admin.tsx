@@ -1463,7 +1463,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   const isPending = createProductMutation.isPending || updateProductMutation.isPending;
   
   const addOption = () => {
-    if (productOptions.length < 3) {
+    if (productOptions.length < 6) {
       setProductOptions([...productOptions, { name: '', values: [] }]);
     }
   };
@@ -1843,7 +1843,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
           <Card>
             <CardHeader>
               <CardTitle>Product Options</CardTitle>
-              <CardDescription>Add options like Size or Color. Up to 3 options allowed.</CardDescription>
+              <CardDescription>Add options like Size or Color. Up to 6 options allowed.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {productOptions.map((option, index) => (
@@ -1884,7 +1884,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
               ))}
               
               <div className="flex gap-2">
-                {productOptions.length < 3 && (
+                {productOptions.length < 6 && (
                   <Button
                     type="button"
                     variant="outline"
