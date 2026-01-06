@@ -1,39 +1,21 @@
 import type { Express } from "express";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { isR2Configured, r2StorageService } from "../../r2Storage";
 
 /**
  * Register object storage routes for file uploads.
- *
- * This provides example routes for the presigned URL upload flow:
- * 1. POST /api/uploads/request-url - Get a presigned URL for uploading
- * 2. The client then uploads directly to the presigned URL
- *
- * IMPORTANT: These are example routes. Customize based on your use case:
- * - Add authentication middleware for protected uploads
- * - Add file metadata storage (save to database after upload)
- * - Add ACL policies for access control
+ * 
+ * Supports both Cloudflare R2 (for production/Railway) and Replit Object Storage (for development).
+ * R2 is used when R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY are set.
  */
 export function registerObjectStorageRoutes(app: Express): void {
   const objectStorageService = new ObjectStorageService();
+  const useR2 = isR2Configured();
+
+  console.log(`[Storage] Using ${useR2 ? 'Cloudflare R2' : 'Replit Object Storage'} for file uploads`);
 
   /**
    * Request a presigned URL for file upload.
-   *
-   * Request body (JSON):
-   * {
-   *   "name": "filename.jpg",
-   *   "size": 12345,
-   *   "contentType": "image/jpeg"
-   * }
-   *
-   * Response:
-   * {
-   *   "uploadURL": "https://storage.googleapis.com/...",
-   *   "objectPath": "/objects/uploads/uuid"
-   * }
-   *
-   * IMPORTANT: The client should NOT send the file to this endpoint.
-   * Send JSON metadata only, then upload the file directly to uploadURL.
    */
   app.post("/api/uploads/request-url", async (req, res) => {
     try {
@@ -45,17 +27,23 @@ export function registerObjectStorageRoutes(app: Express): void {
         });
       }
 
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-
-      // Extract object path from the presigned URL for later reference
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-
-      res.json({
-        uploadURL,
-        objectPath,
-        // Echo back the metadata for client convenience
-        metadata: { name, size, contentType },
-      });
+      if (useR2) {
+        const { uploadUrl, objectKey, publicUrl } = await r2StorageService.getUploadUrl(contentType);
+        res.json({
+          uploadURL: uploadUrl,
+          objectPath: publicUrl,
+          objectKey,
+          metadata: { name, size, contentType },
+        });
+      } else {
+        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+        const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+        res.json({
+          uploadURL,
+          objectPath,
+          metadata: { name, size, contentType },
+        });
+      }
     } catch (error) {
       console.error("Error generating upload URL:", error);
       res.status(500).json({ error: "Failed to generate upload URL" });
@@ -63,12 +51,7 @@ export function registerObjectStorageRoutes(app: Express): void {
   });
 
   /**
-   * Serve uploaded objects.
-   *
-   * GET /objects/:objectPath(*)
-   *
-   * This serves files from object storage. For public files, no auth needed.
-   * For protected files, add authentication middleware and ACL checks.
+   * Serve uploaded objects from Replit Object Storage.
    */
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
@@ -82,5 +65,21 @@ export function registerObjectStorageRoutes(app: Express): void {
       return res.status(500).json({ error: "Failed to serve object" });
     }
   });
-}
 
+  /**
+   * Serve uploaded objects from Cloudflare R2.
+   */
+  app.get("/r2/:objectPath(*)", async (req, res) => {
+    if (!useR2) {
+      return res.status(404).json({ error: "R2 storage not configured" });
+    }
+
+    try {
+      const objectKey = req.params.objectPath;
+      await r2StorageService.downloadObject(objectKey, res);
+    } catch (error) {
+      console.error("Error serving R2 object:", error);
+      return res.status(500).json({ error: "Failed to serve object" });
+    }
+  });
+}
