@@ -627,6 +627,7 @@ export async function registerRoutes(
           shippingState: createdOrder.shippingState,
           shippingZip: createdOrder.shippingZip,
           total: createdOrder.total,
+          shipping: createdOrder.shipping,
           repairDescription: createdOrder.repairDescription || null,
           items: orderItems.map(item => ({
             productName: item.productName,

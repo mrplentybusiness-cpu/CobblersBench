@@ -7,6 +7,8 @@ export interface CartItem extends Product {
 }
 
 const MA_TAX_RATE = 0.0625; // Massachusetts state tax 6.25%
+const SHIPPING_RATE = 8.99; // Standard shipping rate
+const FREE_SHIPPING_THRESHOLD = 100; // Free shipping for orders $100+
 
 interface CartStore {
   items: CartItem[];
@@ -17,6 +19,7 @@ interface CartStore {
   clearCart: () => void;
   setLastOrderId: (orderId: number) => void;
   subtotal: () => number;
+  shipping: () => number;
   tax: () => number;
   total: () => number;
 }
@@ -64,11 +67,15 @@ export const useCart = create<CartStore>()(
           0
         );
       },
+      shipping: () => {
+        const subtotal = get().subtotal();
+        return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_RATE;
+      },
       tax: () => {
         return get().subtotal() * MA_TAX_RATE;
       },
       total: () => {
-        return get().subtotal() + get().tax();
+        return get().subtotal() + get().shipping() + get().tax();
       },
     }),
     {

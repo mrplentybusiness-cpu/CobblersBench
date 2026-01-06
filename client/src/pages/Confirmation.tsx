@@ -63,6 +63,18 @@ export default function Confirmation() {
                   <span className="text-muted-foreground">Status:</span>
                   <span className="font-medium" data-testid="text-order-status">{order.status}</span>
                 </div>
+                {order.shipping && parseFloat(order.shipping) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Shipping:</span>
+                    <span className="font-medium">${order.shipping}</span>
+                  </div>
+                )}
+                {order.shipping && parseFloat(order.shipping) === 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Shipping:</span>
+                    <span className="font-medium text-green-600">FREE</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total (incl. MA tax):</span>
                   <span className="font-medium" data-testid="text-order-total">${order.total}</span>

@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { Trash2, Plus, Minus, ArrowLeft } from "lucide-react";
 
 export default function Cart() {
-  const { items, removeFromCart, updateQuantity, subtotal, tax, total } = useCart();
+  const { items, removeFromCart, updateQuantity, subtotal, shipping, tax, total } = useCart();
 
   return (
     <Layout>
@@ -90,8 +90,13 @@ export default function Cart() {
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Shipping</span>
-                    <span>Calculated at checkout</span>
+                    <span>{shipping() === 0 ? 'FREE' : `$${shipping().toFixed(2)}`}</span>
                   </div>
+                  {subtotal() > 0 && subtotal() < 100 && (
+                    <p className="text-xs text-muted-foreground">
+                      Add ${(100 - subtotal()).toFixed(2)} more for free shipping!
+                    </p>
+                  )}
                   <div className="border-t pt-4 flex justify-between font-bold text-lg">
                     <span>Total</span>
                     <span>${total().toFixed(2)}</span>

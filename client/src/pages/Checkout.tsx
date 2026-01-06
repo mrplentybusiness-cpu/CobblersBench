@@ -25,7 +25,7 @@ const formSchema = z.object({
 });
 
 export default function Checkout() {
-  const { items, subtotal, tax, total, clearCart, setLastOrderId } = useCart();
+  const { items, subtotal, shipping, tax, total, clearCart, setLastOrderId } = useCart();
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +72,7 @@ export default function Checkout() {
           shippingZip: values.zipCode,
           repairDescription: hasRepairItems ? values.repairDescription : null,
           total: total().toFixed(2),
+          shipping: shipping().toFixed(2),
         },
         items: items.map(item => ({
           productId: item.id,
@@ -325,9 +326,18 @@ export default function Checkout() {
                   <span>${subtotal().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Shipping</span>
+                  <span>{shipping() === 0 ? 'FREE' : `$${shipping().toFixed(2)}`}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
                   <span>MA Sales Tax (6.25%)</span>
                   <span>${tax().toFixed(2)}</span>
                 </div>
+                {subtotal() < 100 && (
+                  <p className="text-xs text-muted-foreground">
+                    Add ${(100 - subtotal()).toFixed(2)} more for free shipping!
+                  </p>
+                )}
               </div>
               <Separator className="my-4" />
               <div className="flex justify-between font-bold text-lg">

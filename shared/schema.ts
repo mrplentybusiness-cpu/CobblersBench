@@ -38,6 +38,7 @@ export const orders = pgTable("orders", {
   shippingZip: text("shipping_zip").notNull(),
   repairDescription: text("repair_description"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  shipping: decimal("shipping", { precision: 10, scale: 2 }).notNull().default("0"),
   status: text("status").notNull().default("Pending"),
   paymentStatus: text("payment_status").notNull().default("unpaid"),
   fulfillmentStatus: text("fulfillment_status").notNull().default("unfulfilled"),

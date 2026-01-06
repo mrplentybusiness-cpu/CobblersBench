@@ -36,6 +36,7 @@ export interface OrderDetails {
   shippingState: string | null;
   shippingZip: string;
   total: string;
+  shipping: string;
   repairDescription: string | null;
   items: Array<{
     productName: string;
@@ -91,6 +92,10 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
               ${itemsHtml}
             </tbody>
             <tfoot>
+              <tr>
+                <td colspan="2" style="padding: 10px; text-align: right; color: #666;">Shipping:</td>
+                <td style="padding: 10px; text-align: right;">${parseFloat(order.shipping) === 0 ? 'FREE' : '$' + order.shipping}</td>
+              </tr>
               <tr>
                 <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Total (incl. MA 6.25% tax):</td>
                 <td style="padding: 10px; text-align: right; font-weight: bold;">$${order.total}</td>
@@ -190,7 +195,10 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
         </tbody>
       </table>
       
-      <p><strong>Order Total: $${order.total}</strong> <span style="font-size: 12px; color: #666;">(includes MA 6.25% tax)</span></p>
+      <p>
+        <strong>Shipping:</strong> ${parseFloat(order.shipping) === 0 ? 'FREE' : '$' + order.shipping}<br>
+        <strong>Order Total:</strong> $${order.total} <span style="font-size: 12px; color: #666;">(includes MA 6.25% tax)</span>
+      </p>
       
       ${order.repairDescription ? `
         <h2>Repair/Work Order Description</h2>
