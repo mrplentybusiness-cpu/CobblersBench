@@ -94,121 +94,119 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query(`
         CREATE TABLE IF NOT EXISTS products (
-          id SERIAL PRIMARY KEY,
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
           name TEXT NOT NULL,
-          description TEXT,
-          price TEXT NOT NULL,
-          compare_at_price TEXT,
-          cost TEXT,
-          image_url TEXT,
-          category TEXT,
+          description TEXT NOT NULL,
+          price NUMERIC(10,2) NOT NULL,
+          compare_at_price NUMERIC(10,2),
+          cost NUMERIC(10,2),
+          image_url TEXT NOT NULL,
+          category TEXT NOT NULL,
           product_type TEXT,
           brand TEXT,
           color TEXT,
-          status TEXT DEFAULT 'active',
-          track_inventory BOOLEAN DEFAULT false,
+          status TEXT NOT NULL DEFAULT 'active',
+          track_inventory BOOLEAN DEFAULT true,
           inventory INTEGER,
           sku TEXT,
           tags TEXT,
-          created_at TIMESTAMP DEFAULT NOW()
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
         )
       `);
       
       await client.query(`
         CREATE TABLE IF NOT EXISTS product_images (
-          id SERIAL PRIMARY KEY,
-          product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
           url TEXT NOT NULL,
           alt_text TEXT,
-          sort_order INTEGER DEFAULT 0,
-          created_at TIMESTAMP DEFAULT NOW()
+          sort_order INTEGER NOT NULL DEFAULT 0
         )
       `);
       
       await client.query(`
         CREATE TABLE IF NOT EXISTS orders (
-          id SERIAL PRIMARY KEY,
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
           customer_name TEXT NOT NULL,
           customer_email TEXT NOT NULL,
           customer_phone TEXT,
-          shipping_address TEXT,
-          shipping_city TEXT,
+          shipping_address TEXT NOT NULL,
+          shipping_city TEXT NOT NULL,
           shipping_state TEXT,
-          shipping_zip TEXT,
-          subtotal TEXT NOT NULL,
-          tax TEXT NOT NULL,
-          shipping TEXT NOT NULL,
-          total TEXT NOT NULL,
-          status TEXT DEFAULT 'pending',
-          payment_status TEXT DEFAULT 'unpaid',
-          fulfillment_status TEXT DEFAULT 'unfulfilled',
-          tracking_number TEXT,
-          admin_notes TEXT,
+          shipping_zip TEXT NOT NULL,
           repair_description TEXT,
+          total NUMERIC(10,2) NOT NULL,
+          shipping NUMERIC(10,2) NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'Pending',
+          payment_status TEXT NOT NULL DEFAULT 'unpaid',
+          fulfillment_status TEXT NOT NULL DEFAULT 'unfulfilled',
           archived BOOLEAN DEFAULT false,
-          created_at TIMESTAMP DEFAULT NOW()
+          admin_notes TEXT,
+          tracking_number TEXT,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
         )
       `);
       
       await client.query(`
         CREATE TABLE IF NOT EXISTS order_items (
-          id SERIAL PRIMARY KEY,
-          order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
-          product_id INTEGER,
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+          product_id INTEGER NOT NULL REFERENCES products(id),
           product_name TEXT NOT NULL,
-          variant_title TEXT,
-          quantity INTEGER NOT NULL,
-          price TEXT NOT NULL
+          product_price NUMERIC(10,2) NOT NULL,
+          quantity INTEGER NOT NULL
         )
       `);
       
       await client.query(`
         CREATE TABLE IF NOT EXISTS service_inquiries (
-          id SERIAL PRIMARY KEY,
-          name TEXT NOT NULL,
-          email TEXT NOT NULL,
-          phone TEXT,
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          customer_name TEXT NOT NULL,
+          customer_email TEXT NOT NULL,
+          customer_phone TEXT,
           service_type TEXT NOT NULL,
-          description TEXT,
-          status TEXT DEFAULT 'new',
+          description TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'new',
           admin_notes TEXT,
-          created_at TIMESTAMP DEFAULT NOW()
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
         )
       `);
       
       await client.query(`
         CREATE TABLE IF NOT EXISTS product_options (
-          id SERIAL PRIMARY KEY,
-          product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
           name TEXT NOT NULL,
           "values" TEXT[] NOT NULL,
-          position INTEGER DEFAULT 0
+          position INTEGER NOT NULL DEFAULT 0
         )
       `);
       
       await client.query(`
         CREATE TABLE IF NOT EXISTS product_variants (
-          id SERIAL PRIMARY KEY,
-          product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
           title TEXT NOT NULL,
-          option_values JSONB,
+          option_values TEXT NOT NULL,
           sku TEXT,
-          price TEXT,
-          compare_at_price TEXT,
-          cost TEXT,
+          price NUMERIC(10,2) NOT NULL,
+          compare_at_price NUMERIC(10,2),
+          cost NUMERIC(10,2),
           track_inventory BOOLEAN DEFAULT true,
-          inventory INTEGER DEFAULT 0,
+          inventory INTEGER,
           image_url TEXT,
-          status TEXT DEFAULT 'active',
-          created_at TIMESTAMP DEFAULT NOW()
+          status TEXT NOT NULL DEFAULT 'active',
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
         )
       `);
 
       const columnMigrations = [
-        { table: 'products', column: 'track_inventory', type: 'BOOLEAN DEFAULT false' },
+        { table: 'products', column: 'track_inventory', type: 'BOOLEAN DEFAULT true' },
         { table: 'products', column: 'inventory', type: 'INTEGER' },
         { table: 'orders', column: 'shipping_state', type: 'TEXT' },
         { table: 'orders', column: 'archived', type: 'BOOLEAN DEFAULT false' },
+        { table: 'orders', column: 'updated_at', type: 'TIMESTAMP DEFAULT NOW()' },
       ];
 
       for (const migration of columnMigrations) {
