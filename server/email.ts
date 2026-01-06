@@ -1,11 +1,10 @@
 import { google } from 'googleapis';
 
-let connectionSettings: any;
+let connectionSettings: any = null;
 
 async function getAccessToken() {
-  if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
-    return connectionSettings.settings.access_token;
-  }
+  // Always fetch fresh credentials - don't cache to avoid stale token issues
+  connectionSettings = null;
   
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY 
@@ -14,11 +13,14 @@ async function getAccessToken() {
     ? 'depl ' + process.env.WEB_REPL_RENEWAL 
     : null;
 
+  console.log('[Gmail Debug] Hostname:', hostname);
+  console.log('[Gmail Debug] Token type:', xReplitToken ? (xReplitToken.startsWith('repl') ? 'repl' : 'depl') : 'none');
+
   if (!xReplitToken) {
     throw new Error('X_REPLIT_TOKEN not found for repl/depl');
   }
 
-  connectionSettings = await fetch(
+  const response = await fetch(
     'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=google-mail',
     {
       headers: {
@@ -26,9 +28,18 @@ async function getAccessToken() {
         'X_REPLIT_TOKEN': xReplitToken
       }
     }
-  ).then(res => res.json()).then(data => data.items?.[0]);
+  );
+  
+  const data = await response.json();
+  console.log('[Gmail Debug] API response status:', response.status);
+  console.log('[Gmail Debug] Connection data keys:', data.items?.[0] ? Object.keys(data.items[0]) : 'no items');
+  console.log('[Gmail Debug] Settings keys:', data.items?.[0]?.settings ? Object.keys(data.items[0].settings) : 'no settings');
+  
+  connectionSettings = data.items?.[0];
 
-  const accessToken = connectionSettings?.settings?.access_token || connectionSettings.settings?.oauth?.credentials?.access_token;
+  const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
+
+  console.log('[Gmail Debug] Access token found:', !!accessToken);
 
   if (!connectionSettings || !accessToken) {
     throw new Error('Gmail not connected');
