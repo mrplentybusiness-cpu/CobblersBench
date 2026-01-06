@@ -92,7 +92,7 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
             </tbody>
             <tfoot>
               <tr>
-                <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Total:</td>
+                <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Total (incl. MA 6.25% tax):</td>
                 <td style="padding: 10px; text-align: right; font-weight: bold;">$${order.total}</td>
               </tr>
             </tfoot>
@@ -190,7 +190,7 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
         </tbody>
       </table>
       
-      <p><strong>Order Total: $${order.total}</strong></p>
+      <p><strong>Order Total: $${order.total}</strong> <span style="font-size: 12px; color: #666;">(includes MA 6.25% tax)</span></p>
       
       ${order.repairDescription ? `
         <h2>Repair/Work Order Description</h2>

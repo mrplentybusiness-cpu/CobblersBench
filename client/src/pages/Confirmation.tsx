@@ -64,7 +64,7 @@ export default function Confirmation() {
                   <span className="font-medium" data-testid="text-order-status">{order.status}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total:</span>
+                  <span className="text-muted-foreground">Total (incl. MA tax):</span>
                   <span className="font-medium" data-testid="text-order-total">${order.total}</span>
                 </div>
                 {order.trackingNumber && (
@@ -147,6 +147,7 @@ export default function Confirmation() {
               <h2 className="font-serif text-2xl font-bold mb-4 text-center border-b pb-4">Final Step: Payment</h2>
               <p className="mb-6 text-center">
                 To finalize your order, please send <strong className="text-primary">${order.total}</strong> via Venmo. 
+                <span className="text-sm text-muted-foreground">(includes MA 6.25% sales tax)</span><br />
                 We will process your order immediately upon receipt.
               </p>
 

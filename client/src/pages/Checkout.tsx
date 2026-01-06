@@ -25,7 +25,7 @@ const formSchema = z.object({
 });
 
 export default function Checkout() {
-  const { items, total, clearCart, setLastOrderId } = useCart();
+  const { items, subtotal, tax, total, clearCart, setLastOrderId } = useCart();
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +105,7 @@ export default function Checkout() {
     }
   }
 
-  if (total() === 0) {
+  if (subtotal() === 0) {
     setLocation("/cart");
     return null;
   }
@@ -317,6 +317,17 @@ export default function Checkout() {
                     <span>${(parseFloat(String(item.price)) * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
+              </div>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>${subtotal().toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>MA Sales Tax (6.25%)</span>
+                  <span>${tax().toFixed(2)}</span>
+                </div>
               </div>
               <Separator className="my-4" />
               <div className="flex justify-between font-bold text-lg">

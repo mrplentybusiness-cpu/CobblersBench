@@ -6,6 +6,8 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+const MA_TAX_RATE = 0.0625; // Massachusetts state tax 6.25%
+
 interface CartStore {
   items: CartItem[];
   lastOrderId: number | null;
@@ -14,6 +16,8 @@ interface CartStore {
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
   setLastOrderId: (orderId: number) => void;
+  subtotal: () => number;
+  tax: () => number;
   total: () => number;
 }
 
@@ -54,11 +58,17 @@ export const useCart = create<CartStore>()(
       },
       clearCart: () => set({ items: [] }),
       setLastOrderId: (orderId) => set({ lastOrderId: orderId }),
-      total: () => {
+      subtotal: () => {
         return get().items.reduce(
-          (total, item) => total + parseFloat(item.price.toString()) * item.quantity,
+          (sum, item) => sum + parseFloat(item.price.toString()) * item.quantity,
           0
         );
+      },
+      tax: () => {
+        return get().subtotal() * MA_TAX_RATE;
+      },
+      total: () => {
+        return get().subtotal() + get().tax();
       },
     }),
     {
