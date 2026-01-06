@@ -1666,12 +1666,12 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="productType">Product Type</Label>
-                  <Select value={productType} onValueChange={setProductType}>
+                  <Select value={productType || "_none_"} onValueChange={(val) => setProductType(val === "_none_" ? "" : val)}>
                     <SelectTrigger data-testid="select-product-type">
                       <SelectValue placeholder="Select type..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="_none_">None</SelectItem>
                       {PRODUCT_TYPES.map((type) => (
                         <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
@@ -1681,12 +1681,12 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
 
                 <div>
                   <Label htmlFor="brand">Brand</Label>
-                  <Select value={brand} onValueChange={setBrand}>
+                  <Select value={brand || "_none_"} onValueChange={(val) => setBrand(val === "_none_" ? "" : val)}>
                     <SelectTrigger data-testid="select-product-brand">
                       <SelectValue placeholder="Select brand..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="_none_">None</SelectItem>
                       {BRANDS.map((b) => (
                         <SelectItem key={b} value={b}>{b}</SelectItem>
                       ))}
