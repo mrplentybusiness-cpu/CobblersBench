@@ -229,13 +229,13 @@ export function ImageUploader({ value, onChange, onPreviewChange, disabled }: Im
         data-testid="input-product-image-hidden"
       />
       
-      <Tabs defaultValue={canUpload ? "upload" : "url"} className="w-full">
+      <Tabs defaultValue="url" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="upload" disabled={!canUpload}>
-            <Upload className="h-4 w-4 mr-2" /> Upload
-          </TabsTrigger>
           <TabsTrigger value="url">
             <LinkIcon className="h-4 w-4 mr-2" /> Image URL
+          </TabsTrigger>
+          <TabsTrigger value="upload" disabled={!canUpload}>
+            <Upload className="h-4 w-4 mr-2" /> Upload
           </TabsTrigger>
         </TabsList>
 
@@ -300,7 +300,7 @@ export function ImageUploader({ value, onChange, onPreviewChange, disabled }: Im
                 data-testid="input-image-url"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Enter a direct link to an image (from Imgur, Unsplash, etc.)
+                Paste a direct image link. Free hosting: <a href="https://imgur.com/upload" target="_blank" rel="noopener noreferrer" className="underline text-primary">Imgur</a>, <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="underline text-primary">Postimages</a>
               </p>
             </div>
             <Button
