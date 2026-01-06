@@ -272,6 +272,248 @@ export async function registerRoutes(
     }
   });
 
+  // ===== PRODUCT OPTIONS =====
+
+  // Get product options
+  app.get("/api/products/:id/options", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const options = await storage.getProductOptions(productId);
+      res.json(options);
+    } catch (error) {
+      console.error("Error fetching product options:", error);
+      res.status(500).json({ error: "Failed to fetch options" });
+    }
+  });
+
+  // Create product option
+  app.post("/api/products/:id/options", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { name, values, position } = req.body;
+      
+      if (!name || !values || !Array.isArray(values) || values.length === 0) {
+        return res.status(400).json({ error: "Option name and values array are required" });
+      }
+      
+      const option = await storage.createProductOption({
+        productId,
+        name,
+        values,
+        position: position ?? 0,
+      });
+      res.status(201).json(option);
+    } catch (error) {
+      console.error("Error creating product option:", error);
+      res.status(500).json({ error: "Failed to create option" });
+    }
+  });
+
+  // Update product option
+  app.patch("/api/product-options/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, values, position } = req.body;
+      
+      const updateData: Record<string, any> = {};
+      if (name !== undefined) updateData.name = name;
+      if (values !== undefined) updateData.values = values;
+      if (position !== undefined) updateData.position = position;
+      
+      const option = await storage.updateProductOption(id, updateData);
+      
+      if (!option) {
+        return res.status(404).json({ error: "Option not found" });
+      }
+      
+      res.json(option);
+    } catch (error) {
+      console.error("Error updating product option:", error);
+      res.status(500).json({ error: "Failed to update option" });
+    }
+  });
+
+  // Delete product option
+  app.delete("/api/product-options/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteProductOption(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Option not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting product option:", error);
+      res.status(500).json({ error: "Failed to delete option" });
+    }
+  });
+
+  // Bulk update product options (replace all)
+  app.put("/api/products/:id/options", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { options } = req.body;
+      
+      if (!Array.isArray(options)) {
+        return res.status(400).json({ error: "Options array is required" });
+      }
+      
+      // Delete all existing options
+      await storage.deleteAllProductOptions(productId);
+      
+      // Create new options
+      const createdOptions = [];
+      for (let i = 0; i < options.length; i++) {
+        const opt = options[i];
+        const option = await storage.createProductOption({
+          productId,
+          name: opt.name,
+          values: opt.values,
+          position: i,
+        });
+        createdOptions.push(option);
+      }
+      
+      res.json(createdOptions);
+    } catch (error) {
+      console.error("Error updating product options:", error);
+      res.status(500).json({ error: "Failed to update options" });
+    }
+  });
+
+  // ===== PRODUCT VARIANTS =====
+
+  // Get product variants
+  app.get("/api/products/:id/variants", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const variants = await storage.getProductVariants(productId);
+      res.json(variants);
+    } catch (error) {
+      console.error("Error fetching product variants:", error);
+      res.status(500).json({ error: "Failed to fetch variants" });
+    }
+  });
+
+  // Create product variant
+  app.post("/api/products/:id/variants", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { title, optionValues, sku, price, compareAtPrice, cost, trackInventory, inventory, imageUrl, status } = req.body;
+      
+      if (!title || !price) {
+        return res.status(400).json({ error: "Variant title and price are required" });
+      }
+      
+      const variant = await storage.createProductVariant({
+        productId,
+        title,
+        optionValues: typeof optionValues === 'string' ? optionValues : JSON.stringify(optionValues || {}),
+        sku: sku ?? null,
+        price,
+        compareAtPrice: compareAtPrice ?? null,
+        cost: cost ?? null,
+        trackInventory: trackInventory ?? false,
+        inventory: inventory ?? null,
+        imageUrl: imageUrl ?? null,
+        status: status ?? "active",
+      });
+      res.status(201).json(variant);
+    } catch (error) {
+      console.error("Error creating product variant:", error);
+      res.status(500).json({ error: "Failed to create variant" });
+    }
+  });
+
+  // Update product variant
+  app.patch("/api/product-variants/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { title, optionValues, sku, price, compareAtPrice, cost, trackInventory, inventory, imageUrl, status } = req.body;
+      
+      const updateData: Record<string, any> = {};
+      if (title !== undefined) updateData.title = title;
+      if (optionValues !== undefined) updateData.optionValues = typeof optionValues === 'string' ? optionValues : JSON.stringify(optionValues);
+      if (sku !== undefined) updateData.sku = sku;
+      if (price !== undefined) updateData.price = price;
+      if (compareAtPrice !== undefined) updateData.compareAtPrice = compareAtPrice;
+      if (cost !== undefined) updateData.cost = cost;
+      if (trackInventory !== undefined) updateData.trackInventory = trackInventory;
+      if (inventory !== undefined) updateData.inventory = inventory;
+      if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+      if (status !== undefined) updateData.status = status;
+      
+      const variant = await storage.updateProductVariant(id, updateData);
+      
+      if (!variant) {
+        return res.status(404).json({ error: "Variant not found" });
+      }
+      
+      res.json(variant);
+    } catch (error) {
+      console.error("Error updating product variant:", error);
+      res.status(500).json({ error: "Failed to update variant" });
+    }
+  });
+
+  // Delete product variant
+  app.delete("/api/product-variants/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteProductVariant(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Variant not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting product variant:", error);
+      res.status(500).json({ error: "Failed to delete variant" });
+    }
+  });
+
+  // Bulk update product variants (replace all)
+  app.put("/api/products/:id/variants", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { variants } = req.body;
+      
+      if (!Array.isArray(variants)) {
+        return res.status(400).json({ error: "Variants array is required" });
+      }
+      
+      // Delete all existing variants
+      await storage.deleteAllProductVariants(productId);
+      
+      // Create new variants
+      const createdVariants = [];
+      for (const v of variants) {
+        const variant = await storage.createProductVariant({
+          productId,
+          title: v.title,
+          optionValues: typeof v.optionValues === 'string' ? v.optionValues : JSON.stringify(v.optionValues || {}),
+          sku: v.sku ?? null,
+          price: v.price,
+          compareAtPrice: v.compareAtPrice ?? null,
+          cost: v.cost ?? null,
+          trackInventory: v.trackInventory ?? false,
+          inventory: v.inventory ?? null,
+          imageUrl: v.imageUrl ?? null,
+          status: v.status ?? "active",
+        });
+        createdVariants.push(variant);
+      }
+      
+      res.json(createdVariants);
+    } catch (error) {
+      console.error("Error updating product variants:", error);
+      res.status(500).json({ error: "Failed to update variants" });
+    }
+  });
+
   // ===== ORDERS =====
   
   // Get all orders (with optional archive filter)
