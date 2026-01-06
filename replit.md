@@ -134,3 +134,10 @@ Uses Replit's Object Storage (Google Cloud Storage compatible) for image uploads
 - `DATABASE_URL`: PostgreSQL connection string
 - `PUBLIC_OBJECT_SEARCH_PATHS`: Paths for public object storage access (optional)
 - Admin password configured in application code (currently hardcoded as `admin123`)
+
+### Email Notifications
+- Uses Gmail API via Replit Google Mail integration
+- All order emails sent from: cobblersbenchcapecod@gmail.com
+- Customer confirmation emails sent on checkout
+- Admin notification emails sent for new orders
+- Order status update emails sent when payment/fulfillment changes

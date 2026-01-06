@@ -40,6 +40,7 @@ export interface IStorage {
   getAllOrders(includeArchived?: boolean): Promise<(Order & { items: OrderItem[] })[]>;
   getOrderById(id: number): Promise<(Order & { items: OrderItem[] }) | undefined>;
   createOrder(order: InsertOrder, items: Omit<InsertOrderItem, "orderId">[]): Promise<Order>;
+  getOrderItems(orderId: number): Promise<OrderItem[]>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
   updateOrderPaymentStatus(id: number, paymentStatus: string): Promise<Order | undefined>;
   updateOrderFulfillmentStatus(id: number, fulfillmentStatus: string): Promise<Order | undefined>;
@@ -214,6 +215,10 @@ export class DatabaseStorage implements IStorage {
     await this.db.insert(schema.orderItems).values(orderItemsWithId);
 
     return createdOrder;
+  }
+
+  async getOrderItems(orderId: number): Promise<OrderItem[]> {
+    return this.db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, orderId));
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {

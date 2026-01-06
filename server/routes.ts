@@ -5,6 +5,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { insertProductSchema, insertServiceInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
+import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, type OrderDetails } from "./email";
 
 const productOptionSchema = z.object({
   name: z.string().min(1, "Option name is required"),
@@ -591,6 +592,38 @@ export async function registerRoutes(
       }
 
       const createdOrder = await storage.createOrder(order, items);
+      
+      // Send email notifications
+      try {
+        const orderItems = await storage.getOrderItems(createdOrder.id);
+        const emailDetails: OrderDetails = {
+          orderId: createdOrder.id,
+          customerName: createdOrder.customerName,
+          customerEmail: createdOrder.customerEmail,
+          customerPhone: createdOrder.customerPhone,
+          shippingAddress: createdOrder.shippingAddress,
+          shippingCity: createdOrder.shippingCity,
+          shippingState: createdOrder.shippingState,
+          shippingZip: createdOrder.shippingZip,
+          total: createdOrder.total,
+          repairDescription: createdOrder.repairDescription || null,
+          items: orderItems.map(item => ({
+            productName: item.productName,
+            quantity: item.quantity,
+            price: item.productPrice,
+            variantTitle: null,
+          })),
+        };
+        
+        await Promise.all([
+          sendCustomerOrderConfirmation(emailDetails),
+          sendAdminOrderNotification(emailDetails),
+        ]);
+        console.log(`Order #${createdOrder.id} - Email notifications sent`);
+      } catch (emailError) {
+        console.error("Failed to send order emails:", emailError);
+      }
+      
       res.status(201).json(createdOrder);
     } catch (error) {
       console.error("Error creating order:", error);
