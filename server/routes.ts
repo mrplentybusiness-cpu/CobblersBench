@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -7,6 +7,12 @@ import { z } from "zod";
 import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
 import { isR2Configured, r2StorageService } from "./r2Storage";
 import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, type OrderDetails } from "./email";
+
+function sendError(res: Response, status: number, message: string, error: unknown) {
+  const details = error instanceof Error ? error.message : String(error);
+  console.error(`${message}:`, error);
+  res.status(status).json({ error: message, details });
+}
 
 const productOptionSchema = z.object({
   name: z.string().min(1, "Option name is required"),
@@ -177,7 +183,8 @@ export async function registerRoutes(
       res.status(201).json(product);
     } catch (error) {
       console.error("Error creating product:", error);
-      res.status(500).json({ error: "Failed to create product" });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: "Failed to create product", details: errorMessage });
     }
   });
 

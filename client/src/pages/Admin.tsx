@@ -1385,7 +1385,8 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Failed to create product');
+        const errorMsg = error.details ? `${error.error}: ${error.details}` : (error.error || 'Failed to create product');
+        throw new Error(errorMsg);
       }
       return response.json();
     },
