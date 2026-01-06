@@ -98,10 +98,12 @@ RESTful API endpoints under `/api/`:
 - `PATCH/DELETE /api/product-variants/:id` - Single variant operations
 
 ### Object Storage Integration
-Uses Replit's Object Storage (Google Cloud Storage compatible) for image uploads:
+Uses Cloudflare R2 for image uploads (works on both Replit and Railway):
+- **Cloudflare R2**: Primary storage with S3-compatible API
+- **Public Bucket URL**: https://pub-f6599d1fd6174621afcfcb9c0e548516.r2.dev
+- **CORS**: Configured for browser uploads (AllowedOrigins: *, AllowedMethods: GET, PUT, POST, DELETE, HEAD)
 - Presigned URL flow for secure direct uploads
-- ACL policy system for access control
-- Integration via `@google-cloud/storage` SDK
+- Fallback to Replit Object Storage when R2 is not configured
 
 ### Authentication
 - Admin dashboard uses simple password-based authentication (stored in environment)
@@ -114,8 +116,9 @@ Uses Replit's Object Storage (Google Cloud Storage compatible) for image uploads
 - **Drizzle ORM**: Type-safe database queries and schema management
 
 ### Object Storage
-- **Replit Object Storage**: Google Cloud Storage-compatible service for image uploads
-- **Sidecar Endpoint**: `http://127.0.0.1:1106` for credential management
+- **Primary**: Cloudflare R2 with S3-compatible API for image uploads
+- **Fallback**: Replit Object Storage (Google Cloud Storage-compatible) when on Replit
+- R2 credentials: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL
 
 ### UI Component Libraries
 - **shadcn/ui**: Comprehensive component library built on Radix UI primitives
@@ -134,6 +137,11 @@ Uses Replit's Object Storage (Google Cloud Storage compatible) for image uploads
 - `DATABASE_URL`: PostgreSQL connection string
 - `GMAIL_APP_PASSWORD`: Gmail app password for SMTP email sending
 - `ADMIN_PASSWORD`: Admin dashboard password (required secret)
+- `R2_ACCOUNT_ID`: Cloudflare account ID for R2 storage
+- `R2_ACCESS_KEY_ID`: R2 API token access key
+- `R2_SECRET_ACCESS_KEY`: R2 API token secret key
+- `R2_BUCKET_NAME`: R2 bucket name (cobblers-bench)
+- `R2_PUBLIC_URL`: R2 public bucket URL
 - `RAILWAY_PUBLIC_DOMAIN`: (Railway only) Set automatically by Railway for email logo URL
 
 ### Email Notifications
@@ -145,9 +153,9 @@ Uses Replit's Object Storage (Google Cloud Storage compatible) for image uploads
 - Business logo embedded in all email templates
 
 ### Image Uploads
-- **Primary Method**: URL input from external image hosts (Imgur, Postimages, etc.)
-- **Alternative**: Direct file upload when Replit Object Storage is available
-- URL input works on all hosting platforms (Replit, Railway, etc.)
+- **Primary Method**: Direct file upload to Cloudflare R2 (works on Replit and Railway)
+- **Alternative**: URL input for external image links
+- R2 provides reliable image hosting across all deployment platforms
 
 ## Railway Deployment
 
@@ -159,6 +167,11 @@ Set these in Railway's Variables tab:
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` |
 | `GMAIL_APP_PASSWORD` | Gmail app password (16-char) | `abcd efgh ijkl mnop` |
 | `ADMIN_PASSWORD` | Admin dashboard password | `your-secure-password` |
+| `R2_ACCOUNT_ID` | Cloudflare account ID | `0a33ed0487836b6b0f4ce60235a7e946` |
+| `R2_ACCESS_KEY_ID` | R2 API token access key | `your-access-key` |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret key | `your-secret-key` |
+| `R2_BUCKET_NAME` | R2 bucket name | `cobblers-bench` |
+| `R2_PUBLIC_URL` | R2 public bucket URL | `https://pub-f6599d1fd6174621afcfcb9c0e548516.r2.dev` |
 | `NODE_ENV` | Set to production | `production` |
 | `PORT` | Server port (Railway sets this) | `5000` |
 
@@ -173,6 +186,6 @@ Set these in Railway's Variables tab:
 
 ### Important Notes for Railway
 - Email logo is served from `/images/email-logo.png` (static asset)
-- Product images use URL input method (external image hosts like Imgur)
-- Replit Object Storage is NOT available on Railway
+- Product images uploaded via Cloudflare R2 (same bucket works on both Replit and Railway)
+- Cloudflare R2 CORS must be configured to allow browser uploads
 - RAILWAY_PUBLIC_DOMAIN is auto-set by Railway for deployed apps
