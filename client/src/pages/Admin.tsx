@@ -1666,32 +1666,38 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="productType">Product Type</Label>
-                  <Select value={productType || "_none_"} onValueChange={(val) => setProductType(val === "_none_" ? "" : val)}>
-                    <SelectTrigger data-testid="select-product-type">
-                      <SelectValue placeholder="Select type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_none_">None</SelectItem>
-                      {PRODUCT_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    id="productType"
+                    value={productType}
+                    onChange={(e) => setProductType(e.target.value)}
+                    placeholder="Select or type new..."
+                    list="product-type-suggestions"
+                    data-testid="input-product-type"
+                  />
+                  <datalist id="product-type-suggestions">
+                    {PRODUCT_TYPES.map((type) => (
+                      <option key={type} value={type} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-muted-foreground mt-1">Select existing or type a new type</p>
                 </div>
 
                 <div>
                   <Label htmlFor="brand">Brand</Label>
-                  <Select value={brand || "_none_"} onValueChange={(val) => setBrand(val === "_none_" ? "" : val)}>
-                    <SelectTrigger data-testid="select-product-brand">
-                      <SelectValue placeholder="Select brand..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_none_">None</SelectItem>
-                      {BRANDS.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    id="brand"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    placeholder="Select or type new..."
+                    list="brand-suggestions"
+                    data-testid="input-product-brand"
+                  />
+                  <datalist id="brand-suggestions">
+                    {BRANDS.map((b) => (
+                      <option key={b} value={b} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-muted-foreground mt-1">Select existing or type a new brand</p>
                 </div>
               </div>
 
