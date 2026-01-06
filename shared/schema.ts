@@ -115,3 +115,42 @@ export const insertServiceInquirySchema = createInsertSchema(serviceInquiries).o
 
 export type InsertServiceInquiry = z.infer<typeof insertServiceInquirySchema>;
 export type ServiceInquiry = typeof serviceInquiries.$inferSelect;
+
+export const productOptions = pgTable("product_options", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  values: text("values").array().notNull(),
+  position: integer("position").notNull().default(0),
+});
+
+export const productVariants = pgTable("product_variants", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  productId: integer("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  optionValues: text("option_values").notNull(),
+  sku: text("sku"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  compareAtPrice: decimal("compare_at_price", { precision: 10, scale: 2 }),
+  cost: decimal("cost", { precision: 10, scale: 2 }),
+  trackInventory: boolean("track_inventory").default(false),
+  inventory: integer("inventory"),
+  imageUrl: text("image_url"),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProductOptionSchema = createInsertSchema(productOptions).omit({
+  id: true,
+});
+
+export const insertProductVariantSchema = createInsertSchema(productVariants).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertProductOption = z.infer<typeof insertProductOptionSchema>;
+export type ProductOption = typeof productOptions.$inferSelect;
+
+export type InsertProductVariant = z.infer<typeof insertProductVariantSchema>;
+export type ProductVariant = typeof productVariants.$inferSelect;

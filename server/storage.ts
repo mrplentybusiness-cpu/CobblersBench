@@ -11,7 +11,11 @@ import type {
   OrderItem,
   InsertOrderItem,
   ServiceInquiry,
-  InsertServiceInquiry
+  InsertServiceInquiry,
+  ProductOption,
+  InsertProductOption,
+  ProductVariant,
+  InsertProductVariant
 } from "@shared/schema";
 
 const { Pool } = pg;
@@ -51,6 +55,21 @@ export interface IStorage {
   updateServiceInquiryStatus(id: number, status: string): Promise<ServiceInquiry | undefined>;
   updateServiceInquiryNotes(id: number, adminNotes: string): Promise<ServiceInquiry | undefined>;
   deleteServiceInquiry(id: number): Promise<boolean>;
+
+  // Product Options
+  getProductOptions(productId: number): Promise<ProductOption[]>;
+  createProductOption(option: InsertProductOption): Promise<ProductOption>;
+  updateProductOption(id: number, data: Partial<InsertProductOption>): Promise<ProductOption | undefined>;
+  deleteProductOption(id: number): Promise<boolean>;
+  deleteAllProductOptions(productId: number): Promise<boolean>;
+
+  // Product Variants
+  getProductVariants(productId: number): Promise<ProductVariant[]>;
+  getProductVariantById(id: number): Promise<ProductVariant | undefined>;
+  createProductVariant(variant: InsertProductVariant): Promise<ProductVariant>;
+  updateProductVariant(id: number, data: Partial<InsertProductVariant>): Promise<ProductVariant | undefined>;
+  deleteProductVariant(id: number): Promise<boolean>;
+  deleteAllProductVariants(productId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -298,6 +317,73 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.serviceInquiries.id, id))
       .returning();
     return results.length > 0;
+  }
+
+  // Product Options
+  async getProductOptions(productId: number): Promise<ProductOption[]> {
+    return this.db.select().from(schema.productOptions)
+      .where(eq(schema.productOptions.productId, productId))
+      .orderBy(schema.productOptions.position);
+  }
+
+  async createProductOption(option: InsertProductOption): Promise<ProductOption> {
+    const results = await this.db.insert(schema.productOptions).values(option).returning();
+    return results[0];
+  }
+
+  async updateProductOption(id: number, data: Partial<InsertProductOption>): Promise<ProductOption | undefined> {
+    const results = await this.db
+      .update(schema.productOptions)
+      .set(data)
+      .where(eq(schema.productOptions.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteProductOption(id: number): Promise<boolean> {
+    const result = await this.db.delete(schema.productOptions).where(eq(schema.productOptions.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async deleteAllProductOptions(productId: number): Promise<boolean> {
+    await this.db.delete(schema.productOptions).where(eq(schema.productOptions.productId, productId));
+    return true;
+  }
+
+  // Product Variants
+  async getProductVariants(productId: number): Promise<ProductVariant[]> {
+    return this.db.select().from(schema.productVariants)
+      .where(eq(schema.productVariants.productId, productId))
+      .orderBy(schema.productVariants.createdAt);
+  }
+
+  async getProductVariantById(id: number): Promise<ProductVariant | undefined> {
+    const results = await this.db.select().from(schema.productVariants).where(eq(schema.productVariants.id, id));
+    return results[0];
+  }
+
+  async createProductVariant(variant: InsertProductVariant): Promise<ProductVariant> {
+    const results = await this.db.insert(schema.productVariants).values(variant).returning();
+    return results[0];
+  }
+
+  async updateProductVariant(id: number, data: Partial<InsertProductVariant>): Promise<ProductVariant | undefined> {
+    const results = await this.db
+      .update(schema.productVariants)
+      .set(data)
+      .where(eq(schema.productVariants.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteProductVariant(id: number): Promise<boolean> {
+    const result = await this.db.delete(schema.productVariants).where(eq(schema.productVariants.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async deleteAllProductVariants(productId: number): Promise<boolean> {
+    await this.db.delete(schema.productVariants).where(eq(schema.productVariants.productId, productId));
+    return true;
   }
 }
 
