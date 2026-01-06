@@ -159,6 +159,9 @@ export async function registerRoutes(
         cost: req.body.cost ?? null,
         imageUrl: req.body.imageUrl,
         category: req.body.category,
+        productType: req.body.productType ?? null,
+        brand: req.body.brand ?? null,
+        color: req.body.color ?? null,
         status: req.body.status ?? "active",
         trackInventory: req.body.trackInventory ?? false,
         inventory: req.body.inventory ?? null,
@@ -191,6 +194,9 @@ export async function registerRoutes(
       if (req.body.cost !== undefined) productData.cost = req.body.cost;
       if (req.body.imageUrl !== undefined) productData.imageUrl = req.body.imageUrl;
       if (req.body.category !== undefined) productData.category = req.body.category;
+      if (req.body.productType !== undefined) productData.productType = req.body.productType;
+      if (req.body.brand !== undefined) productData.brand = req.body.brand;
+      if (req.body.color !== undefined) productData.color = req.body.color;
       if (req.body.status !== undefined) productData.status = req.body.status;
       if (req.body.trackInventory !== undefined) productData.trackInventory = req.body.trackInventory;
       if (req.body.inventory !== undefined) productData.inventory = req.body.inventory;

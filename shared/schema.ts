@@ -11,6 +11,9 @@ export const products = pgTable("products", {
   cost: decimal("cost", { precision: 10, scale: 2 }),
   imageUrl: text("image_url").notNull(),
   category: text("category").notNull(),
+  productType: text("product_type"),
+  brand: text("brand"),
+  color: text("color"),
   status: text("status").notNull().default("active"),
   trackInventory: boolean("track_inventory").default(false),
   inventory: integer("inventory"),
@@ -18,6 +21,39 @@ export const products = pgTable("products", {
   tags: text("tags"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const PRODUCT_TYPES = [
+  "Insoles",
+  "Foot Health Accessories",
+  "Plantar Fasciitis Sleeves",
+  "Footwear",
+  "Cushioning Pads",
+  "Shoe Care",
+  "Shoe Laces",
+  "Shoe Accessories",
+] as const;
+
+export const BRANDS = [
+  "Angelus",
+  "Bulldog",
+  "Darco",
+  "Fiebing's",
+  "Foundation",
+  "Heritage",
+  "J.T. Foote",
+  "Kelly's",
+  "Kiwi",
+  "Lexol",
+  "Lincoln",
+  "M&B",
+  "Orthofeet",
+  "Pedag",
+  "PediFix",
+  "Redi-Thotics Kids",
+  "Spenco",
+  "Tacco",
+  "Tarrago",
+] as const;
 
 export const productImages = pgTable("product_images", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),

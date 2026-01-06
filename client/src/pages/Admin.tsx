@@ -16,6 +16,7 @@ import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertC
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Product, Order, OrderItem, ServiceInquiry } from "@shared/schema";
+import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploader } from "@/components/ImageUploader";
 
@@ -1315,6 +1316,9 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   const [compareAtPrice, setCompareAtPrice] = useState(product?.compareAtPrice?.toString() || "");
   const [cost, setCost] = useState(product?.cost?.toString() || "");
   const [category, setCategory] = useState(product?.category || "");
+  const [productType, setProductType] = useState(product?.productType || "");
+  const [brand, setBrand] = useState(product?.brand || "");
+  const [color, setColor] = useState(product?.color || "");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
   const [status, setStatus] = useState(product?.status || "active");
   const [trackInventory, setTrackInventory] = useState(product?.trackInventory || false);
@@ -1445,6 +1449,9 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
       compareAtPrice: compareAtPrice || null,
       cost: cost || null,
       category, 
+      productType: productType || null,
+      brand: brand || null,
+      color: color || null,
       imageUrl,
       status,
       trackInventory,
@@ -1646,6 +1653,57 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
                   data-testid="input-product-tags"
                 />
                 <p className="text-xs text-muted-foreground mt-1">Separate tags with commas</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Attributes</CardTitle>
+              <CardDescription>Help customers find your product</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="productType">Product Type</Label>
+                  <Select value={productType} onValueChange={setProductType}>
+                    <SelectTrigger data-testid="select-product-type">
+                      <SelectValue placeholder="Select type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {PRODUCT_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="brand">Brand</Label>
+                  <Select value={brand} onValueChange={setBrand}>
+                    <SelectTrigger data-testid="select-product-brand">
+                      <SelectValue placeholder="Select brand..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {BRANDS.map((b) => (
+                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="color">Color</Label>
+                <Input 
+                  id="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  placeholder="e.g., Black, Brown, Neutral"
+                  data-testid="input-product-color"
+                />
               </div>
             </CardContent>
           </Card>

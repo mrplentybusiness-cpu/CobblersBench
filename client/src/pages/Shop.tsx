@@ -1,11 +1,13 @@
 import Layout from "@/components/Layout";
 import ProductCard from "@/components/ProductCard";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
-import { Loader2, Grid3X3, LayoutGrid } from "lucide-react";
+import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
+import { Loader2, Grid3X3, LayoutGrid, X, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type FilterType = 'all' | 'repair' | 'goods' | 'care';
 
@@ -18,6 +20,8 @@ const filterConfig: { key: FilterType; label: string; description: string }[] = 
 
 export default function Shop() {
   const [filter, setFilter] = useState<FilterType>('all');
+  const [brandFilter, setBrandFilter] = useState<string>('all');
+  const [productTypeFilter, setProductTypeFilter] = useState<string>('all');
   const [gridSize, setGridSize] = useState<'normal' | 'large'>('normal');
 
   const { data: products = [], isLoading, error } = useQuery<Product[]>({
@@ -29,9 +33,36 @@ export default function Shop() {
     },
   });
 
-  const filteredProducts = filter === 'all' 
-    ? products 
-    : products.filter(p => p.category === filter);
+  const availableBrands = useMemo(() => {
+    const brands = products.map(p => p.brand).filter(Boolean) as string[];
+    return [...new Set(brands)].sort();
+  }, [products]);
+
+  const availableProductTypes = useMemo(() => {
+    const types = products.map(p => p.productType).filter(Boolean) as string[];
+    return [...new Set(types)].sort();
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      if (filter !== 'all' && p.category !== filter) return false;
+      if (brandFilter !== 'all' && p.brand !== brandFilter) return false;
+      if (productTypeFilter !== 'all' && p.productType !== productTypeFilter) return false;
+      return true;
+    });
+  }, [products, filter, brandFilter, productTypeFilter]);
+
+  const activeFiltersCount = [
+    filter !== 'all',
+    brandFilter !== 'all',
+    productTypeFilter !== 'all',
+  ].filter(Boolean).length;
+
+  const clearAllFilters = () => {
+    setFilter('all');
+    setBrandFilter('all');
+    setProductTypeFilter('all');
+  };
 
   const getCategoryCount = (category: FilterType) => {
     if (category === 'all') return products.length;
@@ -105,6 +136,56 @@ export default function Shop() {
           </div>
         </div>
 
+        {(availableBrands.length > 0 || availableProductTypes.length > 0) && (
+          <div className="flex flex-wrap items-center gap-4 mb-6 p-4 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filter by:</span>
+            </div>
+            
+            {availableProductTypes.length > 0 && (
+              <Select value={productTypeFilter} onValueChange={setProductTypeFilter}>
+                <SelectTrigger className="w-[180px]" data-testid="filter-product-type">
+                  <SelectValue placeholder="Product Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {availableProductTypes.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {availableBrands.length > 0 && (
+              <Select value={brandFilter} onValueChange={setBrandFilter}>
+                <SelectTrigger className="w-[150px]" data-testid="filter-brand">
+                  <SelectValue placeholder="Brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Brands</SelectItem>
+                  {availableBrands.map((brand) => (
+                    <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {activeFiltersCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearAllFilters}
+                className="text-muted-foreground hover:text-foreground"
+                data-testid="clear-filters"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear filters
+              </Button>
+            )}
+          </div>
+        )}
+
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-24" data-testid="loading-products">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -126,9 +207,14 @@ export default function Shop() {
             {filteredProducts.length === 0 ? (
               <div className="text-center py-24 border rounded-lg bg-muted/20" data-testid="no-products">
                 <p className="text-muted-foreground mb-2">No products found</p>
-                <p className="text-sm text-muted-foreground">
-                  Try selecting a different category
+                <p className="text-sm text-muted-foreground mb-4">
+                  Try adjusting your filters
                 </p>
+                {activeFiltersCount > 0 && (
+                  <Button variant="outline" onClick={clearAllFilters}>
+                    Clear all filters
+                  </Button>
+                )}
               </div>
             ) : (
               <div 
