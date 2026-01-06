@@ -2,9 +2,12 @@ import nodemailer from 'nodemailer';
 
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 const BUSINESS_NAME = "Cobbler's Bench";
-const LOGO_PATH = '/objects/uploads/89125c5e-3053-404a-8551-a1b0b1db7592';
+const LOGO_PATH = '/images/email-logo.png';
 
 function getBaseUrl(): string {
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  }
   if (process.env.REPLIT_DEV_DOMAIN) {
     return `https://${process.env.REPLIT_DEV_DOMAIN}`;
   }
