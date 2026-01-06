@@ -5,10 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, Minus, Plus, ShoppingBag, ImageOff, Truck, Shield, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
-import type { Product } from "@shared/schema";
+import type { Product, ProductOption, ProductVariant } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function getImageUrl(url: string | null): string {
   if (!url) return '';
@@ -23,6 +30,7 @@ export default function ProductPage() {
   const productId = params?.id ? parseInt(params.id) : null;
   const [quantity, setQuantity] = useState(1);
   const [imageError, setImageError] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
 
@@ -37,14 +45,92 @@ export default function ProductPage() {
     enabled: productId !== null && productId > 0,
   });
 
+  const { data: options = [] } = useQuery<ProductOption[]>({
+    queryKey: ['/api/products', productId, 'options'],
+    queryFn: async () => {
+      if (!productId) return [];
+      const response = await fetch(`/api/products/${productId}/options`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: productId !== null && productId > 0,
+  });
+
+  const { data: variants = [] } = useQuery<ProductVariant[]>({
+    queryKey: ['/api/products', productId, 'variants'],
+    queryFn: async () => {
+      if (!productId) return [];
+      const response = await fetch(`/api/products/${productId}/variants`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: productId !== null && productId > 0,
+  });
+
+  const hasVariants = options.length > 0 && variants.length > 0;
+
+  useEffect(() => {
+    if (options.length > 0 && Object.keys(selectedOptions).length === 0) {
+      const defaultSelections: Record<string, string> = {};
+      options.forEach(option => {
+        if (option.values && option.values.length > 0) {
+          defaultSelections[option.name] = option.values[0];
+        }
+      });
+      setSelectedOptions(defaultSelections);
+    }
+  }, [options, selectedOptions]);
+
+  const selectedVariant = useMemo(() => {
+    if (!hasVariants || Object.keys(selectedOptions).length === 0) return null;
+    
+    return variants.find(variant => {
+      try {
+        const variantOptions = typeof variant.optionValues === 'string' 
+          ? JSON.parse(variant.optionValues) 
+          : variant.optionValues;
+        
+        return options.every(option => 
+          variantOptions[option.name] === selectedOptions[option.name]
+        );
+      } catch {
+        return false;
+      }
+    }) || null;
+  }, [hasVariants, selectedOptions, variants, options]);
+
+  const displayPrice = useMemo(() => {
+    if (selectedVariant) {
+      return selectedVariant.price;
+    }
+    return product?.price || "0.00";
+  }, [selectedVariant, product]);
+
+  const handleOptionChange = (optionName: string, value: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [optionName]: value
+    }));
+  };
+
   const handleAddToCart = () => {
     if (!product) return;
+    
+    const cartItem = {
+      ...product,
+      price: displayPrice,
+      name: selectedVariant 
+        ? `${product.name} - ${selectedVariant.title}` 
+        : product.name,
+      variantId: selectedVariant?.id,
+    };
+    
     for (let i = 0; i < quantity; i++) {
-      addToCart(product);
+      addToCart(cartItem);
     }
     toast({
       title: "Added to cart",
-      description: `${quantity} x ${product.name} added to your cart.`,
+      description: `${quantity} x ${cartItem.name} added to your cart.`,
     });
   };
 
@@ -56,6 +142,8 @@ export default function ProductPage() {
       default: return category;
     }
   };
+
+  const isVariantAvailable = !hasVariants || (selectedVariant && selectedVariant.status === 'active');
 
   if (isLoading) {
     return (
@@ -112,7 +200,7 @@ export default function ProductPage() {
                 </div>
               ) : (
                 <img
-                  src={getImageUrl(product.imageUrl)}
+                  src={getImageUrl(selectedVariant?.imageUrl || product.imageUrl)}
                   alt={product.name}
                   className="h-full w-full object-cover object-center"
                   onError={() => setImageError(true)}
@@ -133,9 +221,9 @@ export default function ProductPage() {
               
               <div className="flex items-baseline gap-3 mb-6">
                 <span className="text-3xl font-bold text-primary" data-testid="product-detail-price">
-                  ${product.price}
+                  ${displayPrice}
                 </span>
-                {hasComparePrice && (
+                {hasComparePrice && !selectedVariant && (
                   <>
                     <span className="text-xl text-muted-foreground line-through" data-testid="product-compare-price">
                       ${product.compareAtPrice}
@@ -148,9 +236,39 @@ export default function ProductPage() {
               </div>
             </div>
 
-            <div className="prose prose-sm text-muted-foreground mb-8 flex-1" data-testid="product-detail-description">
+            <div className="prose prose-sm text-muted-foreground mb-6 flex-1" data-testid="product-detail-description">
               <p>{product.description}</p>
             </div>
+
+            {hasVariants && (
+              <div className="space-y-4 mb-6" data-testid="variant-options">
+                {options.sort((a, b) => a.position - b.position).map(option => (
+                  <div key={option.id} className="space-y-2">
+                    <label className="text-sm font-medium" data-testid={`option-label-${option.name}`}>
+                      {option.name}
+                    </label>
+                    <Select
+                      value={selectedOptions[option.name] || ''}
+                      onValueChange={(value) => handleOptionChange(option.name, value)}
+                    >
+                      <SelectTrigger className="w-full" data-testid={`option-select-${option.name}`}>
+                        <SelectValue placeholder={`Select ${option.name}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {option.values?.map(value => (
+                          <SelectItem key={value} value={value} data-testid={`option-value-${option.name}-${value}`}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+                {hasVariants && !selectedVariant && Object.keys(selectedOptions).length === options.length && (
+                  <p className="text-sm text-amber-600">This combination is not available</p>
+                )}
+              </div>
+            )}
 
             {product.trackInventory && product.inventory !== null && product.inventory <= 5 && product.inventory > 0 && (
               <p className="text-sm text-amber-600 font-medium mb-4" data-testid="product-low-stock">
@@ -196,11 +314,14 @@ export default function ProductPage() {
                 size="lg" 
                 className="w-full h-14 text-lg"
                 onClick={handleAddToCart}
-                disabled={Boolean(product.trackInventory && product.inventory === 0)}
+                disabled={Boolean(
+                  (product.trackInventory && product.inventory === 0) ||
+                  (hasVariants && !isVariantAvailable)
+                )}
                 data-testid="button-add-to-cart"
               >
                 <ShoppingBag className="h-5 w-5 mr-2" />
-                Add to Order - ${(parseFloat(product.price) * quantity).toFixed(2)}
+                Add to Order - ${(parseFloat(displayPrice) * quantity).toFixed(2)}
               </Button>
             </div>
 
