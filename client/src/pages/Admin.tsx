@@ -1627,12 +1627,11 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="basic">Basic</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="media">Media</TabsTrigger>
-          <TabsTrigger value="variants">Variants</TabsTrigger>
         </TabsList>
 
         <TabsContent value="basic" className="space-y-4 mt-4">
@@ -1877,124 +1876,8 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
         <TabsContent value="inventory" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Inventory</CardTitle>
-              <CardDescription>Track stock levels for this product</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {productVariants.length > 0 ? (
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Package className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Variant-Level Inventory</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    This product has {productVariants.length} variant{productVariants.length > 1 ? 's' : ''}. 
-                    Inventory is tracked per variant in the <strong>Variants</strong> tab.
-                  </p>
-                  <div className="mt-3 text-sm">
-                    <span className="font-medium">Total Stock: </span>
-                    {productVariants.reduce((sum, v) => sum + (parseInt(v.inventory) || 0), 0)} units
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <Label htmlFor="inventory">Quantity in Stock</Label>
-                  <Input 
-                    id="inventory"
-                    type="number"
-                    min="0"
-                    value={inventory}
-                    onChange={(e) => setInventory(e.target.value)}
-                    placeholder="0"
-                    data-testid="input-product-inventory"
-                  />
-                  {parseInt(inventory) <= 5 && parseInt(inventory) >= 0 && (
-                    <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Low stock warning
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <Separator />
-
-              <div>
-                <Label htmlFor="sku">SKU (Stock Keeping Unit)</Label>
-                <Input 
-                  id="sku"
-                  value={sku}
-                  onChange={(e) => setSku(e.target.value)}
-                  placeholder="e.g., BOOT-RESOLE-001"
-                  data-testid="input-product-sku"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Unique identifier for this product</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="media" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Main Product Image</CardTitle>
-              <CardDescription>This is the primary image shown in listings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ImageUploader
-                value={imageUrl}
-                onChange={setImageUrl}
-                disabled={isPending}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Images ({additionalImages.length}/9)</CardTitle>
-              <CardDescription>Add up to 9 additional product images</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {additionalImages.map((img, index) => (
-                <div key={index} className="flex items-start gap-4 p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <ImageUploader
-                      value={img.url}
-                      onChange={(url) => updateAdditionalImage(index, url)}
-                      disabled={isPending}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeAdditionalImage(index)}
-                    className="text-destructive"
-                    data-testid={`button-remove-image-${index}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              {additionalImages.length < 9 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addImageSlot}
-                  data-testid="button-add-image"
-                >
-                  <Plus className="h-4 w-4 mr-2" /> Add Another Image
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="variants" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
               <CardTitle>Product Options</CardTitle>
-              <CardDescription>Add options like Size or Color. Up to 6 options allowed.</CardDescription>
+              <CardDescription>Add options like Size or Color to create variants. Up to 6 options allowed.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {productOptions.map((option, index) => (
@@ -2024,7 +1907,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
                     <div>
                       <Label className="text-sm text-muted-foreground">Values (comma separated)</Label>
                       <Input
-                        placeholder="e.g., Small, Medium, Large, Flat Athletic"
+                        placeholder="e.g., Small, Medium, Large"
                         value={option.values.join(', ')}
                         onChange={(e) => {
                           const rawValue = e.target.value;
@@ -2066,7 +1949,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
             </CardContent>
           </Card>
 
-          {productVariants.length > 0 && (
+          {productVariants.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle>Variants ({productVariants.length})</CardTitle>
@@ -2138,9 +2021,115 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
                     </tbody>
                   </table>
                 </div>
+                <div className="mt-4 bg-muted/30 rounded-lg p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Total Inventory</span>
+                  </div>
+                  <span className="text-sm font-bold">
+                    {productVariants.reduce((sum, v) => sum + (parseInt(v.inventory) || 0), 0)} units
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Inventory</CardTitle>
+                <CardDescription>Track stock levels for this product</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="inventory">Quantity in Stock</Label>
+                  <Input 
+                    id="inventory"
+                    type="number"
+                    min="0"
+                    value={inventory}
+                    onChange={(e) => setInventory(e.target.value)}
+                    placeholder="0"
+                    data-testid="input-product-inventory"
+                  />
+                  {parseInt(inventory) <= 5 && parseInt(inventory) >= 0 && (
+                    <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Low stock warning
+                    </p>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div>
+                  <Label htmlFor="sku">SKU (Stock Keeping Unit)</Label>
+                  <Input 
+                    id="sku"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="e.g., BOOT-RESOLE-001"
+                    data-testid="input-product-sku"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Unique identifier for this product</p>
+                </div>
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="media" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Main Product Image</CardTitle>
+              <CardDescription>This is the primary image shown in listings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImageUploader
+                value={imageUrl}
+                onChange={setImageUrl}
+                disabled={isPending}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Additional Images ({additionalImages.length}/9)</CardTitle>
+              <CardDescription>Add up to 9 additional product images</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {additionalImages.map((img, index) => (
+                <div key={index} className="flex items-start gap-4 p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <ImageUploader
+                      value={img.url}
+                      onChange={(url) => updateAdditionalImage(index, url)}
+                      disabled={isPending}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeAdditionalImage(index)}
+                    className="text-destructive"
+                    data-testid={`button-remove-image-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {additionalImages.length < 9 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addImageSlot}
+                  data-testid="button-add-image"
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add Another Image
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
