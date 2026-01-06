@@ -1328,6 +1328,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
+  const [additionalImages, setAdditionalImages] = useState<{ id?: number; url: string; altText?: string }[]>([]);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -1363,6 +1364,15 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
           }
         })
         .catch(console.error);
+      
+      fetch(`/api/products/${product.id}/images`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && Array.isArray(data)) {
+            setAdditionalImages(data.map((img: any) => ({ id: img.id, url: img.url, altText: img.altText })));
+          }
+        })
+        .catch(console.error);
     }
   }, [product?.id]);
 
@@ -1382,6 +1392,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
     onSuccess: async (createdProduct) => {
       if (createdProduct?.id) {
         await saveVariantsToServer(createdProduct.id);
+        await saveImagesToServer(createdProduct.id);
       }
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       toast({ title: "Product created successfully" });
@@ -1408,6 +1419,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
     onSuccess: async (updatedProduct) => {
       if (updatedProduct?.id) {
         await saveVariantsToServer(updatedProduct.id);
+        await saveImagesToServer(updatedProduct.id);
       }
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       toast({ title: "Product updated successfully" });
@@ -1564,6 +1576,38 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
         })),
       }),
     });
+  };
+
+  const saveImagesToServer = async (productId: number) => {
+    for (const img of additionalImages) {
+      if (!img.id && img.url) {
+        await fetch(`/api/products/${productId}/images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: img.url, altText: img.altText }),
+        });
+      }
+    }
+  };
+
+  const addImageSlot = () => {
+    if (additionalImages.length < 9) {
+      setAdditionalImages([...additionalImages, { url: '' }]);
+    }
+  };
+
+  const updateAdditionalImage = (index: number, url: string) => {
+    const newImages = [...additionalImages];
+    newImages[index] = { ...newImages[index], url };
+    setAdditionalImages(newImages);
+  };
+
+  const removeAdditionalImage = async (index: number) => {
+    const img = additionalImages[index];
+    if (img.id && product?.id) {
+      await fetch(`/api/product-images/${img.id}`, { method: 'DELETE' });
+    }
+    setAdditionalImages(additionalImages.filter((_, i) => i !== index));
   };
 
   // Calculate profit margin
@@ -1890,8 +1934,8 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
         <TabsContent value="media" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Product Image</CardTitle>
-              <CardDescription>Upload an image for this product</CardDescription>
+              <CardTitle>Main Product Image</CardTitle>
+              <CardDescription>This is the primary image shown in listings</CardDescription>
             </CardHeader>
             <CardContent>
               <ImageUploader
@@ -1899,6 +1943,46 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
                 onChange={setImageUrl}
                 disabled={isPending}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Additional Images ({additionalImages.length}/9)</CardTitle>
+              <CardDescription>Add up to 9 additional product images</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {additionalImages.map((img, index) => (
+                <div key={index} className="flex items-start gap-4 p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <ImageUploader
+                      value={img.url}
+                      onChange={(url) => updateAdditionalImage(index, url)}
+                      disabled={isPending}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeAdditionalImage(index)}
+                    className="text-destructive"
+                    data-testid={`button-remove-image-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {additionalImages.length < 9 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addImageSlot}
+                  data-testid="button-add-image"
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add Another Image
+                </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
