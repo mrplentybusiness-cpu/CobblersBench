@@ -1,5 +1,4 @@
 import type { Express } from "express";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { isR2Configured, r2StorageService } from "../../r2Storage";
 
 /**
@@ -12,8 +11,19 @@ export function registerObjectStorageRoutes(app: Express): void {
   const useR2 = isR2Configured();
   const hasReplitStorage = !!process.env.PRIVATE_OBJECT_DIR;
   
-  // Only instantiate Replit Object Storage service if env vars are available
-  const objectStorageService = hasReplitStorage ? new ObjectStorageService() : null;
+  // Lazy-load Replit Object Storage only when needed (avoids crash in production)
+  let objectStorageService: any = null;
+  let ObjectNotFoundError: any = null;
+  
+  if (hasReplitStorage && !useR2) {
+    try {
+      const replitStorage = require("./objectStorage");
+      objectStorageService = new replitStorage.ObjectStorageService();
+      ObjectNotFoundError = replitStorage.ObjectNotFoundError;
+    } catch (error) {
+      console.warn("[Storage] Failed to load Replit Object Storage:", error);
+    }
+  }
 
   console.log(`[Storage] Using ${useR2 ? 'Cloudflare R2' : hasReplitStorage ? 'Replit Object Storage' : 'No storage configured'} for file uploads`);
 
@@ -66,7 +76,7 @@ export function registerObjectStorageRoutes(app: Express): void {
         await objectStorageService.downloadObject(objectFile, res);
       } catch (error) {
         console.error("Error serving object:", error);
-        if (error instanceof ObjectNotFoundError) {
+        if (ObjectNotFoundError && error instanceof ObjectNotFoundError) {
           return res.status(404).json({ error: "Object not found" });
         }
         return res.status(500).json({ error: "Failed to serve object" });
