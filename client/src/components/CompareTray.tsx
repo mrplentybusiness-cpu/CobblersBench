@@ -18,12 +18,12 @@ export default function CompareTray() {
   if (productIds.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-4" data-testid="compare-tray">
-      <div className="container mx-auto flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 overflow-x-auto">
-          <div className="flex items-center gap-2 text-sm font-medium shrink-0">
-            <GitCompareArrows className="h-4 w-4" />
-            Compare ({productIds.length}/4)
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-3 md:p-4" data-testid="compare-tray">
+      <div className="container mx-auto flex items-center justify-between gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4 overflow-x-auto">
+          <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm font-medium shrink-0">
+            <GitCompareArrows className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Compare</span> ({productIds.length}/4)
           </div>
           <div className="flex gap-2">
             {isLoading ? (
@@ -44,7 +44,7 @@ export default function CompareTray() {
                   </div>
                   <button
                     onClick={() => removeFromCompare(product.id)}
-                    className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                     data-testid={`button-remove-compare-${product.id}`}
                   >
                     <X className="h-3 w-3" />

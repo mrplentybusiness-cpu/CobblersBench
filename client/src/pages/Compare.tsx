@@ -68,21 +68,21 @@ export default function Compare() {
   return (
     <Layout hideCompareTray>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-serif text-3xl font-bold">Compare Products</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="font-serif text-2xl md:text-3xl font-bold">Compare Products</h1>
+            <p className="text-muted-foreground mt-1 text-sm md:text-base">
               Comparing {items.length} product{items.length > 1 ? 's' : ''} side by side
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={clearCompare} data-testid="button-clear-all">
+            <Button variant="outline" size="sm" onClick={clearCompare} data-testid="button-clear-all">
               Clear All
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="sm" asChild>
               <Link href="/shop">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Shop
+                <span className="hidden sm:inline">Back to</span> Shop
               </Link>
             </Button>
           </div>
@@ -92,9 +92,9 @@ export default function Compare() {
           <table className="w-full border-collapse" data-testid="compare-table">
             <thead>
               <tr>
-                <th className="text-left p-4 border-b bg-muted/50 font-medium min-w-[120px]">Feature</th>
+                <th className="text-left p-3 md:p-4 border-b bg-muted/50 font-medium min-w-[80px] md:min-w-[120px] text-sm">Feature</th>
                 {items.map((product) => (
-                  <th key={product.id} className="p-4 border-b bg-muted/50 min-w-[200px]">
+                  <th key={product.id} className="p-3 md:p-4 border-b bg-muted/50 min-w-[150px] md:min-w-[200px]">
                     <ProductHeader product={product} onRemove={() => removeFromCompare(product.id)} />
                   </th>
                 ))}
@@ -102,15 +102,15 @@ export default function Compare() {
             </thead>
             <tbody>
               <tr>
-                <td className="p-4 border-b font-medium text-muted-foreground">Price</td>
+                <td className="p-3 md:p-4 border-b font-medium text-muted-foreground text-sm">Price</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 border-b text-center">
+                  <td key={product.id} className="p-3 md:p-4 border-b text-center">
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-xl font-bold text-primary" data-testid={`compare-price-${product.id}`}>
+                      <span className="text-lg md:text-xl font-bold text-primary" data-testid={`compare-price-${product.id}`}>
                         ${product.price}
                       </span>
                       {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
-                        <span className="text-sm text-muted-foreground line-through">
+                        <span className="text-xs md:text-sm text-muted-foreground line-through">
                           ${product.compareAtPrice}
                         </span>
                       )}
@@ -119,49 +119,49 @@ export default function Compare() {
                 ))}
               </tr>
               <tr>
-                <td className="p-4 border-b font-medium text-muted-foreground">Category</td>
+                <td className="p-3 md:p-4 border-b font-medium text-muted-foreground text-sm">Category</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 border-b text-center capitalize" data-testid={`compare-category-${product.id}`}>
+                  <td key={product.id} className="p-3 md:p-4 border-b text-center capitalize text-sm" data-testid={`compare-category-${product.id}`}>
                     {product.category || '-'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 border-b font-medium text-muted-foreground">Type</td>
+                <td className="p-3 md:p-4 border-b font-medium text-muted-foreground text-sm">Type</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 border-b text-center" data-testid={`compare-type-${product.id}`}>
+                  <td key={product.id} className="p-3 md:p-4 border-b text-center text-sm" data-testid={`compare-type-${product.id}`}>
                     {product.productType || '-'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 border-b font-medium text-muted-foreground">Brand</td>
+                <td className="p-3 md:p-4 border-b font-medium text-muted-foreground text-sm">Brand</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 border-b text-center" data-testid={`compare-brand-${product.id}`}>
+                  <td key={product.id} className="p-3 md:p-4 border-b text-center text-sm" data-testid={`compare-brand-${product.id}`}>
                     {product.brand || '-'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 border-b font-medium text-muted-foreground">Color</td>
+                <td className="p-3 md:p-4 border-b font-medium text-muted-foreground text-sm">Color</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 border-b text-center" data-testid={`compare-color-${product.id}`}>
+                  <td key={product.id} className="p-3 md:p-4 border-b text-center text-sm" data-testid={`compare-color-${product.id}`}>
                     {product.color || '-'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 border-b font-medium text-muted-foreground">SKU</td>
+                <td className="p-3 md:p-4 border-b font-medium text-muted-foreground text-sm">SKU</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 border-b text-center font-mono text-sm" data-testid={`compare-sku-${product.id}`}>
+                  <td key={product.id} className="p-3 md:p-4 border-b text-center font-mono text-xs md:text-sm" data-testid={`compare-sku-${product.id}`}>
                     {product.sku || '-'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 border-b font-medium text-muted-foreground">Availability</td>
+                <td className="p-3 md:p-4 border-b font-medium text-muted-foreground text-sm">Stock</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 border-b text-center" data-testid={`compare-availability-${product.id}`}>
+                  <td key={product.id} className="p-3 md:p-4 border-b text-center text-sm" data-testid={`compare-availability-${product.id}`}>
                     {product.trackInventory ? (
                       product.inventory === 0 ? (
                         <span className="text-destructive font-medium">Out of Stock</span>
@@ -177,17 +177,17 @@ export default function Compare() {
                 ))}
               </tr>
               <tr>
-                <td className="p-4 border-b font-medium text-muted-foreground align-top">Description</td>
+                <td className="p-3 md:p-4 border-b font-medium text-muted-foreground align-top text-sm">Details</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 border-b text-sm text-muted-foreground" data-testid={`compare-description-${product.id}`}>
+                  <td key={product.id} className="p-3 md:p-4 border-b text-xs md:text-sm text-muted-foreground" data-testid={`compare-description-${product.id}`}>
                     {product.description || '-'}
                   </td>
                 ))}
               </tr>
               <tr>
-                <td className="p-4 font-medium text-muted-foreground">Action</td>
+                <td className="p-3 md:p-4 font-medium text-muted-foreground text-sm">Action</td>
                 {items.map((product) => (
-                  <td key={product.id} className="p-4 text-center">
+                  <td key={product.id} className="p-3 md:p-4 text-center">
                     <Button
                       onClick={() => handleAddToCart(product)}
                       disabled={Boolean(product.trackInventory && product.inventory === 0)}
