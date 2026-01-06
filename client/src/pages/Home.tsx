@@ -2,7 +2,10 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import heroBg from "@assets/stock_images/leather_cobbler_work_faee252e.jpg";
-import { ArrowRight, Star, ShieldCheck, Clock } from "lucide-react";
+import customerJohn from "@assets/stock_images/professional_middle-_d3e9214f.jpg";
+import customerSarah from "@assets/stock_images/professional_woman_p_7d6483ac.jpg";
+import customerRobert from "@assets/stock_images/older_man_portrait_h_3fabf455.jpg";
+import { ArrowRight, Star, ShieldCheck, Clock, Quote } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { useQuery } from "@tanstack/react-query";
 import type { Product } from "@shared/schema";
@@ -100,6 +103,87 @@ export default function Home() {
             <Button variant="outline" asChild>
               <Link href="/shop">View All Services</Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Customer Stories Section */}
+      <section className="py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3 text-foreground">Customer Stories</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">Hear from our satisfied customers about their experience with Cobbler's Bench.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-muted/30 rounded-xl p-6 relative" data-testid="testimonial-john">
+              <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
+              <div className="flex items-center gap-4 mb-4">
+                <img 
+                  src={customerJohn} 
+                  alt="John M., satisfied customer from Hyannis" 
+                  className="w-14 h-14 rounded-full object-cover"
+                />
+                <div>
+                  <h4 className="font-semibold">John M.</h4>
+                  <p className="text-sm text-muted-foreground">Hyannis, MA</p>
+                </div>
+              </div>
+              <div className="flex gap-1 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-muted-foreground">
+                "Victor did an incredible job resoling my grandfather's work boots. They look better than new and the craftsmanship is outstanding. Highly recommend!"
+              </p>
+            </div>
+
+            <div className="bg-muted/30 rounded-xl p-6 relative" data-testid="testimonial-sarah">
+              <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
+              <div className="flex items-center gap-4 mb-4">
+                <img 
+                  src={customerSarah} 
+                  alt="Sarah K., satisfied customer from Orleans" 
+                  className="w-14 h-14 rounded-full object-cover"
+                />
+                <div>
+                  <h4 className="font-semibold">Sarah K.</h4>
+                  <p className="text-sm text-muted-foreground">Orleans, MA</p>
+                </div>
+              </div>
+              <div className="flex gap-1 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-muted-foreground">
+                "I brought in my designer handbag for leather conditioning and minor repairs. The attention to detail was amazing. It's like having a brand new bag!"
+              </p>
+            </div>
+
+            <div className="bg-muted/30 rounded-xl p-6 relative" data-testid="testimonial-robert">
+              <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
+              <div className="flex items-center gap-4 mb-4">
+                <img 
+                  src={customerRobert} 
+                  alt="Robert L., satisfied customer from Falmouth" 
+                  className="w-14 h-14 rounded-full object-cover"
+                />
+                <div>
+                  <h4 className="font-semibold">Robert L.</h4>
+                  <p className="text-sm text-muted-foreground">Falmouth, MA</p>
+                </div>
+              </div>
+              <div className="flex gap-1 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-muted-foreground">
+                "Fast turnaround and fair prices. Victor repaired the zipper on my leather jacket and it works perfectly now. This is my go-to place for all leather repairs."
+              </p>
+            </div>
           </div>
         </div>
       </section>
