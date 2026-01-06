@@ -38,10 +38,8 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // Only register Replit Object Storage routes if not using R2 and Replit env vars are available
-  if (!isR2Configured() && process.env.PRIVATE_OBJECT_DIR) {
-    registerObjectStorageRoutes(app);
-  }
+  // Always register upload routes (handles both R2 and Replit Object Storage)
+  registerObjectStorageRoutes(app);
 
   // ===== ADMIN AUTH =====
   app.post("/api/admin/auth", async (req, res) => {

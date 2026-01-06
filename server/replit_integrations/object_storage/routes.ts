@@ -9,10 +9,13 @@ import { isR2Configured, r2StorageService } from "../../r2Storage";
  * R2 is used when R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY are set.
  */
 export function registerObjectStorageRoutes(app: Express): void {
-  const objectStorageService = new ObjectStorageService();
   const useR2 = isR2Configured();
+  const hasReplitStorage = !!process.env.PRIVATE_OBJECT_DIR;
+  
+  // Only instantiate Replit Object Storage service if env vars are available
+  const objectStorageService = hasReplitStorage ? new ObjectStorageService() : null;
 
-  console.log(`[Storage] Using ${useR2 ? 'Cloudflare R2' : 'Replit Object Storage'} for file uploads`);
+  console.log(`[Storage] Using ${useR2 ? 'Cloudflare R2' : hasReplitStorage ? 'Replit Object Storage' : 'No storage configured'} for file uploads`);
 
   /**
    * Request a presigned URL for file upload.
@@ -35,7 +38,7 @@ export function registerObjectStorageRoutes(app: Express): void {
           objectKey,
           metadata: { name, size, contentType },
         });
-      } else {
+      } else if (objectStorageService) {
         const uploadURL = await objectStorageService.getObjectEntityUploadURL();
         const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
         res.json({
@@ -43,6 +46,8 @@ export function registerObjectStorageRoutes(app: Express): void {
           objectPath,
           metadata: { name, size, contentType },
         });
+      } else {
+        return res.status(503).json({ error: "No storage service configured" });
       }
     } catch (error) {
       console.error("Error generating upload URL:", error);
@@ -52,19 +57,22 @@ export function registerObjectStorageRoutes(app: Express): void {
 
   /**
    * Serve uploaded objects from Replit Object Storage.
+   * Only available when Replit Object Storage is configured.
    */
-  app.get("/objects/:objectPath(*)", async (req, res) => {
-    try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      await objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error serving object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.status(404).json({ error: "Object not found" });
+  if (objectStorageService) {
+    app.get("/objects/:objectPath(*)", async (req, res) => {
+      try {
+        const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+        await objectStorageService.downloadObject(objectFile, res);
+      } catch (error) {
+        console.error("Error serving object:", error);
+        if (error instanceof ObjectNotFoundError) {
+          return res.status(404).json({ error: "Object not found" });
+        }
+        return res.status(500).json({ error: "Failed to serve object" });
       }
-      return res.status(500).json({ error: "Failed to serve object" });
-    }
-  });
+    });
+  }
 
   /**
    * Serve uploaded objects from Cloudflare R2.
