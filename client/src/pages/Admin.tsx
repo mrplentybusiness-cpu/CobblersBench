@@ -1937,9 +1937,17 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
                     <div>
                       <Label className="text-sm text-muted-foreground">Values (comma separated)</Label>
                       <Input
-                        placeholder="e.g., S, M, L, XL"
+                        placeholder="e.g., Small, Medium, Large, Flat Athletic"
                         value={option.values.join(', ')}
-                        onChange={(e) => updateOption(index, 'values', e.target.value.split(',').map(v => v.trim()).filter(v => v))}
+                        onChange={(e) => {
+                          const rawValue = e.target.value;
+                          const values = rawValue.split(',').map(v => v.trimStart());
+                          updateOption(index, 'values', values.filter(v => v.length > 0 || rawValue.endsWith(',')));
+                        }}
+                        onBlur={(e) => {
+                          const values = e.target.value.split(',').map(v => v.trim()).filter(v => v);
+                          updateOption(index, 'values', values);
+                        }}
                         data-testid={`input-option-values-${index}`}
                       />
                     </div>
