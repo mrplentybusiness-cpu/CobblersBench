@@ -5,6 +5,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { insertProductSchema, insertServiceInquirySchema } from "@shared/schema";
 import { z } from "zod";
 import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
+import { isR2Configured, r2StorageService } from "./r2Storage";
 import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, type OrderDetails } from "./email";
 
 const productOptionSchema = z.object({
@@ -61,8 +62,28 @@ export async function registerRoutes(
   app.get("/api/uploads/status", (req, res) => {
     res.json({
       imgbb: isImgBBConfigured(),
-      replitStorage: !!process.env.PRIVATE_OBJECT_DIR,
+      replitStorage: !!process.env.PRIVATE_OBJECT_DIR || isR2Configured(),
+      r2: isR2Configured(),
     });
+  });
+
+  // Get presigned URL for R2 upload
+  app.post("/api/uploads/r2-presign", async (req, res) => {
+    try {
+      if (!isR2Configured()) {
+        return res.status(400).json({ error: "R2 not configured" });
+      }
+
+      const { contentType } = req.body;
+      const result = await r2StorageService.getUploadUrl(contentType);
+      res.json({
+        uploadURL: result.uploadUrl,
+        objectPath: result.publicUrl,
+      });
+    } catch (error) {
+      console.error("Error getting R2 presigned URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
   });
 
   // Upload image via ImgBB (base64)

@@ -15,6 +15,7 @@ interface ImageUploaderProps {
 interface UploadStatus {
   imgbb: boolean;
   replitStorage: boolean;
+  r2: boolean;
 }
 
 export function ImageUploader({ value, onChange, onPreviewChange, disabled }: ImageUploaderProps) {
@@ -23,17 +24,17 @@ export function ImageUploader({ value, onChange, onPreviewChange, disabled }: Im
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string>(value || "");
   const [urlInput, setUrlInput] = useState("");
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>({ imgbb: false, replitStorage: false });
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>({ imgbb: false, replitStorage: false, r2: false });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/uploads/status')
       .then(res => res.json())
       .then(status => setUploadStatus(status))
-      .catch(() => setUploadStatus({ imgbb: false, replitStorage: false }));
+      .catch(() => setUploadStatus({ imgbb: false, replitStorage: false, r2: false }));
   }, []);
 
-  const canUpload = uploadStatus.imgbb || uploadStatus.replitStorage;
+  const canUpload = uploadStatus.imgbb || uploadStatus.replitStorage || uploadStatus.r2;
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -58,7 +59,34 @@ export function ImageUploader({ value, onChange, onPreviewChange, disabled }: Im
       try {
         let imageUrl: string;
 
-        if (uploadStatus.imgbb) {
+        if (uploadStatus.r2) {
+          // Use Cloudflare R2
+          const presignedResponse = await fetch('/api/uploads/r2-presign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contentType: file.type,
+            }),
+          });
+
+          if (!presignedResponse.ok) {
+            throw new Error('Failed to get upload URL');
+          }
+
+          const { uploadURL, objectPath } = await presignedResponse.json();
+
+          const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': file.type },
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to upload image');
+          }
+
+          imageUrl = objectPath;
+        } else if (uploadStatus.imgbb) {
           const base64Data = previewUrl.split(',')[1];
           const response = await fetch('/api/uploads/imgbb', {
             method: 'POST',
