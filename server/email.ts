@@ -1,77 +1,15 @@
-import { google } from 'googleapis';
-
-let connectionSettings: any = null;
-
-async function getAccessToken() {
-  // Always fetch fresh credentials - don't cache to avoid stale token issues
-  connectionSettings = null;
-  
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  console.log('[Gmail Debug] Hostname:', hostname);
-  console.log('[Gmail Debug] Token type:', xReplitToken ? (xReplitToken.startsWith('repl') ? 'repl' : 'depl') : 'none');
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
-  }
-
-  const response = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=google-mail',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  );
-  
-  const data = await response.json();
-  console.log('[Gmail Debug] API response status:', response.status);
-  console.log('[Gmail Debug] Connection data keys:', data.items?.[0] ? Object.keys(data.items[0]) : 'no items');
-  console.log('[Gmail Debug] Settings keys:', data.items?.[0]?.settings ? Object.keys(data.items[0].settings) : 'no settings');
-  
-  connectionSettings = data.items?.[0];
-
-  const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
-
-  console.log('[Gmail Debug] Access token found:', !!accessToken);
-
-  if (!connectionSettings || !accessToken) {
-    throw new Error('Gmail not connected');
-  }
-  return accessToken;
-}
-
-async function getGmailClient() {
-  const accessToken = await getAccessToken();
-  const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({
-    access_token: accessToken
-  });
-  return google.gmail({ version: 'v1', auth: oauth2Client });
-}
+import nodemailer from 'nodemailer';
 
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 const BUSINESS_NAME = "Cobbler's Bench";
 
-function createEmailMessage(to: string, subject: string, htmlBody: string): string {
-  const message = [
-    `From: ${BUSINESS_NAME} <${FROM_EMAIL}>`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=utf-8',
-    '',
-    htmlBody
-  ].join('\r\n');
-  
-  return Buffer.from(message).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: FROM_EMAIL,
+    pass: process.env.GMAIL_APP_PASSWORD
+  }
+});
 
 export interface OrderDetails {
   orderId: number;
@@ -93,8 +31,6 @@ export interface OrderDetails {
 }
 
 export async function sendCustomerOrderConfirmation(order: OrderDetails): Promise<void> {
-  const gmail = await getGmailClient();
-  
   const itemsHtml = order.items.map(item => `
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.productName}${item.variantTitle ? ` - ${item.variantTitle}` : ''}</td>
@@ -176,23 +112,15 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
     </html>
   `;
   
-  const encodedMessage = createEmailMessage(
-    order.customerEmail,
-    `Order Confirmation #${order.orderId} - ${BUSINESS_NAME}`,
-    htmlBody
-  );
-  
-  await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: {
-      raw: encodedMessage
-    }
+  await transporter.sendMail({
+    from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
+    to: order.customerEmail,
+    subject: `Order Confirmation #${order.orderId} - ${BUSINESS_NAME}`,
+    html: htmlBody
   });
 }
 
 export async function sendAdminOrderNotification(order: OrderDetails): Promise<void> {
-  const gmail = await getGmailClient();
-  
   const itemsHtml = order.items.map(item => `
     <tr>
       <td style="padding: 8px; border: 1px solid #ddd;">${item.productName}${item.variantTitle ? ` - ${item.variantTitle}` : ''}</td>
@@ -258,17 +186,11 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
     </html>
   `;
   
-  const encodedMessage = createEmailMessage(
-    FROM_EMAIL,
-    `[NEW ORDER] #${order.orderId} - ${order.customerName} - $${order.total}`,
-    htmlBody
-  );
-  
-  await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: {
-      raw: encodedMessage
-    }
+  await transporter.sendMail({
+    from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
+    to: FROM_EMAIL,
+    subject: `[NEW ORDER] #${order.orderId} - ${order.customerName} - $${order.total}`,
+    html: htmlBody
   });
 }
 
@@ -279,8 +201,6 @@ export async function sendOrderStatusUpdate(
   status: string,
   trackingNumber?: string
 ): Promise<void> {
-  const gmail = await getGmailClient();
-  
   let statusMessage = '';
   switch (status) {
     case 'paid':
@@ -341,16 +261,10 @@ export async function sendOrderStatusUpdate(
     </html>
   `;
   
-  const encodedMessage = createEmailMessage(
-    customerEmail,
-    `Order #${orderId} Update - ${BUSINESS_NAME}`,
-    htmlBody
-  );
-  
-  await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: {
-      raw: encodedMessage
-    }
+  await transporter.sendMail({
+    from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
+    to: customerEmail,
+    subject: `Order #${orderId} Update - ${BUSINESS_NAME}`,
+    html: htmlBody
   });
 }
