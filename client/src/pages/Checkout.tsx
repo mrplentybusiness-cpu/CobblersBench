@@ -79,6 +79,7 @@ export default function Checkout() {
           productName: item.name,
           productPrice: item.price.toString(),
           quantity: item.quantity,
+          variantId: item.variantId || null,
         })),
       };
 

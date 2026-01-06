@@ -627,6 +627,25 @@ export async function registerRoutes(
 
       const createdOrder = await storage.createOrder(order, items);
       
+      // Decrement inventory for each item
+      for (const item of items) {
+        if (item.variantId) {
+          // Decrement variant inventory
+          const variant = await storage.getProductVariantById(item.variantId);
+          if (variant && variant.trackInventory && variant.inventory !== null) {
+            const newInventory = Math.max(0, variant.inventory - item.quantity);
+            await storage.updateProductVariant(item.variantId, { inventory: newInventory });
+          }
+        } else {
+          // Decrement product inventory
+          const product = await storage.getProductById(item.productId);
+          if (product && product.trackInventory && product.inventory !== null) {
+            const newInventory = Math.max(0, product.inventory - item.quantity);
+            await storage.updateProduct(item.productId, { inventory: newInventory });
+          }
+        }
+      }
+      
       // Send email notifications
       try {
         const orderItems = await storage.getOrderItems(createdOrder.id);

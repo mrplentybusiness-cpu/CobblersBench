@@ -25,7 +25,7 @@ export default function Cart() {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-6">
               {items.map((item) => (
-                <div key={item.id} className="flex gap-4 p-4 rounded-lg border bg-card">
+                <div key={`${item.id}-${item.variantId || 'base'}`} className="flex gap-4 p-4 rounded-lg border bg-card">
                   <div className="h-24 w-24 rounded-md overflow-hidden bg-muted flex-shrink-0">
                     <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
                   </div>
@@ -45,7 +45,7 @@ export default function Cart() {
                           variant="ghost" 
                           size="icon" 
                           className="h-6 w-6"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity - 1, item.variantId)}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -54,7 +54,7 @@ export default function Cart() {
                           variant="ghost" 
                           size="icon" 
                           className="h-6 w-6"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -64,7 +64,7 @@ export default function Cart() {
                         variant="ghost" 
                         size="sm" 
                         className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => removeFromCart(item.id, item.variantId)}
                       >
                         <Trash2 className="h-4 w-4 mr-2" /> Remove
                       </Button>

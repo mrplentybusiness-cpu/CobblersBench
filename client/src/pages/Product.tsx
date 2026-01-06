@@ -144,6 +144,17 @@ export default function ProductPage() {
   };
 
   const isVariantAvailable = !hasVariants || (selectedVariant && selectedVariant.status === 'active');
+  
+  const currentInventory = hasVariants && selectedVariant 
+    ? selectedVariant.inventory 
+    : product?.inventory;
+  
+  const isTrackingInventory = hasVariants && selectedVariant 
+    ? selectedVariant.trackInventory 
+    : product?.trackInventory;
+  
+  const isOutOfStock = isTrackingInventory && currentInventory !== null && currentInventory !== undefined && currentInventory <= 0;
+  const isLowStock = isTrackingInventory && currentInventory !== null && currentInventory !== undefined && currentInventory > 0 && currentInventory <= 5;
 
   if (isLoading) {
     return (
@@ -270,13 +281,13 @@ export default function ProductPage() {
               </div>
             )}
 
-            {product.trackInventory && product.inventory !== null && product.inventory <= 5 && product.inventory > 0 && (
+            {isLowStock && (
               <p className="text-sm text-amber-600 font-medium mb-4" data-testid="product-low-stock">
-                Only {product.inventory} left in stock
+                Only {currentInventory} left in stock
               </p>
             )}
 
-            {product.trackInventory && product.inventory === 0 && (
+            {isOutOfStock && (
               <p className="text-sm text-destructive font-medium mb-4" data-testid="product-out-of-stock">
                 Out of stock
               </p>
@@ -302,7 +313,7 @@ export default function ProductPage() {
                     size="icon" 
                     className="h-10 w-10 rounded-l-none"
                     onClick={() => setQuantity(quantity + 1)}
-                    disabled={Boolean(product.trackInventory && product.inventory !== null && quantity >= product.inventory)}
+                    disabled={Boolean(isTrackingInventory && currentInventory !== null && currentInventory !== undefined && quantity >= currentInventory)}
                     data-testid="button-increase-quantity"
                   >
                     <Plus className="h-4 w-4" />
@@ -315,7 +326,7 @@ export default function ProductPage() {
                 className="w-full h-14 text-lg"
                 onClick={handleAddToCart}
                 disabled={Boolean(
-                  (product.trackInventory && product.inventory === 0) ||
+                  isOutOfStock ||
                   (hasVariants && !isVariantAvailable)
                 )}
                 data-testid="button-add-to-cart"

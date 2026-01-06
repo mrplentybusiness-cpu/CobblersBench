@@ -89,6 +89,7 @@ export const orderItems = pgTable("order_items", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   orderId: integer("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
   productId: integer("product_id").notNull().references(() => products.id),
+  variantId: integer("variant_id"),
   productName: text("product_name").notNull(),
   productPrice: decimal("product_price", { precision: 10, scale: 2 }).notNull(),
   quantity: integer("quantity").notNull(),
