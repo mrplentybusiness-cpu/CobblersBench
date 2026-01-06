@@ -4,7 +4,7 @@ import { ShoppingBag, Menu, Hammer } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
+import logo from "@assets/Cobbler's_Bench_Logo_1767715154008.png";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -13,30 +13,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
-    <Link href={href} className={`text-sm font-medium transition-colors hover:text-primary ${location === href ? "text-primary font-bold" : "text-muted-foreground"}`}>
+    <Link href={href} className={`text-sm font-medium transition-colors hover:text-amber-400 ${location === href ? "text-amber-400 font-bold" : "text-gray-300"}`}>
       {children}
     </Link>
   );
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative h-12 w-12 overflow-hidden rounded-md">
+            <div className="relative h-16 w-auto overflow-hidden">
               <img 
                 src={logo} 
                 alt="Cobbler's Bench" 
-                className="h-full w-full object-contain"
+                className="h-full w-auto object-contain"
               />
             </div>
-            <div className="flex flex-col">
-              <span className="font-serif text-xl font-bold leading-none text-foreground group-hover:text-primary transition-colors">Cobbler's Bench</span>
-              <span className="text-xs text-muted-foreground tracking-widest uppercase">Shoe & Leather Repair</span>
-            </div>
           </Link>
-          <span className="hidden lg:block text-sm italic text-foreground ml-4">"We doctor your shoes and save your sole."</span>
+          <span className="hidden lg:block text-sm italic text-amber-200 ml-4">"We doctor your shoes and save your sole."</span>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
@@ -46,11 +42,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <NavLink href="/shop">Shop</NavLink>
             <NavLink href="/admin">Admin</NavLink>
             {/* <NavLink href="/about">Our Story</NavLink> */}
-            <Button variant="ghost" size="icon" className="relative text-foreground hover:text-primary" asChild>
+            <Button variant="ghost" size="icon" className="relative text-gray-300 hover:text-amber-400" asChild>
               <Link href="/cart">
                 <ShoppingBag className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-[10px] font-bold text-white flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-amber-600 text-[10px] font-bold text-white flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
@@ -60,11 +56,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative text-foreground" asChild>
+            <Button variant="ghost" size="icon" className="relative text-gray-300" asChild>
               <Link href="/cart">
                 <ShoppingBag className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-[10px] font-bold text-white flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-amber-600 text-[10px] font-bold text-white flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
@@ -73,7 +69,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             
             <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="text-gray-300">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
