@@ -2,6 +2,18 @@ import nodemailer from 'nodemailer';
 
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 const BUSINESS_NAME = "Cobbler's Bench";
+const LOGO_PATH = '/objects/uploads/89125c5e-3053-404a-8551-a1b0b1db7592';
+
+function getBaseUrl(): string {
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  }
+  if (process.env.REPLIT_DOMAINS) {
+    const domains = process.env.REPLIT_DOMAINS.split(',');
+    return `https://${domains[0]}`;
+  }
+  return '';
+}
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -56,8 +68,8 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
     <body>
       <div class="container">
         <div class="header">
-          <h1>${BUSINESS_NAME}</h1>
-          <p>Order Confirmation</p>
+          <img src="${getBaseUrl()}${LOGO_PATH}" alt="${BUSINESS_NAME}" style="max-width: 180px; height: auto; margin-bottom: 10px;" />
+          <p style="margin: 0; font-size: 14px;">Order Confirmation</p>
         </div>
         <div class="content">
           <p>Dear ${order.customerName},</p>
@@ -141,6 +153,9 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
       </style>
     </head>
     <body>
+      <div style="text-align: center; padding: 20px; background: #1a1a1a;">
+        <img src="${getBaseUrl()}${LOGO_PATH}" alt="${BUSINESS_NAME}" style="max-width: 150px; height: auto;" />
+      </div>
       <div class="alert">
         <strong>New Order Received!</strong> Order #${order.orderId}
       </div>
@@ -235,8 +250,8 @@ export async function sendOrderStatusUpdate(
     <body>
       <div class="container">
         <div class="header">
-          <h1>${BUSINESS_NAME}</h1>
-          <p>Order Update</p>
+          <img src="${getBaseUrl()}${LOGO_PATH}" alt="${BUSINESS_NAME}" style="max-width: 180px; height: auto; margin-bottom: 10px;" />
+          <p style="margin: 0; font-size: 14px;">Order Update</p>
         </div>
         <div class="content">
           <p>Dear ${customerName},</p>
