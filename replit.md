@@ -2,7 +2,7 @@
 
 ## Overview
 
-Cobbler's Bench is a production-ready e-commerce website for a cobbler/shoe repair business. The application provides a public storefront for customers to browse repair services and leather goods, a shopping cart system, and a manual payment checkout flow using Venmo/Zelle. An admin dashboard allows product and order management.
+Cobbler's Bench is a production-ready e-commerce website for a cobbler/shoe repair business. The application provides a public storefront for customers to browse repair services and leather goods, a shopping cart system, and a manual payment checkout flow using Venmo (@Victor-Hadawar). An admin dashboard allows product and order management.
 
 ## User Preferences
 
@@ -42,6 +42,14 @@ The products table includes comprehensive fields for professional product manage
 - **Pricing**: Price, compare-at price (for sales), cost per item (for margin calculation)
 - **SKU**: Stock keeping unit for internal tracking
 - **Tags**: Comma-separated tags for organization
+
+### Product Variants (Shopify-like)
+Products can have options and variants for different sizes, colors, etc:
+- **Product Options**: Up to 3 options per product (e.g., Size, Color, Material)
+- **Option Values**: Each option has an array of values (e.g., S, M, L, XL)
+- **Variants**: Auto-generated combinations of option values with individual pricing
+- **Variant Fields**: Each variant can have its own price, SKU, inventory, and status
+- **Tables**: product_options (name, values array, position), product_variants (title, optionValues JSON, pricing, inventory)
 
 ### Order Management (Shopify-like)
 The orders table includes comprehensive fields for professional order management:
@@ -84,6 +92,10 @@ RESTful API endpoints under `/api/`:
 - `PATCH /api/service-inquiries/:id/notes` - Update inquiry admin notes
 - `DELETE /api/service-inquiries/:id` - Delete inquiry
 - `POST /api/uploads/request-url` - Presigned URL generation for file uploads
+- `GET/PUT /api/products/:id/options` - Bulk manage product options
+- `GET/PUT /api/products/:id/variants` - Bulk manage product variants
+- `PATCH/DELETE /api/product-options/:id` - Single option operations
+- `PATCH/DELETE /api/product-variants/:id` - Single variant operations
 
 ### Object Storage Integration
 Uses Replit's Object Storage (Google Cloud Storage compatible) for image uploads:
@@ -115,7 +127,7 @@ Uses Replit's Object Storage (Google Cloud Storage compatible) for image uploads
 - **@uppy/aws-s3**: S3-compatible upload handling
 
 ### Payment Processing
-- **Manual Flow**: Venmo/Zelle payment instructions displayed on confirmation page
+- **Manual Flow**: Venmo (@Victor-Hadawar) payment instructions displayed on confirmation page
 - No integrated payment processor (by design)
 
 ### Environment Variables Required

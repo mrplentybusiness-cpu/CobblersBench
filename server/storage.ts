@@ -350,30 +350,58 @@ export class DatabaseStorage implements IStorage {
     return true;
   }
 
-  // Product Variants
+  // Product Variants - with consistent JSON parsing
+  private parseVariantForApi(variant: ProductVariant): ProductVariant {
+    let parsedOptionValues: Record<string, string> = {};
+    try {
+      parsedOptionValues = typeof variant.optionValues === 'string' 
+        ? JSON.parse(variant.optionValues) 
+        : (variant.optionValues as Record<string, string> || {});
+    } catch {
+      parsedOptionValues = {};
+    }
+    return {
+      ...variant,
+      optionValues: JSON.stringify(parsedOptionValues),
+    };
+  }
+
   async getProductVariants(productId: number): Promise<ProductVariant[]> {
-    return this.db.select().from(schema.productVariants)
+    const variants = await this.db.select().from(schema.productVariants)
       .where(eq(schema.productVariants.productId, productId))
       .orderBy(schema.productVariants.createdAt);
+    return variants.map(v => this.parseVariantForApi(v));
   }
 
   async getProductVariantById(id: number): Promise<ProductVariant | undefined> {
     const results = await this.db.select().from(schema.productVariants).where(eq(schema.productVariants.id, id));
-    return results[0];
+    return results[0] ? this.parseVariantForApi(results[0]) : undefined;
   }
 
   async createProductVariant(variant: InsertProductVariant): Promise<ProductVariant> {
-    const results = await this.db.insert(schema.productVariants).values(variant).returning();
-    return results[0];
+    const normalizedVariant = {
+      ...variant,
+      optionValues: typeof variant.optionValues === 'string' 
+        ? variant.optionValues 
+        : JSON.stringify(variant.optionValues || {}),
+    };
+    const results = await this.db.insert(schema.productVariants).values(normalizedVariant).returning();
+    return this.parseVariantForApi(results[0]);
   }
 
   async updateProductVariant(id: number, data: Partial<InsertProductVariant>): Promise<ProductVariant | undefined> {
+    const normalizedData = { ...data };
+    if (data.optionValues !== undefined) {
+      normalizedData.optionValues = typeof data.optionValues === 'string' 
+        ? data.optionValues 
+        : JSON.stringify(data.optionValues || {});
+    }
     const results = await this.db
       .update(schema.productVariants)
-      .set(data)
+      .set(normalizedData)
       .where(eq(schema.productVariants.id, id))
       .returning();
-    return results[0];
+    return results[0] ? this.parseVariantForApi(results[0]) : undefined;
   }
 
   async deleteProductVariant(id: number): Promise<boolean> {

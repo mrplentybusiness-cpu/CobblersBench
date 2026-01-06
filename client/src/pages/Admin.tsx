@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1288,6 +1288,26 @@ export default function Admin() {
   );
 }
 
+interface ProductOption {
+  id?: number;
+  name: string;
+  values: string[];
+}
+
+interface ProductVariant {
+  id?: number;
+  title: string;
+  optionValues: Record<string, string>;
+  sku: string;
+  price: string;
+  compareAtPrice: string;
+  cost: string;
+  trackInventory: boolean;
+  inventory: string;
+  imageUrl: string;
+  status: string;
+}
+
 function ProductForm({ product, onSuccess, existingCategories = [] }: { product?: Product; onSuccess: () => void; existingCategories?: string[] }) {
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
@@ -1302,8 +1322,45 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   const [sku, setSku] = useState(product?.sku || "");
   const [tags, setTags] = useState(product?.tags || "");
   
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
+  const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
+  
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    if (product?.id) {
+      fetch(`/api/products/${product.id}/options`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && Array.isArray(data) && data.length > 0) {
+            setProductOptions(data.map((o: any) => ({ id: o.id, name: o.name, values: o.values })));
+          }
+        })
+        .catch(console.error);
+      
+      fetch(`/api/products/${product.id}/variants`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && Array.isArray(data) && data.length > 0) {
+            setProductVariants(data.map((v: any) => ({
+              id: v.id,
+              title: v.title,
+              optionValues: typeof v.optionValues === 'string' ? JSON.parse(v.optionValues) : v.optionValues,
+              sku: v.sku || '',
+              price: v.price?.toString() || '',
+              compareAtPrice: v.compareAtPrice?.toString() || '',
+              cost: v.cost?.toString() || '',
+              trackInventory: v.trackInventory || false,
+              inventory: v.inventory?.toString() || '0',
+              imageUrl: v.imageUrl || '',
+              status: v.status || 'active',
+            })));
+          }
+        })
+        .catch(console.error);
+    }
+  }, [product?.id]);
 
   const createProductMutation = useMutation({
     mutationFn: async (productData: Record<string, any>) => {
@@ -1318,7 +1375,10 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (createdProduct) => {
+      if (createdProduct?.id) {
+        await saveVariantsToServer(createdProduct.id);
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       toast({ title: "Product created successfully" });
       onSuccess();
@@ -1341,7 +1401,10 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (updatedProduct) => {
+      if (updatedProduct?.id) {
+        await saveVariantsToServer(updatedProduct.id);
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       toast({ title: "Product updated successfully" });
       onSuccess();
@@ -1398,6 +1461,103 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   };
 
   const isPending = createProductMutation.isPending || updateProductMutation.isPending;
+  
+  const addOption = () => {
+    if (productOptions.length < 3) {
+      setProductOptions([...productOptions, { name: '', values: [] }]);
+    }
+  };
+  
+  const removeOption = (index: number) => {
+    const newOptions = productOptions.filter((_, i) => i !== index);
+    setProductOptions(newOptions);
+    if (newOptions.length === 0) {
+      setProductVariants([]);
+    }
+  };
+  
+  const updateOption = (index: number, field: 'name' | 'values', value: string | string[]) => {
+    const newOptions = [...productOptions];
+    if (field === 'name') {
+      newOptions[index].name = value as string;
+    } else {
+      newOptions[index].values = value as string[];
+    }
+    setProductOptions(newOptions);
+  };
+  
+  const generateVariants = () => {
+    const validOptions = productOptions.filter(o => o.name && o.values.length > 0);
+    if (validOptions.length === 0) {
+      toast({ title: "Add at least one option with values", variant: "destructive" });
+      return;
+    }
+    
+    const combinations: Record<string, string>[] = [];
+    
+    const generate = (optIndex: number, current: Record<string, string>) => {
+      if (optIndex >= validOptions.length) {
+        combinations.push({ ...current });
+        return;
+      }
+      
+      const opt = validOptions[optIndex];
+      for (const val of opt.values) {
+        generate(optIndex + 1, { ...current, [opt.name]: val });
+      }
+    };
+    
+    generate(0, {});
+    
+    const newVariants: ProductVariant[] = combinations.map(combo => {
+      const title = Object.values(combo).join(' / ');
+      const existingVariant = productVariants.find(v => v.title === title);
+      
+      return existingVariant || {
+        title,
+        optionValues: combo,
+        sku: '',
+        price: price || '',
+        compareAtPrice: '',
+        cost: '',
+        trackInventory: false,
+        inventory: '0',
+        imageUrl: '',
+        status: 'active',
+      };
+    });
+    
+    setProductVariants(newVariants);
+    toast({ title: `Generated ${newVariants.length} variants` });
+  };
+  
+  const updateVariant = (index: number, field: keyof ProductVariant, value: any) => {
+    const newVariants = [...productVariants];
+    (newVariants[index] as any)[field] = value;
+    setProductVariants(newVariants);
+  };
+  
+  const saveVariantsToServer = async (productId: number) => {
+    const validOptions = productOptions.filter(o => o.name && o.values.length > 0);
+    
+    await fetch(`/api/products/${productId}/options`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ options: validOptions }),
+    });
+    
+    await fetch(`/api/products/${productId}/variants`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        variants: productVariants.map(v => ({
+          ...v,
+          price: v.price || price,
+          inventory: v.trackInventory ? (parseInt(v.inventory) || 0) : null,
+        })),
+      }),
+    });
+  };
 
   // Calculate profit margin
   const calculateMargin = () => {
@@ -1415,11 +1575,12 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="basic">Basic</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="media">Media</TabsTrigger>
+          <TabsTrigger value="variants">Variants</TabsTrigger>
         </TabsList>
 
         <TabsContent value="basic" className="space-y-4 mt-4">
@@ -1676,6 +1837,151 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="variants" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Options</CardTitle>
+              <CardDescription>Add options like Size or Color. Up to 3 options allowed.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {productOptions.map((option, index) => (
+                <div key={index} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Option {index + 1}</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOption(index)}
+                      data-testid={`button-remove-option-${index}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Option Name</Label>
+                      <Input
+                        placeholder="e.g., Size, Color"
+                        value={option.name}
+                        onChange={(e) => updateOption(index, 'name', e.target.value)}
+                        data-testid={`input-option-name-${index}`}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Values (comma separated)</Label>
+                      <Input
+                        placeholder="e.g., S, M, L, XL"
+                        value={option.values.join(', ')}
+                        onChange={(e) => updateOption(index, 'values', e.target.value.split(',').map(v => v.trim()).filter(v => v))}
+                        data-testid={`input-option-values-${index}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <div className="flex gap-2">
+                {productOptions.length < 3 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addOption}
+                    data-testid="button-add-option"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add Option
+                  </Button>
+                )}
+                {productOptions.length > 0 && (
+                  <Button
+                    type="button"
+                    onClick={generateVariants}
+                    data-testid="button-generate-variants"
+                  >
+                    Generate Variants
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {productVariants.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Variants ({productVariants.length})</CardTitle>
+                <CardDescription>Set individual pricing and inventory for each variant</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="text-left p-3 font-medium">Variant</th>
+                        <th className="text-left p-3 font-medium">Price ($)</th>
+                        <th className="text-left p-3 font-medium">SKU</th>
+                        <th className="text-left p-3 font-medium">Inventory</th>
+                        <th className="text-left p-3 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {productVariants.map((variant, index) => (
+                        <tr key={index} className="border-t">
+                          <td className="p-3 font-medium">{variant.title}</td>
+                          <td className="p-3">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={variant.price}
+                              onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                              placeholder={price || "0.00"}
+                              className="w-24 h-8"
+                              data-testid={`input-variant-price-${index}`}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <Input
+                              value={variant.sku}
+                              onChange={(e) => updateVariant(index, 'sku', e.target.value)}
+                              placeholder="SKU"
+                              className="w-28 h-8"
+                              data-testid={`input-variant-sku-${index}`}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={variant.inventory}
+                              onChange={(e) => updateVariant(index, 'inventory', e.target.value)}
+                              className="w-20 h-8"
+                              data-testid={`input-variant-inventory-${index}`}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <Select
+                              value={variant.status}
+                              onValueChange={(val) => updateVariant(index, 'status', val)}
+                            >
+                              <SelectTrigger className="w-24 h-8" data-testid={`select-variant-status-${index}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="inactive">Inactive</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

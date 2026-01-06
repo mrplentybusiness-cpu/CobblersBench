@@ -6,6 +6,25 @@ import { insertProductSchema, insertServiceInquirySchema } from "@shared/schema"
 import { z } from "zod";
 import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
 
+const productOptionSchema = z.object({
+  name: z.string().min(1, "Option name is required"),
+  values: z.array(z.string().min(1)).min(1, "At least one value is required"),
+  position: z.number().int().min(0).optional().default(0),
+});
+
+const productVariantSchema = z.object({
+  title: z.string().min(1, "Variant title is required"),
+  optionValues: z.record(z.string()).optional().default({}),
+  sku: z.string().nullable().optional(),
+  price: z.string().min(1, "Price is required"),
+  compareAtPrice: z.string().nullable().optional(),
+  cost: z.string().nullable().optional(),
+  trackInventory: z.boolean().optional().default(false),
+  inventory: z.number().int().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  status: z.enum(["active", "inactive"]).optional().default("active"),
+});
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -290,17 +309,18 @@ export async function registerRoutes(
   app.post("/api/products/:id/options", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
-      const { name, values, position } = req.body;
+      const parseResult = productOptionSchema.safeParse(req.body);
       
-      if (!name || !values || !Array.isArray(values) || values.length === 0) {
-        return res.status(400).json({ error: "Option name and values array are required" });
+      if (!parseResult.success) {
+        return res.status(422).json({ error: "Invalid option data", details: parseResult.error.errors });
       }
       
+      const opt = parseResult.data;
       const option = await storage.createProductOption({
         productId,
-        name,
-        values,
-        position: position ?? 0,
+        name: opt.name,
+        values: opt.values,
+        position: opt.position,
       });
       res.status(201).json(option);
     } catch (error) {
@@ -313,14 +333,14 @@ export async function registerRoutes(
   app.patch("/api/product-options/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { name, values, position } = req.body;
+      const partialOptionSchema = productOptionSchema.partial();
+      const parseResult = partialOptionSchema.safeParse(req.body);
       
-      const updateData: Record<string, any> = {};
-      if (name !== undefined) updateData.name = name;
-      if (values !== undefined) updateData.values = values;
-      if (position !== undefined) updateData.position = position;
+      if (!parseResult.success) {
+        return res.status(422).json({ error: "Invalid option data", details: parseResult.error.errors });
+      }
       
-      const option = await storage.updateProductOption(id, updateData);
+      const option = await storage.updateProductOption(id, parseResult.data);
       
       if (!option) {
         return res.status(404).json({ error: "Option not found" });
@@ -363,10 +383,14 @@ export async function registerRoutes(
       // Delete all existing options
       await storage.deleteAllProductOptions(productId);
       
-      // Create new options
+      // Create new options with validation
       const createdOptions = [];
       for (let i = 0; i < options.length; i++) {
-        const opt = options[i];
+        const parseResult = productOptionSchema.safeParse(options[i]);
+        if (!parseResult.success) {
+          return res.status(422).json({ error: "Invalid option data", details: parseResult.error.errors });
+        }
+        const opt = parseResult.data;
         const option = await storage.createProductOption({
           productId,
           name: opt.name,
@@ -401,24 +425,25 @@ export async function registerRoutes(
   app.post("/api/products/:id/variants", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
-      const { title, optionValues, sku, price, compareAtPrice, cost, trackInventory, inventory, imageUrl, status } = req.body;
+      const parseResult = productVariantSchema.safeParse(req.body);
       
-      if (!title || !price) {
-        return res.status(400).json({ error: "Variant title and price are required" });
+      if (!parseResult.success) {
+        return res.status(422).json({ error: "Invalid variant data", details: parseResult.error.errors });
       }
       
+      const v = parseResult.data;
       const variant = await storage.createProductVariant({
         productId,
-        title,
-        optionValues: typeof optionValues === 'string' ? optionValues : JSON.stringify(optionValues || {}),
-        sku: sku ?? null,
-        price,
-        compareAtPrice: compareAtPrice ?? null,
-        cost: cost ?? null,
-        trackInventory: trackInventory ?? false,
-        inventory: inventory ?? null,
-        imageUrl: imageUrl ?? null,
-        status: status ?? "active",
+        title: v.title,
+        optionValues: JSON.stringify(v.optionValues),
+        sku: v.sku ?? null,
+        price: v.price,
+        compareAtPrice: v.compareAtPrice ?? null,
+        cost: v.cost ?? null,
+        trackInventory: v.trackInventory,
+        inventory: v.inventory ?? null,
+        imageUrl: v.imageUrl ?? null,
+        status: v.status,
       });
       res.status(201).json(variant);
     } catch (error) {
@@ -431,19 +456,25 @@ export async function registerRoutes(
   app.patch("/api/product-variants/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { title, optionValues, sku, price, compareAtPrice, cost, trackInventory, inventory, imageUrl, status } = req.body;
+      const partialVariantSchema = productVariantSchema.partial();
+      const parseResult = partialVariantSchema.safeParse(req.body);
       
+      if (!parseResult.success) {
+        return res.status(422).json({ error: "Invalid variant data", details: parseResult.error.errors });
+      }
+      
+      const data = parseResult.data;
       const updateData: Record<string, any> = {};
-      if (title !== undefined) updateData.title = title;
-      if (optionValues !== undefined) updateData.optionValues = typeof optionValues === 'string' ? optionValues : JSON.stringify(optionValues);
-      if (sku !== undefined) updateData.sku = sku;
-      if (price !== undefined) updateData.price = price;
-      if (compareAtPrice !== undefined) updateData.compareAtPrice = compareAtPrice;
-      if (cost !== undefined) updateData.cost = cost;
-      if (trackInventory !== undefined) updateData.trackInventory = trackInventory;
-      if (inventory !== undefined) updateData.inventory = inventory;
-      if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
-      if (status !== undefined) updateData.status = status;
+      if (data.title !== undefined) updateData.title = data.title;
+      if (data.optionValues !== undefined) updateData.optionValues = JSON.stringify(data.optionValues);
+      if (data.sku !== undefined) updateData.sku = data.sku;
+      if (data.price !== undefined) updateData.price = data.price;
+      if (data.compareAtPrice !== undefined) updateData.compareAtPrice = data.compareAtPrice;
+      if (data.cost !== undefined) updateData.cost = data.cost;
+      if (data.trackInventory !== undefined) updateData.trackInventory = data.trackInventory;
+      if (data.inventory !== undefined) updateData.inventory = data.inventory;
+      if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+      if (data.status !== undefined) updateData.status = data.status;
       
       const variant = await storage.updateProductVariant(id, updateData);
       
@@ -488,21 +519,26 @@ export async function registerRoutes(
       // Delete all existing variants
       await storage.deleteAllProductVariants(productId);
       
-      // Create new variants
+      // Create new variants with validation
       const createdVariants = [];
       for (const v of variants) {
+        const parseResult = productVariantSchema.safeParse(v);
+        if (!parseResult.success) {
+          return res.status(422).json({ error: "Invalid variant data", details: parseResult.error.errors });
+        }
+        const validated = parseResult.data;
         const variant = await storage.createProductVariant({
           productId,
-          title: v.title,
-          optionValues: typeof v.optionValues === 'string' ? v.optionValues : JSON.stringify(v.optionValues || {}),
-          sku: v.sku ?? null,
-          price: v.price,
-          compareAtPrice: v.compareAtPrice ?? null,
-          cost: v.cost ?? null,
-          trackInventory: v.trackInventory ?? false,
-          inventory: v.inventory ?? null,
-          imageUrl: v.imageUrl ?? null,
-          status: v.status ?? "active",
+          title: validated.title,
+          optionValues: JSON.stringify(validated.optionValues),
+          sku: validated.sku ?? null,
+          price: validated.price,
+          compareAtPrice: validated.compareAtPrice ?? null,
+          cost: validated.cost ?? null,
+          trackInventory: validated.trackInventory,
+          inventory: validated.inventory ?? null,
+          imageUrl: validated.imageUrl ?? null,
+          status: validated.status,
         });
         createdVariants.push(variant);
       }
