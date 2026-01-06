@@ -75,14 +75,160 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   private db: ReturnType<typeof drizzle>;
+  private pool: InstanceType<typeof Pool>;
+  private migrationComplete: Promise<void>;
 
   constructor() {
     const dbUrl = process.env.DATABASE_URL;
     console.log(`[DB] Connecting to database, URL starts with: ${dbUrl?.substring(0, 30)}...`);
-    const pool = new Pool({
+    this.pool = new Pool({
       connectionString: dbUrl!,
     });
-    this.db = drizzle(pool, { schema });
+    this.db = drizzle(this.pool, { schema });
+    this.migrationComplete = this.runMigrations();
+  }
+
+  private async runMigrations(): Promise<void> {
+    console.log('[DB] Running automatic migrations...');
+    const client = await this.pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS products (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT,
+          price TEXT NOT NULL,
+          compare_at_price TEXT,
+          cost TEXT,
+          image_url TEXT,
+          category TEXT,
+          product_type TEXT,
+          brand TEXT,
+          color TEXT,
+          status TEXT DEFAULT 'active',
+          track_inventory BOOLEAN DEFAULT false,
+          inventory INTEGER,
+          sku TEXT,
+          tags TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS product_images (
+          id SERIAL PRIMARY KEY,
+          product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          url TEXT NOT NULL,
+          alt_text TEXT,
+          sort_order INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS orders (
+          id SERIAL PRIMARY KEY,
+          customer_name TEXT NOT NULL,
+          customer_email TEXT NOT NULL,
+          customer_phone TEXT,
+          shipping_address TEXT,
+          shipping_city TEXT,
+          shipping_state TEXT,
+          shipping_zip TEXT,
+          subtotal TEXT NOT NULL,
+          tax TEXT NOT NULL,
+          shipping TEXT NOT NULL,
+          total TEXT NOT NULL,
+          status TEXT DEFAULT 'pending',
+          payment_status TEXT DEFAULT 'unpaid',
+          fulfillment_status TEXT DEFAULT 'unfulfilled',
+          tracking_number TEXT,
+          admin_notes TEXT,
+          repair_description TEXT,
+          archived BOOLEAN DEFAULT false,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS order_items (
+          id SERIAL PRIMARY KEY,
+          order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+          product_id INTEGER,
+          product_name TEXT NOT NULL,
+          variant_title TEXT,
+          quantity INTEGER NOT NULL,
+          price TEXT NOT NULL
+        )
+      `);
+      
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS service_inquiries (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          phone TEXT,
+          service_type TEXT NOT NULL,
+          description TEXT,
+          status TEXT DEFAULT 'new',
+          admin_notes TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS product_options (
+          id SERIAL PRIMARY KEY,
+          product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          "values" TEXT[] NOT NULL,
+          position INTEGER DEFAULT 0
+        )
+      `);
+      
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS product_variants (
+          id SERIAL PRIMARY KEY,
+          product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          option_values JSONB,
+          sku TEXT,
+          price TEXT,
+          compare_at_price TEXT,
+          cost TEXT,
+          track_inventory BOOLEAN DEFAULT true,
+          inventory INTEGER DEFAULT 0,
+          image_url TEXT,
+          status TEXT DEFAULT 'active',
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      const columnMigrations = [
+        { table: 'products', column: 'track_inventory', type: 'BOOLEAN DEFAULT false' },
+        { table: 'products', column: 'inventory', type: 'INTEGER' },
+        { table: 'orders', column: 'shipping_state', type: 'TEXT' },
+        { table: 'orders', column: 'archived', type: 'BOOLEAN DEFAULT false' },
+      ];
+
+      for (const migration of columnMigrations) {
+        try {
+          await client.query(`ALTER TABLE ${migration.table} ADD COLUMN IF NOT EXISTS ${migration.column} ${migration.type}`);
+        } catch (e) {
+          console.log(`[DB] Column ${migration.column} may already exist`);
+        }
+      }
+
+      console.log('[DB] Migrations completed successfully');
+    } catch (error) {
+      console.error('[DB] Migration error:', error);
+    } finally {
+      client.release();
+    }
+  }
+
+  async waitForMigrations(): Promise<void> {
+    await this.migrationComplete;
   }
 
   // Products
