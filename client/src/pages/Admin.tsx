@@ -1321,7 +1321,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   const [color, setColor] = useState(product?.color || "");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || "");
   const [status, setStatus] = useState(product?.status || "active");
-  const [trackInventory, setTrackInventory] = useState(product?.trackInventory || false);
+  const [trackInventory, setTrackInventory] = useState(product?.trackInventory !== false);
   const [inventory, setInventory] = useState(product?.inventory?.toString() || "0");
   const [sku, setSku] = useState(product?.sku || "");
   const [tags, setTags] = useState(product?.tags || "");
@@ -1356,7 +1356,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
               price: v.price?.toString() || '',
               compareAtPrice: v.compareAtPrice?.toString() || '',
               cost: v.cost?.toString() || '',
-              trackInventory: v.trackInventory || false,
+              trackInventory: v.trackInventory !== false,
               inventory: v.inventory?.toString() || '0',
               imageUrl: v.imageUrl || '',
               status: v.status || 'active',
@@ -1539,7 +1539,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
         price: price || '',
         compareAtPrice: '',
         cost: '',
-        trackInventory: false,
+        trackInventory: true,
         inventory: '0',
         imageUrl: '',
         status: 'active',
@@ -1880,20 +1880,22 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
               <CardDescription>Track stock levels for this product</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="trackInventory" className="text-base">Track quantity</Label>
-                  <p className="text-sm text-muted-foreground">Enable inventory tracking for this product</p>
+              {productVariants.length > 0 ? (
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Variant-Level Inventory</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    This product has {productVariants.length} variant{productVariants.length > 1 ? 's' : ''}. 
+                    Inventory is tracked per variant in the <strong>Variants</strong> tab.
+                  </p>
+                  <div className="mt-3 text-sm">
+                    <span className="font-medium">Total Stock: </span>
+                    {productVariants.reduce((sum, v) => sum + (parseInt(v.inventory) || 0), 0)} units
+                  </div>
                 </div>
-                <Switch
-                  id="trackInventory"
-                  checked={trackInventory}
-                  onCheckedChange={setTrackInventory}
-                  data-testid="switch-track-inventory"
-                />
-              </div>
-
-              {trackInventory && (
+              ) : (
                 <div>
                   <Label htmlFor="inventory">Quantity in Stock</Label>
                   <Input 
