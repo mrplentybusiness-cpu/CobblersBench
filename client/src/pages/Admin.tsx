@@ -1949,6 +1949,26 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>SKU</CardTitle>
+              <CardDescription>Stock keeping unit for tracking</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <Label htmlFor="sku">SKU (Stock Keeping Unit)</Label>
+                <Input 
+                  id="sku"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="e.g., BOOT-RESOLE-001"
+                  data-testid="input-product-sku"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Unique identifier for this product</p>
+              </div>
+            </CardContent>
+          </Card>
+
           {productVariants.length > 0 ? (
             <Card>
               <CardHeader>
@@ -2038,7 +2058,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
                 <CardTitle>Inventory</CardTitle>
                 <CardDescription>Track stock levels for this product</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 <div>
                   <Label htmlFor="inventory">Quantity in Stock</Label>
                   <Input 
@@ -2056,20 +2076,6 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
                       Low stock warning
                     </p>
                   )}
-                </div>
-
-                <Separator />
-
-                <div>
-                  <Label htmlFor="sku">SKU (Stock Keeping Unit)</Label>
-                  <Input 
-                    id="sku"
-                    value={sku}
-                    onChange={(e) => setSku(e.target.value)}
-                    placeholder="e.g., BOOT-RESOLE-001"
-                    data-testid="input-product-sku"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Unique identifier for this product</p>
                 </div>
               </CardContent>
             </Card>
