@@ -1,0 +1,33 @@
+Here are the deploy logs as no email was received still.
+
+
+
+Starting Container
+
+[DB] Connecting to database, URL starts with: postgresql://postgres:AEShbwAA...
+
+[DB] Running automatic migrations...
+
+4:58:47 PM [express] GET /api/products/active 200 in 78ms :: [{"id":1,"name":"Athletic Shoe Lace","description":"Athletic shoe laces available in various styles, sizes and colors","price":"3.95","compareAtPrice":null,"cost":null,"imageUrl":"https://pub-f6599d1fd6174621afcfcb9c0e548516.r2.dev/uploads/48b5de42-1500-4af1-b7d2-b798c1a3961c","category":"Accessories","productType":"Shoe Laces","brand":"Bulldog","color":"Black, Brown, White, Beige/Mocha, Grey, Navy, Red","status":"active","trackInventory":true,"inventory":4,"sku":null,"tags":"Laces, Athletic, Round, Flat","createdAt":"2026-01-06T23:29:23.537Z"}]
+
+4:58:47 PM [express] GET /api/reviews/featured 200 in 86ms :: []
+
+[DB] Migrations completed successfully
+
+4:58:51 PM [express] GET /api/products/active 200 in 4ms :: [{"id":1,"name":"Athletic Shoe Lace","description":"Athletic shoe laces available in various styles, sizes and colors","price":"3.95","compareAtPrice":null,"cost":null,"imageUrl":"https://pub-f6599d1fd6174621afcfcb9c0e548516.r2.dev/uploads/48b5de42-1500-4af1-b7d2-b798c1a3961c","category":"Accessories","productType":"Shoe Laces","brand":"Bulldog","color":"Black, Brown, White, Beige/Mocha, Grey, Navy, Red","status":"active","trackInventory":true,"inventory":4,"sku":null,"tags":"Laces, Athletic, Round, Flat","createdAt":"2026-01-06T23:29:23.537Z"}]
+
+4:58:51 PM [express] GET /api/reviews/featured 200 in 4ms :: []
+
+[Email] No Resend credentials available (set RESEND_API_KEY for Railway)
+
+[Email] No Resend credentials available (set RESEND_API_KEY for Railway)
+
+[Email] Skipping customer confirmation for order #2 - no email credentials
+
+[Email] Skipping admin notification for order #2 - no email credentials
+
+Order #2 - Email notifications sent
+
+4:59:12 PM [express] POST /api/orders 201 in 96ms :: {"id":2,"customerName":"Curtis Rose","customerEmail":"plentysneakers@gmail.com","customerPhone":"3233335326","deliveryMethod":"pickup","shippingAddress":"In-Store Pickup","shippingCity":"Centerville","shippingState":"MA","shippingZip":"02632","repairDescription":null,"total":"4.20","shipping":"0.00","status":"Pending","paymentStatus":"unpaid","fulfillmentStatus":"unfulfilled","archived":false,"adminNotes":null,"trackingNumber":null,"createdAt":"2026-01-07T16:59:12.409Z","updatedAt":"2026-01-07T16:59:12.409Z"}
+
+4:59:12 PM [express] GET /api/orders/2 200 in 4ms :: {"id":2,"customerName":"Curtis Rose","customerEmail":"plentysneakers@gmail.com","customerPhone":"3233335326","deliveryMethod":"pickup","shippingAddress":"In-Store Pickup","shippingCity":"Centerville","shippingState":"MA","shippingZip":"02632","repairDescription":null,"total":"4.20","shipping":"0.00","status":"Pending","paymentStatus":"unpaid","fulfillmentStatus":"unfulfilled","archived":false,"adminNotes":null,"trackingNumber":null,"createdAt":"2026-01-07T16:59:12.409Z","updatedAt":"2026-01-07T16:59:12.409Z","items":[{"id":2,"orderId":2,"productId":1,"variantId":null,"productName":"Athletic Shoe Lace","productPrice":"3.95","quantity":1}]}
