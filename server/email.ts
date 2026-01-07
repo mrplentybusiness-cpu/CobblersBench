@@ -11,8 +11,12 @@ function getTransporter() {
     throw new Error('GMAIL_APP_PASSWORD not configured');
   }
   
+  console.log('[Email] Using app password length:', appPassword.length);
+  
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
       user: FROM_EMAIL,
       pass: appPassword.replace(/\s/g, '')
