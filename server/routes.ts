@@ -945,5 +945,106 @@ export async function registerRoutes(
     }
   });
 
+  // ===== REVIEWS =====
+
+  // Get featured reviews (public)
+  app.get("/api/reviews/featured", async (req, res) => {
+    try {
+      const reviews = await storage.getFeaturedReviews();
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching featured reviews:", error);
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  // Get all reviews (admin)
+  app.get("/api/reviews", async (req, res) => {
+    try {
+      const reviews = await storage.getAllReviews();
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  // Get single review
+  app.get("/api/reviews/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const review = await storage.getReviewById(id);
+      
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      res.json(review);
+    } catch (error) {
+      console.error("Error fetching review:", error);
+      res.status(500).json({ error: "Failed to fetch review" });
+    }
+  });
+
+  // Create review (admin)
+  const reviewSchema = z.object({
+    customerName: z.string().min(1, "Name is required"),
+    customerLocation: z.string().min(1, "Location is required"),
+    rating: z.number().int().min(1).max(5).default(5),
+    content: z.string().min(1, "Review content is required"),
+    imageUrl: z.string().nullable().optional(),
+    featured: z.boolean().default(false),
+  });
+
+  app.post("/api/reviews", async (req, res) => {
+    try {
+      const parseResult = reviewSchema.safeParse(req.body);
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid review data", details: parseResult.error.errors });
+      }
+
+      const review = await storage.createReview(parseResult.data);
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Error creating review:", error);
+      res.status(500).json({ error: "Failed to create review" });
+    }
+  });
+
+  // Update review (admin)
+  app.patch("/api/reviews/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const review = await storage.updateReview(id, req.body);
+      
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      res.json(review);
+    } catch (error) {
+      console.error("Error updating review:", error);
+      res.status(500).json({ error: "Failed to update review" });
+    }
+  });
+
+  // Delete review (admin)
+  app.delete("/api/reviews/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteReview(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      res.status(500).json({ error: "Failed to delete review" });
+    }
+  });
+
   return httpServer;
 }

@@ -33,7 +33,7 @@ The backend serves both the API endpoints and static files in production. In dev
 - **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts` - shared between client and server
 - **Migrations**: Drizzle Kit with push-based migrations (`db:push`)
-- **Tables**: products, product_images, orders, order_items, service_inquiries with proper foreign key relationships
+- **Tables**: products, product_images, orders, order_items, service_inquiries, reviews with proper foreign key relationships
 
 ### Product Management (Shopify-like)
 The products table includes comprehensive fields for professional product management:
@@ -76,6 +76,14 @@ Service inquiries allow customers to request quotes for repair services (pricing
 - **Admin Notes**: Internal notes for tracking communications and quotes
 - **Admin Tab**: Dedicated tab in admin dashboard with list view, status management, and detail dialog
 
+### Customer Reviews Management
+Customer reviews/testimonials displayed on the homepage:
+- **Database Storage**: Reviews stored in `reviews` table with customer name, location, rating, content, image URL
+- **Featured Toggle**: Admin can mark reviews as "featured" to show on homepage
+- **Fallback Display**: If no featured reviews exist, shows 3 default testimonials
+- **Admin Tab**: "Reviews" tab in admin dashboard to add, edit, delete, and toggle featured status
+- **Homepage Display**: Up to 3 featured reviews shown in Customer Stories section
+
 ### API Structure
 RESTful API endpoints under `/api/`:
 - `GET /api/products` - List all products (admin)
@@ -104,6 +112,11 @@ RESTful API endpoints under `/api/`:
 - `GET/PUT /api/products/:id/variants` - Bulk manage product variants
 - `PATCH/DELETE /api/product-options/:id` - Single option operations
 - `PATCH/DELETE /api/product-variants/:id` - Single variant operations
+- `GET /api/reviews` - List all reviews (admin)
+- `GET /api/reviews/featured` - List featured reviews (public, for homepage)
+- `POST /api/reviews` - Create review (admin)
+- `PATCH /api/reviews/:id` - Update review (admin)
+- `DELETE /api/reviews/:id` - Delete review (admin)
 
 ### Object Storage Integration
 Uses Cloudflare R2 for image uploads (works on both Replit and Railway):

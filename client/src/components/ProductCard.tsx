@@ -117,13 +117,15 @@ export default function ProductCard({ product }: { product: Product }) {
             </Button>
             <Button
               onClick={handleCompareToggle}
-              variant={inCompare ? "secondary" : "outline"}
+              variant={inCompare ? "default" : "outline"}
               size="icon"
-              className={inCompare ? "bg-primary/10 border-primary" : ""}
+              className={`transition-all ${inCompare 
+                ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                : "border-2 border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"}`}
               data-testid={`button-compare-${product.id}`}
               title={inCompare ? "Remove from compare" : "Add to compare"}
             >
-              {inCompare ? <Check className="h-4 w-4 text-primary" /> : <GitCompareArrows className="h-4 w-4" />}
+              {inCompare ? <Check className="h-4 w-4" /> : <GitCompareArrows className="h-4 w-4" />}
             </Button>
           </div>
         </div>

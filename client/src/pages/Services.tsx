@@ -346,6 +346,24 @@ export default function Services() {
         </div>
       </section>
 
+      <section className="py-16 bg-primary/5 border-y border-primary/10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Need Something Custom?
+            </h2>
+            <p className="text-muted-foreground text-lg mb-6">
+              We specialize in custom leather work and specialty repairs. Contact us to discuss your unique project.
+            </p>
+            <Button size="lg" asChild>
+              <a href="#request-quote" data-testid="link-custom-quote">
+                Request a Quote <ArrowRight className="ml-2 h-5 w-5" />
+              </a>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <section id="request-quote" className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">

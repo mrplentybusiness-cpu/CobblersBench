@@ -193,3 +193,22 @@ export type ProductOption = typeof productOptions.$inferSelect;
 
 export type InsertProductVariant = z.infer<typeof insertProductVariantSchema>;
 export type ProductVariant = typeof productVariants.$inferSelect;
+
+export const reviews = pgTable("reviews", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  customerName: text("customer_name").notNull(),
+  customerLocation: text("customer_location").notNull(),
+  rating: integer("rating").notNull().default(5),
+  content: text("content").notNull(),
+  imageUrl: text("image_url"),
+  featured: boolean("featured").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({
+  id: true,
+  createdAt: true,
+} as const);
+
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type Review = typeof reviews.$inferSelect;

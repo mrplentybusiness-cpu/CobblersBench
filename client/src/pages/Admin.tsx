@@ -12,10 +12,10 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Product, Order, OrderItem, ServiceInquiry } from "@shared/schema";
+import type { Product, Order, OrderItem, ServiceInquiry, Review } from "@shared/schema";
 import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploader } from "@/components/ImageUploader";
@@ -24,7 +24,7 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries'>('orders');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews'>('orders');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<(Order & { items: OrderItem[] }) | null>(null);
@@ -91,6 +91,16 @@ export default function Admin() {
       return response.json();
     },
     enabled: isAuthenticated && activeTab === 'inquiries',
+  });
+
+  const { data: reviews = [], isLoading: reviewsLoading } = useQuery<Review[]>({
+    queryKey: ['/api/reviews'],
+    queryFn: async () => {
+      const response = await fetch('/api/reviews');
+      if (!response.ok) throw new Error('Failed to fetch reviews');
+      return response.json();
+    },
+    enabled: isAuthenticated && activeTab === 'reviews',
   });
 
   const updateInquiryStatusMutation = useMutation({
@@ -371,6 +381,14 @@ export default function Admin() {
               <Badge variant="destructive" className="ml-auto">{inquiries.filter(i => i.status === 'new').length}</Badge>
             )}
           </Button>
+          <Button 
+            variant={activeTab === 'reviews' ? 'default' : 'ghost'} 
+            className="w-full justify-start"
+            onClick={() => setActiveTab('reviews')}
+            data-testid="tab-reviews"
+          >
+            <Star className="mr-2 h-4 w-4" /> Reviews
+          </Button>
         </nav>
 
         <div className="mt-auto pt-8">
@@ -382,7 +400,7 @@ export default function Admin() {
 
       <div className="flex-1 p-8 overflow-auto">
         <div className="flex justify-between items-center mb-8">
-           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : 'Service Inquiries'}</h1>
+           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : 'Reviews'}</h1>
            <div className="md:hidden">
               <Link href="/" className="text-sm text-primary">
                 Back to Store
@@ -800,6 +818,8 @@ export default function Admin() {
               )}
             </div>
           </div>
+        ) : activeTab === 'reviews' ? (
+          <ReviewsManagement reviews={reviews} isLoading={reviewsLoading} queryClient={queryClient} toast={toast} />
         ) : null}
       </div>
 
@@ -2152,5 +2172,338 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
         </Button>
       </div>
     </form>
+  );
+}
+
+function ReviewsManagement({ reviews, isLoading, queryClient, toast }: { 
+  reviews: Review[]; 
+  isLoading: boolean; 
+  queryClient: ReturnType<typeof useQueryClient>;
+  toast: ReturnType<typeof useToast>['toast'];
+}) {
+  const [isAddReviewOpen, setIsAddReviewOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [formData, setFormData] = useState({
+    customerName: "",
+    customerLocation: "",
+    rating: 5,
+    content: "",
+    imageUrl: "",
+    featured: true,
+  });
+
+  const resetForm = () => {
+    setFormData({
+      customerName: "",
+      customerLocation: "",
+      rating: 5,
+      content: "",
+      imageUrl: "",
+      featured: true,
+    });
+    setEditingReview(null);
+  };
+
+  const createReviewMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          imageUrl: data.imageUrl || null,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to create review');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews/featured'] });
+      setIsAddReviewOpen(false);
+      resetForm();
+      toast({ title: "Review created" });
+    },
+  });
+
+  const updateReviewMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<typeof formData> }) => {
+      const response = await fetch(`/api/reviews/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          imageUrl: data.imageUrl || null,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to update review');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews/featured'] });
+      setEditingReview(null);
+      resetForm();
+      toast({ title: "Review updated" });
+    },
+  });
+
+  const deleteReviewMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete review');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews/featured'] });
+      toast({ title: "Review deleted" });
+    },
+  });
+
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: async ({ id, featured }: { id: number; featured: boolean }) => {
+      const response = await fetch(`/api/reviews/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured }),
+      });
+      if (!response.ok) throw new Error('Failed to toggle featured');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews/featured'] });
+      toast({ title: "Featured status updated" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingReview) {
+      updateReviewMutation.mutate({ id: editingReview.id, data: formData });
+    } else {
+      createReviewMutation.mutate(formData);
+    }
+  };
+
+  const openEditDialog = (review: Review) => {
+    setEditingReview(review);
+    setFormData({
+      customerName: review.customerName,
+      customerLocation: review.customerLocation,
+      rating: review.rating,
+      content: review.content,
+      imageUrl: review.imageUrl || "",
+      featured: review.featured || false,
+    });
+    setIsAddReviewOpen(true);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-muted-foreground">
+          Manage customer reviews displayed on the homepage. Featured reviews (up to 3) appear on the home page.
+        </p>
+        <Dialog open={isAddReviewOpen} onOpenChange={(open) => {
+          setIsAddReviewOpen(open);
+          if (!open) resetForm();
+        }}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-add-review">
+              <Plus className="h-4 w-4 mr-2" /> Add Review
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingReview ? 'Edit Review' : 'Add Review'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="customerName">Customer Name *</Label>
+                  <Input
+                    id="customerName"
+                    value={formData.customerName}
+                    onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                    placeholder="John M."
+                    required
+                    data-testid="input-review-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customerLocation">Location *</Label>
+                  <Input
+                    id="customerLocation"
+                    value={formData.customerLocation}
+                    onChange={(e) => setFormData({ ...formData, customerLocation: e.target.value })}
+                    placeholder="Hyannis, MA"
+                    required
+                    data-testid="input-review-location"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="rating">Rating</Label>
+                <Select 
+                  value={formData.rating.toString()} 
+                  onValueChange={(v) => setFormData({ ...formData, rating: parseInt(v) })}
+                >
+                  <SelectTrigger data-testid="select-review-rating">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 4, 3, 2, 1].map((r) => (
+                      <SelectItem key={r} value={r.toString()}>
+                        {r} Star{r !== 1 ? 's' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="content">Review Content *</Label>
+                <Textarea
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  placeholder="Write the customer's review..."
+                  rows={4}
+                  required
+                  data-testid="input-review-content"
+                />
+              </div>
+              <div>
+                <Label htmlFor="imageUrl">Photo URL (optional)</Label>
+                <Input
+                  id="imageUrl"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  placeholder="https://..."
+                  data-testid="input-review-image"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="featured"
+                  checked={formData.featured}
+                  onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                  data-testid="switch-review-featured"
+                />
+                <Label htmlFor="featured">Featured on Homepage</Label>
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={createReviewMutation.isPending || updateReviewMutation.isPending}
+                data-testid="button-save-review"
+              >
+                {createReviewMutation.isPending || updateReviewMutation.isPending
+                  ? 'Saving...'
+                  : editingReview ? 'Update Review' : 'Create Review'}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-muted-foreground" data-testid="loading-reviews">
+            Loading reviews...
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground" data-testid="no-reviews">
+            No reviews yet. Add customer testimonials to display on the homepage.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Rating</TableHead>
+                <TableHead>Review</TableHead>
+                <TableHead>Featured</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reviews.map((review) => (
+                <TableRow key={review.id} data-testid={`review-row-${review.id}`}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      {review.imageUrl ? (
+                        <img 
+                          src={review.imageUrl} 
+                          alt={review.customerName} 
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                          <User className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium">{review.customerName}</div>
+                        <div className="text-xs text-muted-foreground">{review.customerLocation}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-0.5">
+                      {[...Array(review.rating)].map((_, i) => (
+                        <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-xs">
+                    <p className="text-sm text-muted-foreground line-clamp-2">"{review.content}"</p>
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={review.featured || false}
+                      onCheckedChange={(checked) => toggleFeaturedMutation.mutate({ id: review.id, featured: checked })}
+                      data-testid={`switch-featured-${review.id}`}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEditDialog(review)}
+                        data-testid={`button-edit-review-${review.id}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                        onClick={() => {
+                          if (confirm('Delete this review?')) {
+                            deleteReviewMutation.mutate(review.id);
+                          }
+                        }}
+                        data-testid={`button-delete-review-${review.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+        <p className="text-blue-800">
+          <strong>Tip:</strong> Only featured reviews appear on the homepage. Toggle the "Featured" switch to control which reviews are displayed. Up to 3 featured reviews will be shown.
+        </p>
+      </div>
+    </div>
   );
 }

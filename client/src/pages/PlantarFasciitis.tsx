@@ -246,6 +246,24 @@ export default function PlantarFasciitis() {
         </div>
       </section>
 
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="font-serif text-3xl font-bold text-foreground mb-4">
+              Shop Insoles & Orthotics
+            </h2>
+            <p className="text-muted-foreground text-lg mb-8">
+              Browse our selection of quality insoles and orthotic products designed to provide relief from plantar fasciitis.
+            </p>
+            <Button size="lg" asChild data-testid="link-shop-insoles">
+              <Link href="/shop?category=care">
+                Shop Insoles <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <section className="py-16 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">

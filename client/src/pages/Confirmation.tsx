@@ -163,7 +163,7 @@ export default function Confirmation() {
                 We will process your order immediately upon receipt.
               </p>
 
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg mb-4">
                 <div className="flex items-center gap-3">
                   <div className="bg-[#008CFF] text-white p-2 rounded font-bold text-xs">Venmo</div>
                   <span className="font-medium">@Victor-Hadawar</span>
@@ -176,6 +176,14 @@ export default function Confirmation() {
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
+                <p className="text-amber-800 font-medium mb-1">Payment Policy:</p>
+                <ul className="text-amber-700 space-y-1">
+                  <li>• If payment is not received within <strong>24 hours</strong>, we will contact you directly.</li>
+                  <li>• If payment is not received within <strong>48 hours</strong>, your order may be subject to cancellation.</li>
+                </ul>
               </div>
             </div>
           </>

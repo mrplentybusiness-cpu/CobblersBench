@@ -15,7 +15,9 @@ import type {
   ProductOption,
   InsertProductOption,
   ProductVariant,
-  InsertProductVariant
+  InsertProductVariant,
+  Review,
+  InsertReview
 } from "@shared/schema";
 
 const { Pool } = pg;
@@ -71,6 +73,14 @@ export interface IStorage {
   updateProductVariant(id: number, data: Partial<InsertProductVariant>): Promise<ProductVariant | undefined>;
   deleteProductVariant(id: number): Promise<boolean>;
   deleteAllProductVariants(productId: number): Promise<boolean>;
+
+  // Reviews
+  getAllReviews(): Promise<Review[]>;
+  getFeaturedReviews(): Promise<Review[]>;
+  getReviewById(id: number): Promise<Review | undefined>;
+  createReview(review: InsertReview): Promise<Review>;
+  updateReview(id: number, data: Partial<InsertReview>): Promise<Review | undefined>;
+  deleteReview(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -580,6 +590,41 @@ export class DatabaseStorage implements IStorage {
   async deleteAllProductVariants(productId: number): Promise<boolean> {
     await this.getDb().delete(schema.productVariants).where(eq(schema.productVariants.productId, productId));
     return true;
+  }
+
+  // Reviews
+  async getAllReviews(): Promise<Review[]> {
+    return this.getDb().select().from(schema.reviews).orderBy(desc(schema.reviews.createdAt));
+  }
+
+  async getFeaturedReviews(): Promise<Review[]> {
+    return this.getDb().select().from(schema.reviews)
+      .where(eq(schema.reviews.featured, true))
+      .orderBy(desc(schema.reviews.createdAt));
+  }
+
+  async getReviewById(id: number): Promise<Review | undefined> {
+    const results = await this.getDb().select().from(schema.reviews).where(eq(schema.reviews.id, id));
+    return results[0];
+  }
+
+  async createReview(review: InsertReview): Promise<Review> {
+    const results = await this.getDb().insert(schema.reviews).values(review).returning();
+    return results[0];
+  }
+
+  async updateReview(id: number, data: Partial<InsertReview>): Promise<Review | undefined> {
+    const results = await this.getDb()
+      .update(schema.reviews)
+      .set(data)
+      .where(eq(schema.reviews.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteReview(id: number): Promise<boolean> {
+    const result = await this.getDb().delete(schema.reviews).where(eq(schema.reviews.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 }
 

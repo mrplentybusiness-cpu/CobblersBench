@@ -5,10 +5,40 @@ import heroBg from "@assets/stock_images/leather_cobbler_work_faee252e.jpg";
 import customerJohn from "@assets/stock_images/professional_middle-_d3e9214f.jpg";
 import customerSarah from "@assets/stock_images/professional_woman_p_7d6483ac.jpg";
 import customerRobert from "@assets/stock_images/older_man_portrait_h_3fabf455.jpg";
-import { ArrowRight, Star, ShieldCheck, Clock, Quote } from "lucide-react";
+import { ArrowRight, Star, ShieldCheck, Clock, Quote, User } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { useQuery } from "@tanstack/react-query";
-import type { Product } from "@shared/schema";
+import type { Product, Review } from "@shared/schema";
+
+const defaultTestimonials = [
+  {
+    id: 1,
+    customerName: "John M.",
+    customerLocation: "Hyannis, MA",
+    rating: 5,
+    content: "Victor did an incredible job resoling my grandfather's work boots. They look better than new and the craftsmanship is outstanding. Highly recommend!",
+    imageUrl: customerJohn,
+    featured: true,
+  },
+  {
+    id: 2,
+    customerName: "Sarah K.",
+    customerLocation: "Orleans, MA",
+    rating: 5,
+    content: "I brought in my designer handbag for leather conditioning and minor repairs. The attention to detail was amazing. It's like having a brand new bag!",
+    imageUrl: customerSarah,
+    featured: true,
+  },
+  {
+    id: 3,
+    customerName: "Robert L.",
+    customerLocation: "Falmouth, MA",
+    rating: 5,
+    content: "Fast turnaround and fair prices. Victor repaired the zipper on my leather jacket and it works perfectly now. This is my go-to place for all leather repairs.",
+    imageUrl: customerRobert,
+    featured: true,
+  },
+];
 
 export default function Home() {
   const { data: products = [] } = useQuery<Product[]>({
@@ -19,6 +49,17 @@ export default function Home() {
       return response.json();
     },
   });
+
+  const { data: featuredReviews = [] } = useQuery<Review[]>({
+    queryKey: ['/api/reviews/featured'],
+    queryFn: async () => {
+      const response = await fetch('/api/reviews/featured');
+      if (!response.ok) throw new Error('Failed to fetch reviews');
+      return response.json();
+    },
+  });
+
+  const testimonials = featuredReviews.length > 0 ? featuredReviews.slice(0, 3) : defaultTestimonials;
   
   const featuredProducts = products.slice(0, 3);
 
@@ -116,74 +157,34 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-muted/30 rounded-xl p-6 relative" data-testid="testimonial-john">
-              <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
-              <div className="flex items-center gap-4 mb-4">
-                <img 
-                  src={customerJohn} 
-                  alt="John M., satisfied customer from Hyannis" 
-                  className="w-14 h-14 rounded-full object-cover"
-                />
-                <div>
-                  <h4 className="font-semibold">John M.</h4>
-                  <p className="text-sm text-muted-foreground">Hyannis, MA</p>
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.id} className="bg-muted/30 rounded-xl p-6 relative" data-testid={`testimonial-${testimonial.id}`}>
+                <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
+                <div className="flex items-center gap-4 mb-4">
+                  {testimonial.imageUrl ? (
+                    <img 
+                      src={testimonial.imageUrl} 
+                      alt={`${testimonial.customerName}, satisfied customer from ${testimonial.customerLocation}`} 
+                      className="w-14 h-14 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-semibold">{testimonial.customerName}</h4>
+                    <p className="text-sm text-muted-foreground">{testimonial.customerLocation}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-muted-foreground">
-                "Victor did an incredible job resoling my grandfather's work boots. They look better than new and the craftsmanship is outstanding. Highly recommend!"
-              </p>
-            </div>
-
-            <div className="bg-muted/30 rounded-xl p-6 relative" data-testid="testimonial-sarah">
-              <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
-              <div className="flex items-center gap-4 mb-4">
-                <img 
-                  src={customerSarah} 
-                  alt="Sarah K., satisfied customer from Orleans" 
-                  className="w-14 h-14 rounded-full object-cover"
-                />
-                <div>
-                  <h4 className="font-semibold">Sarah K.</h4>
-                  <p className="text-sm text-muted-foreground">Orleans, MA</p>
+                <div className="flex gap-1 mb-3">
+                  {[...Array(testimonial.rating || 5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  ))}
                 </div>
+                <p className="text-muted-foreground">"{testimonial.content}"</p>
               </div>
-              <div className="flex gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-muted-foreground">
-                "I brought in my designer handbag for leather conditioning and minor repairs. The attention to detail was amazing. It's like having a brand new bag!"
-              </p>
-            </div>
-
-            <div className="bg-muted/30 rounded-xl p-6 relative" data-testid="testimonial-robert">
-              <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
-              <div className="flex items-center gap-4 mb-4">
-                <img 
-                  src={customerRobert} 
-                  alt="Robert L., satisfied customer from Falmouth" 
-                  className="w-14 h-14 rounded-full object-cover"
-                />
-                <div>
-                  <h4 className="font-semibold">Robert L.</h4>
-                  <p className="text-sm text-muted-foreground">Falmouth, MA</p>
-                </div>
-              </div>
-              <div className="flex gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-muted-foreground">
-                "Fast turnaround and fair prices. Victor repaired the zipper on my leather jacket and it works perfectly now. This is my go-to place for all leather repairs."
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -196,8 +197,8 @@ export default function Home() {
             Don't throw away quality footwear. Give them a second life with our expert repair services.
           </p>
           <Button size="lg" className="bg-background text-foreground hover:bg-background/90 text-lg px-8" asChild>
-            <Link href="/shop">
-              Start an Order
+            <Link href="/services">
+              Our Services
             </Link>
           </Button>
         </div>
