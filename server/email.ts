@@ -1,13 +1,12 @@
 import { Resend } from 'resend';
-import nodemailer from 'nodemailer';
 
 const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 const DEFAULT_FROM_EMAIL = 'onboarding@resend.dev';
 
-type EmailProvider = 'brevo' | 'resend' | null;
+type EmailProvider = 'brevo_api' | 'resend' | null;
 let cachedProvider: EmailProvider = null;
-let cachedTransporter: nodemailer.Transporter | null = null;
+let cachedBrevoApiKey: string | null = null;
 let cachedResendClient: Resend | null = null;
 let cachedFromEmail: string | null = null;
 
@@ -16,46 +15,16 @@ async function initEmailProvider(): Promise<EmailProvider> {
     return cachedProvider;
   }
 
-  // Primary: Brevo SMTP with SMTP_USER/SMTP_PASS (Railway recommended)
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    console.log('[Email] Using Brevo SMTP');
-    cachedFromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER;
-    cachedTransporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-    cachedProvider = 'brevo';
-    return 'brevo';
+  // Primary: Brevo HTTP API (works on Railway - uses port 443, not blocked)
+  if (process.env.BREVO_API_KEY) {
+    console.log('[Email] Using Brevo HTTP API');
+    cachedFromEmail = process.env.EMAIL_FROM || 'cobblersbenchcapecod@gmail.com';
+    cachedBrevoApiKey = process.env.BREVO_API_KEY;
+    cachedProvider = 'brevo_api';
+    return 'brevo_api';
   }
 
-  // Fallback: Legacy BREVO_SMTP_KEY format
-  if (process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY) {
-    console.log('[Email] Using Brevo SMTP (legacy config)');
-    cachedFromEmail = process.env.EMAIL_FROM || process.env.BREVO_SMTP_LOGIN;
-    cachedTransporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-      auth: {
-        user: process.env.BREVO_SMTP_LOGIN,
-        pass: process.env.BREVO_SMTP_KEY
-      }
-    });
-    cachedProvider = 'brevo';
-    return 'brevo';
-  }
-
+  // Fallback: Resend API
   if (process.env.RESEND_API_KEY) {
     console.log('[Email] Using Resend API');
     cachedFromEmail = process.env.RESEND_FROM_EMAIL || DEFAULT_FROM_EMAIL;
@@ -108,16 +77,33 @@ async function sendEmail(to: string, subject: string, html: string): Promise<{ s
   }
 
   try {
-    if (provider === 'brevo' && cachedTransporter) {
-      await cachedTransporter.sendMail({
-        from: `"${BUSINESS_NAME}" <${cachedFromEmail}>`,
-        to,
-        subject,
-        html
+    // Brevo HTTP API (works on Railway - port 443)
+    if (provider === 'brevo_api' && cachedBrevoApiKey) {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': cachedBrevoApiKey,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: BUSINESS_NAME, email: cachedFromEmail },
+          to: [{ email: to }],
+          subject: subject,
+          htmlContent: html
+        })
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Email] Brevo API error:', response.status, errorText);
+        return { success: false, error: `Brevo API error: ${response.status} - ${errorText}` };
+      }
+
       return { success: true };
     }
 
+    // Resend API
     if (provider === 'resend' && cachedResendClient) {
       const result = await cachedResendClient.emails.send({
         from: `${BUSINESS_NAME} <${cachedFromEmail}>`,
