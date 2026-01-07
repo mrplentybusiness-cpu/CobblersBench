@@ -80,9 +80,9 @@ Service inquiries allow customers to request quotes for repair services (pricing
 Customer reviews/testimonials displayed on the homepage:
 - **Database Storage**: Reviews stored in `reviews` table with customer name, location, rating, content, image URL
 - **Featured Toggle**: Admin can mark reviews as "featured" to show on homepage
-- **Fallback Display**: If no featured reviews exist, shows 3 default testimonials
+- **No Fallback**: If no featured reviews exist, the Customer Stories section is hidden entirely (no fake/placeholder content)
 - **Admin Tab**: "Reviews" tab in admin dashboard to add, edit, delete, and toggle featured status
-- **Homepage Display**: Up to 3 featured reviews shown in Customer Stories section
+- **Homepage Display**: Up to 3 featured reviews shown in Customer Stories section (only when reviews exist)
 
 ### API Structure
 RESTful API endpoints under `/api/`:

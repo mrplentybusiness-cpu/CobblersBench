@@ -2,43 +2,11 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import heroBg from "@assets/stock_images/leather_cobbler_work_faee252e.jpg";
-import customerJohn from "@assets/stock_images/professional_middle-_d3e9214f.jpg";
-import customerSarah from "@assets/stock_images/professional_woman_p_7d6483ac.jpg";
-import customerRobert from "@assets/stock_images/older_man_portrait_h_3fabf455.jpg";
 import { ArrowRight, Star, ShieldCheck, Clock, Quote, User } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { useQuery } from "@tanstack/react-query";
 import type { Product, Review } from "@shared/schema";
 
-const defaultTestimonials = [
-  {
-    id: 1,
-    customerName: "John M.",
-    customerLocation: "Hyannis, MA",
-    rating: 5,
-    content: "Victor did an incredible job resoling my grandfather's work boots. They look better than new and the craftsmanship is outstanding. Highly recommend!",
-    imageUrl: customerJohn,
-    featured: true,
-  },
-  {
-    id: 2,
-    customerName: "Sarah K.",
-    customerLocation: "Orleans, MA",
-    rating: 5,
-    content: "I brought in my designer handbag for leather conditioning and minor repairs. The attention to detail was amazing. It's like having a brand new bag!",
-    imageUrl: customerSarah,
-    featured: true,
-  },
-  {
-    id: 3,
-    customerName: "Robert L.",
-    customerLocation: "Falmouth, MA",
-    rating: 5,
-    content: "Fast turnaround and fair prices. Victor repaired the zipper on my leather jacket and it works perfectly now. This is my go-to place for all leather repairs.",
-    imageUrl: customerRobert,
-    featured: true,
-  },
-];
 
 export default function Home() {
   const { data: products = [] } = useQuery<Product[]>({
@@ -59,7 +27,7 @@ export default function Home() {
     },
   });
 
-  const testimonials = featuredReviews.length > 0 ? featuredReviews.slice(0, 3) : defaultTestimonials;
+  const testimonials = featuredReviews.slice(0, 3);
   
   const featuredProducts = products.slice(0, 3);
 
@@ -148,46 +116,48 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Customer Stories Section */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3 text-foreground">Customer Stories</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">Hear from our satisfied customers about their experience with Cobbler's Bench.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.id} className="bg-muted/30 rounded-xl p-6 relative" data-testid={`testimonial-${testimonial.id}`}>
-                <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
-                <div className="flex items-center gap-4 mb-4">
-                  {testimonial.imageUrl ? (
-                    <img 
-                      src={testimonial.imageUrl} 
-                      alt={`${testimonial.customerName}, satisfied customer from ${testimonial.customerLocation}`} 
-                      className="w-14 h-14 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-6 w-6 text-primary" />
+      {/* Customer Stories Section - only shown when there are featured reviews */}
+      {testimonials.length > 0 && (
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3 text-foreground">Customer Stories</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">Hear from our satisfied customers about their experience with Cobbler's Bench.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial) => (
+                <div key={testimonial.id} className="bg-muted/30 rounded-xl p-6 relative" data-testid={`testimonial-${testimonial.id}`}>
+                  <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
+                  <div className="flex items-center gap-4 mb-4">
+                    {testimonial.imageUrl ? (
+                      <img 
+                        src={testimonial.imageUrl} 
+                        alt={`${testimonial.customerName}, satisfied customer from ${testimonial.customerLocation}`} 
+                        className="w-14 h-14 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-6 w-6 text-primary" />
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-semibold">{testimonial.customerName}</h4>
+                      <p className="text-sm text-muted-foreground">{testimonial.customerLocation}</p>
                     </div>
-                  )}
-                  <div>
-                    <h4 className="font-semibold">{testimonial.customerName}</h4>
-                    <p className="text-sm text-muted-foreground">{testimonial.customerLocation}</p>
                   </div>
+                  <div className="flex gap-1 mb-3">
+                    {[...Array(testimonial.rating || 5)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-muted-foreground">"{testimonial.content}"</p>
                 </div>
-                <div className="flex gap-1 mb-3">
-                  {[...Array(testimonial.rating || 5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-muted-foreground">"{testimonial.content}"</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="py-24 bg-primary text-primary-foreground">
