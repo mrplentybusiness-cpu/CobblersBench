@@ -442,9 +442,9 @@ export default function Checkout() {
               <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
               
               <div className="bg-background p-4 rounded-md border">
-                <h3 className="font-bold mb-2">Manual Payment</h3>
+                <h3 className="font-bold mb-2">Venmo Payment</h3>
                 <p className="text-sm text-muted-foreground">
-                  We accept Venmo and Zelle. No payment is taken now - you'll receive instructions after placing your order.
+                  Pay via Venmo to <strong>@Victor-Hadawar</strong>. No payment is taken now - you'll receive the exact amount and instructions after placing your order.
                 </p>
               </div>
             </div>
