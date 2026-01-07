@@ -15,8 +15,8 @@ function getTransporter() {
   
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
       user: FROM_EMAIL,
       pass: appPassword.replace(/\s/g, '')
