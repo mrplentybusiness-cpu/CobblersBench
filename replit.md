@@ -51,8 +51,16 @@ Products can have options and variants for different sizes, colors, etc:
 - **Variant Fields**: Each variant can have its own price, SKU, inventory, and status
 - **Tables**: product_options (name, values array, position), product_variants (title, optionValues JSON, pricing, inventory)
 
+### Checkout & Delivery Options
+- **Delivery Methods**: Shipping ($8.99, free over $100) or In-Store Pickup (free)
+- **Pickup Location**: 1600 Falmouth Rd, Centerville, MA 02632
+- **Pickup Hours**: Mon-Fri 8AM-4PM, Sat 8AM-12PM
+- **Payment**: Venmo only (@Victor-Hadawar) - manual payment after checkout
+- **Tax**: MA Sales Tax (6.25%) applied to all orders
+
 ### Order Management (Shopify-like)
 The orders table includes comprehensive fields for professional order management:
+- **Delivery Method**: shipping/pickup - stored per order for fulfillment tracking
 - **Payment Status**: unpaid/paid - toggle directly from order list or detail view
 - **Fulfillment Status**: unfulfilled/shipped/delivered/fulfilled
 - **Archive**: Orders can be archived (hidden from main view) without deleting
