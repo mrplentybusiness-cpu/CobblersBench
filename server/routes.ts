@@ -557,6 +557,7 @@ export async function registerRoutes(
       
       // Create new variants with validation
       const createdVariants = [];
+      let totalInventory = 0;
       for (const v of variants) {
         const parseResult = productVariantSchema.safeParse(v);
         if (!parseResult.success) {
@@ -577,6 +578,16 @@ export async function registerRoutes(
           status: validated.status,
         });
         createdVariants.push(variant);
+        
+        // Sum variant inventories
+        if (validated.trackInventory && validated.inventory !== null && validated.inventory !== undefined) {
+          totalInventory += validated.inventory;
+        }
+      }
+      
+      // Update parent product inventory to reflect sum of variant inventories
+      if (createdVariants.length > 0) {
+        await storage.updateProduct(productId, { inventory: totalInventory, trackInventory: true });
       }
       
       res.json(createdVariants);
