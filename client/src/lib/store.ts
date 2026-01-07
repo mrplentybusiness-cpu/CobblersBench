@@ -46,14 +46,18 @@ const MA_TAX_RATE = 0.0625; // Massachusetts state tax 6.25%
 const SHIPPING_RATE = 8.99; // Standard shipping rate
 const FREE_SHIPPING_THRESHOLD = 100; // Free shipping for orders $100+
 
+type DeliveryMethod = "shipping" | "pickup";
+
 interface CartStore {
   items: CartItem[];
   lastOrderId: number | null;
+  deliveryMethod: DeliveryMethod;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: number, variantId?: number) => void;
   updateQuantity: (productId: number, quantity: number, variantId?: number) => void;
   clearCart: () => void;
   setLastOrderId: (orderId: number) => void;
+  setDeliveryMethod: (method: DeliveryMethod) => void;
   subtotal: () => number;
   shipping: () => number;
   tax: () => number;
@@ -65,6 +69,7 @@ export const useCart = create<CartStore>()(
     (set, get) => ({
       items: [],
       lastOrderId: null,
+      deliveryMethod: "shipping" as DeliveryMethod,
       addToCart: (product) => {
         const items = get().items;
         const productWithVariant = product as CartItem;
@@ -105,8 +110,9 @@ export const useCart = create<CartStore>()(
           ),
         });
       },
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], deliveryMethod: "shipping" }),
       setLastOrderId: (orderId) => set({ lastOrderId: orderId }),
+      setDeliveryMethod: (method) => set({ deliveryMethod: method }),
       subtotal: () => {
         return get().items.reduce(
           (sum, item) => sum + parseFloat(item.price.toString()) * item.quantity,
@@ -114,6 +120,7 @@ export const useCart = create<CartStore>()(
         );
       },
       shipping: () => {
+        if (get().deliveryMethod === "pickup") return 0;
         const subtotal = get().subtotal();
         return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_RATE;
       },

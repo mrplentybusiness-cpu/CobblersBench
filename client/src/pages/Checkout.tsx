@@ -9,23 +9,40 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useState, useMemo } from "react";
-import { AlertCircle, Wrench } from "lucide-react";
+import { AlertCircle, Wrench, Truck, Store, MapPin, Clock } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(10, "Phone number is required"),
-  address: z.string().min(5, "Address is required"),
-  city: z.string().min(2, "City is required"),
-  state: z.string().min(2, "State is required"),
-  zipCode: z.string().min(5, "Zip code is required"),
+  deliveryMethod: z.enum(["shipping", "pickup"]),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
   repairDescription: z.string().optional(),
+}).refine((data) => {
+  if (data.deliveryMethod === "shipping") {
+    return data.address && data.address.length >= 5 &&
+           data.city && data.city.length >= 2 &&
+           data.state && data.state.length >= 2 &&
+           data.zipCode && data.zipCode.length >= 5;
+  }
+  return true;
+}, {
+  message: "Shipping address is required for delivery",
+  path: ["address"],
 });
 
+const SHIPPING_RATE = 8.99;
+const FREE_SHIPPING_THRESHOLD = 100;
+
 export default function Checkout() {
-  const { items, subtotal, shipping, tax, total, clearCart, setLastOrderId } = useCart();
+  const { items, subtotal, shipping, tax, total, clearCart, setLastOrderId, deliveryMethod, setDeliveryMethod } = useCart();
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +51,18 @@ export default function Checkout() {
     return items.some(item => item.category === 'repair');
   }, [items]);
 
+  const currentSubtotal = subtotal();
+  const currentShipping = shipping();
+  const currentTax = tax();
+  const currentTotal = total();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: "",
       email: "",
       phone: "",
+      deliveryMethod: deliveryMethod,
       address: "",
       city: "",
       state: "",
@@ -61,18 +84,20 @@ export default function Checkout() {
     setError(null);
 
     try {
+      const isPickup = values.deliveryMethod === "pickup";
       const orderData = {
         order: {
           customerName: values.fullName,
           customerEmail: values.email,
           customerPhone: values.phone,
-          shippingAddress: values.address,
-          shippingCity: values.city,
-          shippingState: values.state,
-          shippingZip: values.zipCode,
+          deliveryMethod: values.deliveryMethod,
+          shippingAddress: isPickup ? "In-Store Pickup" : values.address,
+          shippingCity: isPickup ? "Centerville" : values.city,
+          shippingState: isPickup ? "MA" : values.state,
+          shippingZip: isPickup ? "02632" : values.zipCode,
           repairDescription: hasRepairItems ? values.repairDescription : null,
-          total: total().toFixed(2),
-          shipping: shipping().toFixed(2),
+          total: currentTotal.toFixed(2),
+          shipping: currentShipping.toFixed(2),
         },
         items: items.map(item => ({
           productId: item.id,
@@ -181,67 +206,133 @@ export default function Checkout() {
                 <Separator />
 
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Mailing Address</h2>
-                  <p className="text-sm text-muted-foreground mb-4">Where should we ship your items?</p>
+                  <h2 className="text-xl font-semibold mb-2">Delivery Method</h2>
+                  <p className="text-sm text-muted-foreground mb-4">How would you like to receive your order?</p>
                   
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Street Address *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="123 Main Street" {...field} data-testid="input-address" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>City *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Centerville" {...field} data-testid="input-city" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="state"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>State *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="MA" {...field} data-testid="input-state" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="zipCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>ZIP *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="02632" {...field} data-testid="input-zipCode" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="deliveryMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              setDeliveryMethod(value as "shipping" | "pickup");
+                            }}
+                            defaultValue={field.value}
+                            className="space-y-3"
+                            data-testid="radio-deliveryMethod"
+                          >
+                            <div className={`flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${deliveryMethod === "shipping" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}>
+                              <RadioGroupItem value="shipping" id="shipping" className="mt-1" />
+                              <Label htmlFor="shipping" className="flex-1 cursor-pointer">
+                                <div className="flex items-center gap-2 font-medium">
+                                  <Truck className="h-4 w-4" />
+                                  Ship to Me
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {currentSubtotal >= FREE_SHIPPING_THRESHOLD 
+                                    ? "FREE shipping on orders over $100" 
+                                    : `$${SHIPPING_RATE.toFixed(2)} standard shipping (Free over $100)`}
+                                </p>
+                              </Label>
+                            </div>
+                            
+                            <div className={`flex items-start space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${deliveryMethod === "pickup" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}>
+                              <RadioGroupItem value="pickup" id="pickup" className="mt-1" />
+                              <Label htmlFor="pickup" className="flex-1 cursor-pointer">
+                                <div className="flex items-center gap-2 font-medium">
+                                  <Store className="h-4 w-4" />
+                                  In-Store Pickup (FREE)
+                                </div>
+                                <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>1600 Falmouth Rd, Centerville, MA 02632</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>Mon-Fri 8AM-4PM, Sat 8AM-12PM</span>
+                                  </div>
+                                </div>
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
+
+                {deliveryMethod === "shipping" && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h2 className="text-xl font-semibold mb-2">Shipping Address</h2>
+                      <p className="text-sm text-muted-foreground mb-4">Where should we ship your items?</p>
+                      
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Street Address *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="123 Main Street" {...field} data-testid="input-address" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="city"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>City *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Centerville" {...field} data-testid="input-city" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="state"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>State *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="MA" {...field} data-testid="input-state" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="zipCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>ZIP *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="02632" {...field} data-testid="input-zipCode" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {hasRepairItems && (
                   <>
@@ -293,7 +384,7 @@ export default function Checkout() {
                     disabled={isSubmitting}
                     data-testid="button-submit-order"
                   >
-                    {isSubmitting ? "Placing Order..." : `Place Order ($${total().toFixed(2)})`}
+                    {isSubmitting ? "Placing Order..." : `Place Order ($${currentTotal.toFixed(2)})`}
                   </Button>
                   <p className="text-xs text-muted-foreground mt-4 text-center">
                     By placing this order, you agree to our Terms of Service. 
@@ -324,26 +415,26 @@ export default function Checkout() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Subtotal</span>
-                  <span>${subtotal().toFixed(2)}</span>
+                  <span>${currentSubtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Shipping</span>
-                  <span>{shipping() === 0 ? 'FREE' : `$${shipping().toFixed(2)}`}</span>
+                  <span>Shipping {deliveryMethod === "pickup" && "(Pickup)"}</span>
+                  <span>{currentShipping === 0 ? 'FREE' : `$${currentShipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>MA Sales Tax (6.25%)</span>
-                  <span>${tax().toFixed(2)}</span>
+                  <span>${currentTax.toFixed(2)}</span>
                 </div>
-                {subtotal() < 100 && (
+                {deliveryMethod === "shipping" && currentSubtotal < FREE_SHIPPING_THRESHOLD && (
                   <p className="text-xs text-muted-foreground">
-                    Add ${(100 - subtotal()).toFixed(2)} more for free shipping!
+                    Add ${(FREE_SHIPPING_THRESHOLD - currentSubtotal).toFixed(2)} more for free shipping!
                   </p>
                 )}
               </div>
               <Separator className="my-4" />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>${total().toFixed(2)}</span>
+                <span>${currentTotal.toFixed(2)}</span>
               </div>
             </div>
 
