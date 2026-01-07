@@ -1,23 +1,43 @@
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 const DEFAULT_FROM_EMAIL = 'onboarding@resend.dev';
 
-let cachedCredentials: { apiKey: string; fromEmail: string } | null = null;
+type EmailProvider = 'brevo' | 'resend' | null;
+let cachedProvider: EmailProvider = null;
+let cachedTransporter: nodemailer.Transporter | null = null;
+let cachedResendClient: Resend | null = null;
+let cachedFromEmail: string | null = null;
 
-async function getCredentials(): Promise<{ apiKey: string; fromEmail: string } | null> {
-  if (cachedCredentials) {
-    return cachedCredentials;
+async function initEmailProvider(): Promise<EmailProvider> {
+  if (cachedProvider !== null) {
+    return cachedProvider;
+  }
+
+  if (process.env.BREVO_SMTP_KEY) {
+    console.log('[Email] Using Brevo SMTP');
+    cachedFromEmail = process.env.EMAIL_FROM || 'cobblersbenchcapecod@gmail.com';
+    cachedTransporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_SMTP_LOGIN || 'cobblersbenchcapecod@gmail.com',
+        pass: process.env.BREVO_SMTP_KEY
+      }
+    });
+    cachedProvider = 'brevo';
+    return 'brevo';
   }
 
   if (process.env.RESEND_API_KEY) {
-    console.log('[Email] Using RESEND_API_KEY from environment');
-    cachedCredentials = {
-      apiKey: process.env.RESEND_API_KEY,
-      fromEmail: process.env.RESEND_FROM_EMAIL || DEFAULT_FROM_EMAIL
-    };
-    return cachedCredentials;
+    console.log('[Email] Using Resend API');
+    cachedFromEmail = process.env.RESEND_FROM_EMAIL || DEFAULT_FROM_EMAIL;
+    cachedResendClient = new Resend(process.env.RESEND_API_KEY);
+    cachedProvider = 'resend';
+    return 'resend';
   }
 
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
@@ -27,48 +47,74 @@ async function getCredentials(): Promise<{ apiKey: string; fromEmail: string } |
     ? 'depl ' + process.env.WEB_REPL_RENEWAL 
     : null;
 
-  if (!hostname || !xReplitToken) {
-    console.warn('[Email] No Resend credentials available (set RESEND_API_KEY for Railway)');
-    return null;
+  if (hostname && xReplitToken) {
+    try {
+      const connectionSettings = await fetch(
+        'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
+        {
+          headers: {
+            'Accept': 'application/json',
+            'X_REPLIT_TOKEN': xReplitToken
+          }
+        }
+      ).then(res => res.json()).then(data => data.items?.[0]);
+
+      if (connectionSettings?.settings?.api_key) {
+        console.log('[Email] Using Resend via Replit connector');
+        cachedFromEmail = connectionSettings.settings.from_email || DEFAULT_FROM_EMAIL;
+        cachedResendClient = new Resend(connectionSettings.settings.api_key);
+        cachedProvider = 'resend';
+        return 'resend';
+      }
+    } catch (error) {
+      console.warn('[Email] Failed to fetch Replit connector:', error);
+    }
+  }
+
+  console.warn('[Email] No email provider configured. Set BREVO_SMTP_KEY or RESEND_API_KEY');
+  cachedProvider = null;
+  return null;
+}
+
+async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
+  const provider = await initEmailProvider();
+  
+  if (!provider || !cachedFromEmail) {
+    return { success: false, error: 'No email provider configured' };
   }
 
   try {
-    const connectionSettings = await fetch(
-      'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-      {
-        headers: {
-          'Accept': 'application/json',
-          'X_REPLIT_TOKEN': xReplitToken
-        }
-      }
-    ).then(res => res.json()).then(data => data.items?.[0]);
-
-    if (!connectionSettings || !connectionSettings.settings.api_key) {
-      console.warn('[Email] Resend not connected via Replit');
-      return null;
+    if (provider === 'brevo' && cachedTransporter) {
+      await cachedTransporter.sendMail({
+        from: `"${BUSINESS_NAME}" <${cachedFromEmail}>`,
+        to,
+        subject,
+        html
+      });
+      return { success: true };
     }
 
-    console.log('[Email] Using Resend credentials from Replit connector');
-    cachedCredentials = {
-      apiKey: connectionSettings.settings.api_key,
-      fromEmail: connectionSettings.settings.from_email || DEFAULT_FROM_EMAIL
-    };
-    return cachedCredentials;
+    if (provider === 'resend' && cachedResendClient) {
+      const result = await cachedResendClient.emails.send({
+        from: `${BUSINESS_NAME} <${cachedFromEmail}>`,
+        to,
+        subject,
+        html
+      });
+      if (result.error) {
+        return { success: false, error: result.error.message };
+      }
+      return { success: true };
+    }
+
+    return { success: false, error: 'Provider not initialized' };
   } catch (error) {
-    console.warn('[Email] Failed to fetch Replit connector credentials:', error);
-    return null;
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
-async function getResendClient(): Promise<{ client: Resend; fromEmail: string } | null> {
-  const credentials = await getCredentials();
-  if (!credentials) {
-    return null;
-  }
-  return {
-    client: new Resend(credentials.apiKey),
-    fromEmail: credentials.fromEmail
-  };
+function getFromEmail(): string {
+  return cachedFromEmail || 'cobblersbenchcapecod@gmail.com';
 }
 
 function getBaseUrl(): string {
@@ -106,12 +152,7 @@ export interface OrderDetails {
 }
 
 export async function sendCustomerOrderConfirmation(order: OrderDetails): Promise<void> {
-  const resendClient = await getResendClient();
-  if (!resendClient) {
-    console.warn(`[Email] Skipping customer confirmation for order #${order.orderId} - no email credentials`);
-    return;
-  }
-  const { client, fromEmail } = resendClient;
+  const fromEmail = getFromEmail();
   
   const itemsHtml = order.items.map(item => `
     <tr>
@@ -198,14 +239,13 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
     </html>
   `;
   
-  const result = await client.emails.send({
-    from: `${BUSINESS_NAME} <${fromEmail}>`,
-    to: order.customerEmail,
-    subject: `Order Confirmation #${order.orderId} - ${BUSINESS_NAME}`,
-    html: htmlBody
-  });
+  const result = await sendEmail(
+    order.customerEmail,
+    `Order Confirmation #${order.orderId} - ${BUSINESS_NAME}`,
+    htmlBody
+  );
   
-  if (result.error) {
+  if (!result.success) {
     console.error(`[Email] Customer confirmation failed for order #${order.orderId}:`, result.error);
   } else {
     console.log(`[Email] Customer confirmation sent for order #${order.orderId} to ${order.customerEmail}`);
@@ -213,12 +253,7 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
 }
 
 export async function sendAdminOrderNotification(order: OrderDetails): Promise<void> {
-  const resendClient = await getResendClient();
-  if (!resendClient) {
-    console.warn(`[Email] Skipping admin notification for order #${order.orderId} - no email credentials`);
-    return;
-  }
-  const { client, fromEmail } = resendClient;
+  const adminEmail = process.env.ADMIN_EMAIL || 'cobblersbenchcapecod@gmail.com';
   
   const itemsHtml = order.items.map(item => `
     <tr>
@@ -291,17 +326,16 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
     </html>
   `;
   
-  const result = await client.emails.send({
-    from: `${BUSINESS_NAME} <${fromEmail}>`,
-    to: fromEmail,
-    subject: `[NEW ORDER] #${order.orderId} - ${order.customerName} - $${order.total}`,
-    html: htmlBody
-  });
+  const result = await sendEmail(
+    adminEmail,
+    `[NEW ORDER] #${order.orderId} - ${order.customerName} - $${order.total}`,
+    htmlBody
+  );
   
-  if (result.error) {
+  if (!result.success) {
     console.error(`[Email] Admin notification failed for order #${order.orderId}:`, result.error);
   } else {
-    console.log(`[Email] Admin notification sent for order #${order.orderId} to ${fromEmail}`);
+    console.log(`[Email] Admin notification sent for order #${order.orderId} to ${adminEmail}`);
   }
 }
 
@@ -312,12 +346,7 @@ export async function sendOrderStatusUpdate(
   status: string,
   trackingNumber?: string
 ): Promise<void> {
-  const resendClient = await getResendClient();
-  if (!resendClient) {
-    console.warn(`[Email] Skipping status update for order #${orderId} - no email credentials`);
-    return;
-  }
-  const { client, fromEmail } = resendClient;
+  const fromEmail = getFromEmail();
   
   let statusMessage = '';
   switch (status) {
@@ -379,14 +408,13 @@ export async function sendOrderStatusUpdate(
     </html>
   `;
   
-  const result = await client.emails.send({
-    from: `${BUSINESS_NAME} <${fromEmail}>`,
-    to: customerEmail,
-    subject: `Order #${orderId} Update - ${BUSINESS_NAME}`,
-    html: htmlBody
-  });
+  const result = await sendEmail(
+    customerEmail,
+    `Order #${orderId} Update - ${BUSINESS_NAME}`,
+    htmlBody
+  );
   
-  if (result.error) {
+  if (!result.success) {
     console.error(`[Email] Status update failed for order #${orderId}:`, result.error);
   } else {
     console.log(`[Email] Status update sent for order #${orderId} to ${customerEmail}`);
