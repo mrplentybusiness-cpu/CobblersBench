@@ -4,13 +4,7 @@ const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 
-let connectionSettings: any;
-
 async function getAccessToken() {
-  if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
-    return connectionSettings.settings.access_token;
-  }
-  
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY 
     ? 'repl ' + process.env.REPL_IDENTITY 
@@ -22,7 +16,7 @@ async function getAccessToken() {
     throw new Error('Gmail connection not available (missing Replit environment)');
   }
 
-  connectionSettings = await fetch(
+  const response = await fetch(
     'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=google-mail',
     {
       headers: {
@@ -30,13 +24,18 @@ async function getAccessToken() {
         'X_REPLIT_TOKEN': xReplitToken
       }
     }
-  ).then(res => res.json()).then(data => data.items?.[0]);
+  );
+  
+  const data = await response.json();
+  const connectionSettings = data.items?.[0];
 
   const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
 
   if (!connectionSettings || !accessToken) {
+    console.log('[Email] Gmail connection response:', JSON.stringify(data, null, 2));
     throw new Error('Gmail not connected');
   }
+  
   return accessToken;
 }
 
