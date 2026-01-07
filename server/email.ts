@@ -198,12 +198,18 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
     </html>
   `;
   
-  await client.emails.send({
+  const result = await client.emails.send({
     from: `${BUSINESS_NAME} <${fromEmail}>`,
     to: order.customerEmail,
     subject: `Order Confirmation #${order.orderId} - ${BUSINESS_NAME}`,
     html: htmlBody
   });
+  
+  if (result.error) {
+    console.error(`[Email] Customer confirmation failed for order #${order.orderId}:`, result.error);
+  } else {
+    console.log(`[Email] Customer confirmation sent for order #${order.orderId} to ${order.customerEmail}`);
+  }
 }
 
 export async function sendAdminOrderNotification(order: OrderDetails): Promise<void> {
@@ -285,12 +291,18 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
     </html>
   `;
   
-  await client.emails.send({
+  const result = await client.emails.send({
     from: `${BUSINESS_NAME} <${fromEmail}>`,
     to: fromEmail,
     subject: `[NEW ORDER] #${order.orderId} - ${order.customerName} - $${order.total}`,
     html: htmlBody
   });
+  
+  if (result.error) {
+    console.error(`[Email] Admin notification failed for order #${order.orderId}:`, result.error);
+  } else {
+    console.log(`[Email] Admin notification sent for order #${order.orderId} to ${fromEmail}`);
+  }
 }
 
 export async function sendOrderStatusUpdate(
@@ -367,10 +379,16 @@ export async function sendOrderStatusUpdate(
     </html>
   `;
   
-  await client.emails.send({
+  const result = await client.emails.send({
     from: `${BUSINESS_NAME} <${fromEmail}>`,
     to: customerEmail,
     subject: `Order #${orderId} Update - ${BUSINESS_NAME}`,
     html: htmlBody
   });
+  
+  if (result.error) {
+    console.error(`[Email] Status update failed for order #${orderId}:`, result.error);
+  } else {
+    console.log(`[Email] Status update sent for order #${orderId} to ${customerEmail}`);
+  }
 }
