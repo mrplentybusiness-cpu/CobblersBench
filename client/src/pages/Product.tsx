@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, Minus, Plus, ShoppingBag, ImageOff, Truck, Shield, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
-import type { Product, ProductOption, ProductVariant } from "@shared/schema";
+import type { Product, ProductOption, ProductVariant, ProductImage } from "@shared/schema";
 import {
   Select,
   SelectContent,
@@ -30,6 +30,7 @@ export default function ProductPage() {
   const productId = params?.id ? parseInt(params.id) : null;
   const [quantity, setQuantity] = useState(1);
   const [imageError, setImageError] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const addToCart = useCart((state) => state.addToCart);
   const { toast } = useToast();
@@ -66,6 +67,30 @@ export default function ProductPage() {
     },
     enabled: productId !== null && productId > 0,
   });
+
+  const { data: productImages = [] } = useQuery<ProductImage[]>({
+    queryKey: ['/api/products', productId, 'images'],
+    queryFn: async () => {
+      if (!productId) return [];
+      const response = await fetch(`/api/products/${productId}/images`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: productId !== null && productId > 0,
+  });
+
+  const allImages = useMemo(() => {
+    const images: { url: string; alt: string }[] = [];
+    if (product?.imageUrl) {
+      images.push({ url: product.imageUrl, alt: product.name || 'Product image' });
+    }
+    productImages.forEach(img => {
+      if (img.url && img.url !== product?.imageUrl) {
+        images.push({ url: img.url, alt: img.altText || product?.name || 'Product image' });
+      }
+    });
+    return images;
+  }, [product, productImages]);
 
   const hasVariants = options.length > 0 && variants.length > 0;
 
@@ -211,14 +236,37 @@ export default function ProductPage() {
                 </div>
               ) : (
                 <img
-                  src={getImageUrl(selectedVariant?.imageUrl || product.imageUrl)}
-                  alt={product.name}
+                  src={getImageUrl(allImages[selectedImageIndex]?.url || selectedVariant?.imageUrl || product.imageUrl)}
+                  alt={allImages[selectedImageIndex]?.alt || product.name}
                   className="h-full w-full object-cover object-center"
                   onError={() => setImageError(true)}
                   data-testid="product-detail-image"
                 />
               )}
             </div>
+            {allImages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {allImages.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setSelectedImageIndex(index);
+                      setImageError(false);
+                    }}
+                    className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
+                      selectedImageIndex === index ? 'border-primary' : 'border-transparent hover:border-muted-foreground/50'
+                    }`}
+                    data-testid={`product-thumbnail-${index}`}
+                  >
+                    <img
+                      src={getImageUrl(img.url)}
+                      alt={img.alt}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col">
