@@ -16,15 +16,33 @@ async function initEmailProvider(): Promise<EmailProvider> {
     return cachedProvider;
   }
 
-  if (process.env.BREVO_SMTP_KEY) {
+  // Primary: Brevo SMTP with SMTP_USER/SMTP_PASS (Railway recommended)
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     console.log('[Email] Using Brevo SMTP');
-    cachedFromEmail = process.env.EMAIL_FROM || 'cobblersbenchcapecod@gmail.com';
+    cachedFromEmail = process.env.EMAIL_FROM || process.env.SMTP_USER;
     cachedTransporter = nodemailer.createTransport({
       host: 'smtp-relay.brevo.com',
       port: 587,
       secure: false,
       auth: {
-        user: process.env.BREVO_SMTP_LOGIN || 'cobblersbenchcapecod@gmail.com',
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+    cachedProvider = 'brevo';
+    return 'brevo';
+  }
+
+  // Fallback: Legacy BREVO_SMTP_KEY format
+  if (process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY) {
+    console.log('[Email] Using Brevo SMTP (legacy config)');
+    cachedFromEmail = process.env.EMAIL_FROM || process.env.BREVO_SMTP_LOGIN;
+    cachedTransporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_SMTP_LOGIN,
         pass: process.env.BREVO_SMTP_KEY
       }
     });
