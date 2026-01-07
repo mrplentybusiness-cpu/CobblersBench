@@ -162,18 +162,18 @@ export async function registerRoutes(
         name: req.body.name,
         description: req.body.description,
         price: req.body.price,
-        compareAtPrice: req.body.compareAtPrice ?? null,
-        cost: req.body.cost ?? null,
+        compareAtPrice: req.body.compareAtPrice || null,
+        cost: req.body.cost || null,
         imageUrl: req.body.imageUrl,
         category: req.body.category,
-        productType: req.body.productType ?? null,
-        brand: req.body.brand ?? null,
-        color: req.body.color ?? null,
-        status: req.body.status ?? "active",
+        productType: req.body.productType || null,
+        brand: req.body.brand || null,
+        color: req.body.color || null,
+        status: req.body.status || "active",
         trackInventory: req.body.trackInventory ?? false,
         inventory: req.body.inventory ?? null,
-        sku: req.body.sku ?? null,
-        tags: req.body.tags ?? null,
+        sku: req.body.sku || null,
+        tags: req.body.tags || null,
       };
       
       if (!productData.name || !productData.description || !productData.price || !productData.imageUrl || !productData.category) {
@@ -198,18 +198,18 @@ export async function registerRoutes(
       if (req.body.name !== undefined) productData.name = req.body.name;
       if (req.body.description !== undefined) productData.description = req.body.description;
       if (req.body.price !== undefined) productData.price = req.body.price;
-      if (req.body.compareAtPrice !== undefined) productData.compareAtPrice = req.body.compareAtPrice;
-      if (req.body.cost !== undefined) productData.cost = req.body.cost;
+      if (req.body.compareAtPrice !== undefined) productData.compareAtPrice = req.body.compareAtPrice || null;
+      if (req.body.cost !== undefined) productData.cost = req.body.cost || null;
       if (req.body.imageUrl !== undefined) productData.imageUrl = req.body.imageUrl;
       if (req.body.category !== undefined) productData.category = req.body.category;
-      if (req.body.productType !== undefined) productData.productType = req.body.productType;
-      if (req.body.brand !== undefined) productData.brand = req.body.brand;
-      if (req.body.color !== undefined) productData.color = req.body.color;
+      if (req.body.productType !== undefined) productData.productType = req.body.productType || null;
+      if (req.body.brand !== undefined) productData.brand = req.body.brand || null;
+      if (req.body.color !== undefined) productData.color = req.body.color || null;
       if (req.body.status !== undefined) productData.status = req.body.status;
       if (req.body.trackInventory !== undefined) productData.trackInventory = req.body.trackInventory;
       if (req.body.inventory !== undefined) productData.inventory = req.body.inventory;
-      if (req.body.sku !== undefined) productData.sku = req.body.sku;
-      if (req.body.tags !== undefined) productData.tags = req.body.tags;
+      if (req.body.sku !== undefined) productData.sku = req.body.sku || null;
+      if (req.body.tags !== undefined) productData.tags = req.body.tags || null;
       
       const product = await storage.updateProduct(id, productData);
       
@@ -472,13 +472,13 @@ export async function registerRoutes(
         productId,
         title: v.title,
         optionValues: JSON.stringify(v.optionValues),
-        sku: v.sku ?? null,
+        sku: v.sku || null,
         price: v.price,
-        compareAtPrice: v.compareAtPrice ?? null,
-        cost: v.cost ?? null,
+        compareAtPrice: v.compareAtPrice || null,
+        cost: v.cost || null,
         trackInventory: v.trackInventory,
         inventory: v.inventory ?? null,
-        imageUrl: v.imageUrl ?? null,
+        imageUrl: v.imageUrl || null,
         status: v.status,
       });
       res.status(201).json(variant);
@@ -503,13 +503,13 @@ export async function registerRoutes(
       const updateData: Record<string, any> = {};
       if (data.title !== undefined) updateData.title = data.title;
       if (data.optionValues !== undefined) updateData.optionValues = JSON.stringify(data.optionValues);
-      if (data.sku !== undefined) updateData.sku = data.sku;
+      if (data.sku !== undefined) updateData.sku = data.sku || null;
       if (data.price !== undefined) updateData.price = data.price;
-      if (data.compareAtPrice !== undefined) updateData.compareAtPrice = data.compareAtPrice;
-      if (data.cost !== undefined) updateData.cost = data.cost;
+      if (data.compareAtPrice !== undefined) updateData.compareAtPrice = data.compareAtPrice || null;
+      if (data.cost !== undefined) updateData.cost = data.cost || null;
       if (data.trackInventory !== undefined) updateData.trackInventory = data.trackInventory;
       if (data.inventory !== undefined) updateData.inventory = data.inventory;
-      if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+      if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
       if (data.status !== undefined) updateData.status = data.status;
       
       const variant = await storage.updateProductVariant(id, updateData);
@@ -567,13 +567,13 @@ export async function registerRoutes(
           productId,
           title: validated.title,
           optionValues: JSON.stringify(validated.optionValues),
-          sku: validated.sku ?? null,
+          sku: validated.sku || null,
           price: validated.price,
-          compareAtPrice: validated.compareAtPrice ?? null,
-          cost: validated.cost ?? null,
+          compareAtPrice: validated.compareAtPrice || null,
+          cost: validated.cost || null,
           trackInventory: validated.trackInventory,
           inventory: validated.inventory ?? null,
-          imageUrl: validated.imageUrl ?? null,
+          imageUrl: validated.imageUrl || null,
           status: validated.status,
         });
         createdVariants.push(variant);
