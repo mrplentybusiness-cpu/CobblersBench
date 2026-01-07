@@ -1,0 +1,23 @@
+Starting Container
+npm warn config production Use `--omit=dev` instead.
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+[Storage] Using Cloudflare R2 for file uploads
+(node:25) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+6:03:57 PM [express] serving on port 8080
+6:03:57 PM [express] Server initialization complete
+[DB] Connecting to database, URL starts with: postgresql://postgres:AEShbwAA...
+[DB] Running automatic migrations...
+6:04:11 PM [express] GET /api/reviews/featured 200 in 99ms :: []
+[DB] Migrations completed successfully
+6:04:12 PM [express] GET /api/products/active 200 in 12ms :: [{"id":1,"name":"Athletic Shoe Lace","description":"Athletic shoe laces available in various styles, sizes and colors","price":"3.95","compareAtPrice":null,"cost":null,"imageUrl":"https://pub-f6599d1fd6174621afcfcb9c0e548516.r2.dev/uploads/48b5de42-1500-4af1-b7d2-b798c1a3961c","category":"Accessories","productType":"Shoe Laces","brand":"Bulldog","color":"Black, Brown, White, Beige/Mocha, Grey, Navy, Red","status":"active","trackInventory":true,"inventory":9,"sku":null,"tags":"Laces, Athletic, Round, Flat","createdAt":"2026-01-06T23:29:23.537Z"}]
+6:04:12 PM [express] GET /api/reviews/featured 200 in 10ms :: []
+6:04:28 PM [express] POST /api/orders 201 in 157ms :: {"id":6,"customerName":"Curtis Rose","customerEmail":"plentysneakers@gmail.com","customerPhone":"3233335326","deliveryMethod":"pickup","shippingAddress":"In-Store Pickup","shippingCity":"Centerville","shippingState":"MA","shippingZip":"02632","repairDescription":null,"total":"4.20","shipping":"0.00","status":"Pending","paymentStatus":"unpaid","fulfillmentStatus":"unfulfilled","archived":false,"adminNotes":null,"trackingNumber":null,"createdAt":"2026-01-07T18:04:28.473Z","updatedAt":"2026-01-07T18:04:28.473Z"}
+[Email] Using Brevo HTTP API
+6:04:28 PM [express] GET /api/orders/6 200 in 13ms :: {"id":6,"customerName":"Curtis Rose","customerEmail":"plentysneakers@gmail.com","customerPhone":"3233335326","deliveryMethod":"pickup","shippingAddress":"In-Store Pickup","shippingCity":"Centerville","shippingState":"MA","shippingZip":"02632","repairDescription":null,"total":"4.20","shipping":"0.00","status":"Pending","paymentStatus":"unpaid","fulfillmentStatus":"unfulfilled","archived":false,"adminNotes":null,"trackingNumber":null,"createdAt":"2026-01-07T18:04:28.473Z","updatedAt":"2026-01-07T18:04:28.473Z","items":[{"id":6,"orderId":6,"productId":1,"variantId":null,"productName":"Athletic Shoe Lace","productPrice":"3.95","quantity":1}]}
+[Email] Brevo API error: 401 {"message":"Key not found","code":"unauthorized"}
+[Email] Admin notification failed for order #6: Brevo API error: 401 - {"message":"Key not found","code":"unauthorized"}
+[Email] Brevo API error: 401 {"message":"Key not found","code":"unauthorized"}
+[Email] Customer confirmation failed for order #6: Brevo API error: 401 - {"message":"Key not found","code":"unauthorized"}
+Order #6 - Email notifications sent
