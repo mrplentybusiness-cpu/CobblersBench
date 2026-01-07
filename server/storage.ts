@@ -74,11 +74,15 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  private db: ReturnType<typeof drizzle>;
-  private pool: InstanceType<typeof Pool>;
-  private migrationComplete: Promise<void>;
+  private db: ReturnType<typeof drizzle> | null = null;
+  private pool: InstanceType<typeof Pool> | null = null;
+  private migrationComplete: Promise<void> | null = null;
+  private initialized = false;
 
-  constructor() {
+  private ensureInitialized(): void {
+    if (this.initialized) return;
+    this.initialized = true; // Set flag first to prevent recursion
+    
     const dbUrl = process.env.DATABASE_URL;
     console.log(`[DB] Connecting to database, URL starts with: ${dbUrl?.substring(0, 30)}...`);
     this.pool = new Pool({
@@ -87,10 +91,25 @@ export class DatabaseStorage implements IStorage {
     this.db = drizzle(this.pool, { schema });
     this.migrationComplete = this.runMigrations();
   }
+  
+  private getDb(): ReturnType<typeof drizzle> {
+    this.ensureInitialized();
+    return this.db!;
+  }
+  
+  private getPool(): InstanceType<typeof Pool> {
+    this.ensureInitialized();
+    return this.pool!;
+  }
+  
+  private getMigrationComplete(): Promise<void> {
+    this.ensureInitialized();
+    return this.migrationComplete!;
+  }
 
   private async runMigrations(): Promise<void> {
     console.log('[DB] Running automatic migrations...');
-    const client = await this.pool.connect();
+    const client = await this.pool!.connect();
     try {
       await client.query(`
         CREATE TABLE IF NOT EXISTS products (
@@ -226,32 +245,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async waitForMigrations(): Promise<void> {
-    await this.migrationComplete;
+    await this.getMigrationComplete();
   }
 
   // Products
   async getAllProducts(): Promise<Product[]> {
-    return this.db.select().from(schema.products).orderBy(desc(schema.products.createdAt));
+    return this.getDb().select().from(schema.products).orderBy(desc(schema.products.createdAt));
   }
 
   async getActiveProducts(): Promise<Product[]> {
-    return this.db.select().from(schema.products)
+    return this.getDb().select().from(schema.products)
       .where(eq(schema.products.status, "active"))
       .orderBy(desc(schema.products.createdAt));
   }
 
   async getProductById(id: number): Promise<Product | undefined> {
-    const results = await this.db.select().from(schema.products).where(eq(schema.products.id, id));
+    const results = await this.getDb().select().from(schema.products).where(eq(schema.products.id, id));
     return results[0];
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const results = await this.db.insert(schema.products).values(product).returning();
+    const results = await this.getDb().insert(schema.products).values(product).returning();
     return results[0];
   }
 
   async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.products)
       .set(product)
       .where(eq(schema.products.id, id))
@@ -260,26 +279,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduct(id: number): Promise<boolean> {
-    const result = await this.db.delete(schema.products).where(eq(schema.products.id, id));
+    const result = await this.getDb().delete(schema.products).where(eq(schema.products.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
   // Product Images
   async getProductImages(productId: number): Promise<ProductImage[]> {
-    return this.db.select().from(schema.productImages)
+    return this.getDb().select().from(schema.productImages)
       .where(eq(schema.productImages.productId, productId))
       .orderBy(schema.productImages.sortOrder);
   }
 
   async addProductImage(productId: number, url: string, altText?: string, sortOrder?: number): Promise<ProductImage> {
-    const maxOrder = await this.db.select().from(schema.productImages)
+    const maxOrder = await this.getDb().select().from(schema.productImages)
       .where(eq(schema.productImages.productId, productId))
       .orderBy(desc(schema.productImages.sortOrder))
       .limit(1);
     
     const newSortOrder = sortOrder ?? (maxOrder[0]?.sortOrder ?? -1) + 1;
     
-    const results = await this.db.insert(schema.productImages).values({
+    const results = await this.getDb().insert(schema.productImages).values({
       productId,
       url,
       altText,
@@ -289,7 +308,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProductImage(id: number, data: { url?: string; altText?: string; sortOrder?: number }): Promise<ProductImage | undefined> {
-    const results = await this.db.update(schema.productImages)
+    const results = await this.getDb().update(schema.productImages)
       .set(data)
       .where(eq(schema.productImages.id, id))
       .returning();
@@ -297,13 +316,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProductImage(id: number): Promise<boolean> {
-    const result = await this.db.delete(schema.productImages).where(eq(schema.productImages.id, id));
+    const result = await this.getDb().delete(schema.productImages).where(eq(schema.productImages.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async reorderProductImages(productId: number, imageIds: number[]): Promise<void> {
     for (let i = 0; i < imageIds.length; i++) {
-      await this.db.update(schema.productImages)
+      await this.getDb().update(schema.productImages)
         .set({ sortOrder: i })
         .where(eq(schema.productImages.id, imageIds[i]));
     }
@@ -311,7 +330,7 @@ export class DatabaseStorage implements IStorage {
 
   // Orders
   async getAllOrders(includeArchived: boolean = false): Promise<(Order & { items: OrderItem[] })[]> {
-    let query = this.db.select().from(schema.orders);
+    let query = this.getDb().select().from(schema.orders);
     
     if (!includeArchived) {
       query = query.where(eq(schema.orders.archived, false)) as typeof query;
@@ -333,7 +352,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrderById(id: number): Promise<(Order & { items: OrderItem[] }) | undefined> {
-    const results = await this.db.select().from(schema.orders).where(eq(schema.orders.id, id));
+    const results = await this.getDb().select().from(schema.orders).where(eq(schema.orders.id, id));
     if (results.length === 0) return undefined;
 
     const items = await this.db
@@ -348,7 +367,7 @@ export class DatabaseStorage implements IStorage {
     order: InsertOrder, 
     items: Omit<InsertOrderItem, "orderId">[]
   ): Promise<Order> {
-    const orderResults = await this.db.insert(schema.orders).values(order).returning();
+    const orderResults = await this.getDb().insert(schema.orders).values(order).returning();
     const createdOrder = orderResults[0];
 
     const orderItemsWithId = items.map(item => ({
@@ -356,13 +375,13 @@ export class DatabaseStorage implements IStorage {
       orderId: createdOrder.id,
     }));
 
-    await this.db.insert(schema.orderItems).values(orderItemsWithId);
+    await this.getDb().insert(schema.orderItems).values(orderItemsWithId);
 
     return createdOrder;
   }
 
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return this.db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, orderId));
+    return this.getDb().select().from(schema.orderItems).where(eq(schema.orderItems.orderId, orderId));
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
@@ -429,16 +448,16 @@ export class DatabaseStorage implements IStorage {
 
   // Service Inquiries
   async getAllServiceInquiries(): Promise<ServiceInquiry[]> {
-    return this.db.select().from(schema.serviceInquiries).orderBy(desc(schema.serviceInquiries.createdAt));
+    return this.getDb().select().from(schema.serviceInquiries).orderBy(desc(schema.serviceInquiries.createdAt));
   }
 
   async getServiceInquiryById(id: number): Promise<ServiceInquiry | undefined> {
-    const results = await this.db.select().from(schema.serviceInquiries).where(eq(schema.serviceInquiries.id, id));
+    const results = await this.getDb().select().from(schema.serviceInquiries).where(eq(schema.serviceInquiries.id, id));
     return results[0];
   }
 
   async createServiceInquiry(inquiry: InsertServiceInquiry): Promise<ServiceInquiry> {
-    const results = await this.db.insert(schema.serviceInquiries).values(inquiry).returning();
+    const results = await this.getDb().insert(schema.serviceInquiries).values(inquiry).returning();
     return results[0];
   }
 
@@ -470,13 +489,13 @@ export class DatabaseStorage implements IStorage {
 
   // Product Options
   async getProductOptions(productId: number): Promise<ProductOption[]> {
-    return this.db.select().from(schema.productOptions)
+    return this.getDb().select().from(schema.productOptions)
       .where(eq(schema.productOptions.productId, productId))
       .orderBy(schema.productOptions.position);
   }
 
   async createProductOption(option: InsertProductOption): Promise<ProductOption> {
-    const results = await this.db.insert(schema.productOptions).values(option).returning();
+    const results = await this.getDb().insert(schema.productOptions).values(option).returning();
     return results[0];
   }
 
@@ -490,12 +509,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProductOption(id: number): Promise<boolean> {
-    const result = await this.db.delete(schema.productOptions).where(eq(schema.productOptions.id, id));
+    const result = await this.getDb().delete(schema.productOptions).where(eq(schema.productOptions.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async deleteAllProductOptions(productId: number): Promise<boolean> {
-    await this.db.delete(schema.productOptions).where(eq(schema.productOptions.productId, productId));
+    await this.getDb().delete(schema.productOptions).where(eq(schema.productOptions.productId, productId));
     return true;
   }
 
@@ -516,14 +535,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProductVariants(productId: number): Promise<ProductVariant[]> {
-    const variants = await this.db.select().from(schema.productVariants)
+    const variants = await this.getDb().select().from(schema.productVariants)
       .where(eq(schema.productVariants.productId, productId))
       .orderBy(schema.productVariants.createdAt);
     return variants.map(v => this.parseVariantForApi(v));
   }
 
   async getProductVariantById(id: number): Promise<ProductVariant | undefined> {
-    const results = await this.db.select().from(schema.productVariants).where(eq(schema.productVariants.id, id));
+    const results = await this.getDb().select().from(schema.productVariants).where(eq(schema.productVariants.id, id));
     return results[0] ? this.parseVariantForApi(results[0]) : undefined;
   }
 
@@ -534,7 +553,7 @@ export class DatabaseStorage implements IStorage {
         ? variant.optionValues 
         : JSON.stringify(variant.optionValues || {}),
     };
-    const results = await this.db.insert(schema.productVariants).values(normalizedVariant).returning();
+    const results = await this.getDb().insert(schema.productVariants).values(normalizedVariant).returning();
     return this.parseVariantForApi(results[0]);
   }
 
@@ -554,12 +573,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProductVariant(id: number): Promise<boolean> {
-    const result = await this.db.delete(schema.productVariants).where(eq(schema.productVariants.id, id));
+    const result = await this.getDb().delete(schema.productVariants).where(eq(schema.productVariants.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async deleteAllProductVariants(productId: number): Promise<boolean> {
-    await this.db.delete(schema.productVariants).where(eq(schema.productVariants.productId, productId));
+    await this.getDb().delete(schema.productVariants).where(eq(schema.productVariants.productId, productId));
     return true;
   }
 }
