@@ -1,27 +1,47 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 
-function getTransporter() {
-  const appPassword = process.env.GMAIL_APP_PASSWORD;
-  
-  if (!appPassword) {
-    throw new Error('GMAIL_APP_PASSWORD not configured');
+let connectionSettings: any;
+
+async function getCredentials() {
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY 
+    ? 'repl ' + process.env.REPL_IDENTITY 
+    : process.env.WEB_REPL_RENEWAL 
+    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+    : null;
+
+  if (!xReplitToken) {
+    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
   }
-  
-  console.log('[Email] Using app password length:', appPassword.length);
-  
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: FROM_EMAIL,
-      pass: appPassword.replace(/\s/g, '')
+
+  connectionSettings = await fetch(
+    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
+    {
+      headers: {
+        'Accept': 'application/json',
+        'X_REPLIT_TOKEN': xReplitToken
+      }
     }
-  });
+  ).then(res => res.json()).then(data => data.items?.[0]);
+
+  if (!connectionSettings || (!connectionSettings.settings.api_key)) {
+    throw new Error('Resend not connected');
+  }
+  return {
+    apiKey: connectionSettings.settings.api_key, 
+    fromEmail: connectionSettings.settings.from_email
+  };
+}
+
+async function getResendClient() {
+  const { apiKey, fromEmail } = await getCredentials();
+  return {
+    client: new Resend(apiKey),
+    fromEmail
+  };
 }
 
 function getBaseUrl(): string {
@@ -59,7 +79,7 @@ export interface OrderDetails {
 }
 
 export async function sendCustomerOrderConfirmation(order: OrderDetails): Promise<void> {
-  const transporter = getTransporter();
+  const { client, fromEmail } = await getResendClient();
   
   const itemsHtml = order.items.map(item => `
     <tr>
@@ -135,7 +155,7 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
             Include your order number <strong>#${order.orderId}</strong> in the payment note.
           </p>
           
-          <p>If you have any questions, please reply to this email or contact us at ${FROM_EMAIL}.</p>
+          <p>If you have any questions, please reply to this email or contact us at ${fromEmail}.</p>
         </div>
         <div class="footer">
           <p>&copy; ${new Date().getFullYear()} ${BUSINESS_NAME}. All rights reserved.</p>
@@ -146,8 +166,8 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
     </html>
   `;
   
-  await transporter.sendMail({
-    from: `"${BUSINESS_NAME}" <${FROM_EMAIL}>`,
+  await client.emails.send({
+    from: `${BUSINESS_NAME} <${fromEmail}>`,
     to: order.customerEmail,
     subject: `Order Confirmation #${order.orderId} - ${BUSINESS_NAME}`,
     html: htmlBody
@@ -155,7 +175,7 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
 }
 
 export async function sendAdminOrderNotification(order: OrderDetails): Promise<void> {
-  const transporter = getTransporter();
+  const { client, fromEmail } = await getResendClient();
   
   const itemsHtml = order.items.map(item => `
     <tr>
@@ -228,9 +248,9 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
     </html>
   `;
   
-  await transporter.sendMail({
-    from: `"${BUSINESS_NAME}" <${FROM_EMAIL}>`,
-    to: FROM_EMAIL,
+  await client.emails.send({
+    from: `${BUSINESS_NAME} <${fromEmail}>`,
+    to: fromEmail,
     subject: `[NEW ORDER] #${order.orderId} - ${order.customerName} - $${order.total}`,
     html: htmlBody
   });
@@ -243,7 +263,7 @@ export async function sendOrderStatusUpdate(
   status: string,
   trackingNumber?: string
 ): Promise<void> {
-  const transporter = getTransporter();
+  const { client, fromEmail } = await getResendClient();
   
   let statusMessage = '';
   switch (status) {
@@ -294,7 +314,7 @@ export async function sendOrderStatusUpdate(
             <p><strong>Tracking Number:</strong> ${trackingNumber}</p>
           ` : ''}
           
-          <p>If you have any questions, please reply to this email or contact us at ${FROM_EMAIL}.</p>
+          <p>If you have any questions, please reply to this email or contact us at ${fromEmail}.</p>
         </div>
         <div class="footer">
           <p>&copy; ${new Date().getFullYear()} ${BUSINESS_NAME}. All rights reserved.</p>
@@ -305,8 +325,8 @@ export async function sendOrderStatusUpdate(
     </html>
   `;
   
-  await transporter.sendMail({
-    from: `"${BUSINESS_NAME}" <${FROM_EMAIL}>`,
+  await client.emails.send({
+    from: `${BUSINESS_NAME} <${fromEmail}>`,
     to: customerEmail,
     subject: `Order #${orderId} Update - ${BUSINESS_NAME}`,
     html: htmlBody
