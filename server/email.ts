@@ -1,78 +1,22 @@
-import { google } from 'googleapis';
+import nodemailer from 'nodemailer';
 
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 
-async function getAccessToken() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken || !hostname) {
-    throw new Error('Gmail connection not available (missing Replit environment)');
+function getTransporter() {
+  const appPassword = process.env.GMAIL_APP_PASSWORD;
+  
+  if (!appPassword) {
+    throw new Error('GMAIL_APP_PASSWORD not configured');
   }
-
-  const response = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=google-mail',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
+  
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: FROM_EMAIL,
+      pass: appPassword.replace(/\s/g, '')
     }
-  );
-  
-  const data = await response.json();
-  const connectionSettings = data.items?.[0];
-
-  const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
-
-  if (!connectionSettings || !accessToken) {
-    console.log('[Email] Gmail connection response:', JSON.stringify(data, null, 2));
-    throw new Error('Gmail not connected');
-  }
-  
-  return accessToken;
-}
-
-async function getGmailClient() {
-  const accessToken = await getAccessToken();
-  const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: accessToken });
-  return google.gmail({ version: 'v1', auth: oauth2Client });
-}
-
-function createMimeMessage(to: string, subject: string, htmlBody: string): string {
-  const boundary = 'boundary_' + Date.now().toString(16);
-  const mimeMessage = [
-    `From: ${BUSINESS_NAME} <${FROM_EMAIL}>`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: base64',
-    '',
-    Buffer.from(htmlBody).toString('base64'),
-    `--${boundary}--`
-  ].join('\r\n');
-  
-  return Buffer.from(mimeMessage).toString('base64url');
-}
-
-async function sendEmail(to: string, subject: string, htmlBody: string): Promise<void> {
-  const gmail = await getGmailClient();
-  const raw = createMimeMessage(to, subject, htmlBody);
-  
-  await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: { raw }
   });
 }
 
@@ -111,6 +55,8 @@ export interface OrderDetails {
 }
 
 export async function sendCustomerOrderConfirmation(order: OrderDetails): Promise<void> {
+  const transporter = getTransporter();
+  
   const itemsHtml = order.items.map(item => `
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.productName}${item.variantTitle ? ` - ${item.variantTitle}` : ''}</td>
@@ -196,10 +142,17 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
     </html>
   `;
   
-  await sendEmail(order.customerEmail, `Order Confirmation #${order.orderId} - ${BUSINESS_NAME}`, htmlBody);
+  await transporter.sendMail({
+    from: `"${BUSINESS_NAME}" <${FROM_EMAIL}>`,
+    to: order.customerEmail,
+    subject: `Order Confirmation #${order.orderId} - ${BUSINESS_NAME}`,
+    html: htmlBody
+  });
 }
 
 export async function sendAdminOrderNotification(order: OrderDetails): Promise<void> {
+  const transporter = getTransporter();
+  
   const itemsHtml = order.items.map(item => `
     <tr>
       <td style="padding: 8px; border: 1px solid #ddd;">${item.productName}${item.variantTitle ? ` - ${item.variantTitle}` : ''}</td>
@@ -271,7 +224,12 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
     </html>
   `;
   
-  await sendEmail(FROM_EMAIL, `[NEW ORDER] #${order.orderId} - ${order.customerName} - $${order.total}`, htmlBody);
+  await transporter.sendMail({
+    from: `"${BUSINESS_NAME}" <${FROM_EMAIL}>`,
+    to: FROM_EMAIL,
+    subject: `[NEW ORDER] #${order.orderId} - ${order.customerName} - $${order.total}`,
+    html: htmlBody
+  });
 }
 
 export async function sendOrderStatusUpdate(
@@ -281,6 +239,8 @@ export async function sendOrderStatusUpdate(
   status: string,
   trackingNumber?: string
 ): Promise<void> {
+  const transporter = getTransporter();
+  
   let statusMessage = '';
   switch (status) {
     case 'paid':
@@ -341,5 +301,10 @@ export async function sendOrderStatusUpdate(
     </html>
   `;
   
-  await sendEmail(customerEmail, `Order #${orderId} Update - ${BUSINESS_NAME}`, htmlBody);
+  await transporter.sendMail({
+    from: `"${BUSINESS_NAME}" <${FROM_EMAIL}>`,
+    to: customerEmail,
+    subject: `Order #${orderId} Update - ${BUSINESS_NAME}`,
+    html: htmlBody
+  });
 }
