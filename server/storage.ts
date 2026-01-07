@@ -230,12 +230,27 @@ export class DatabaseStorage implements IStorage {
         )
       `);
 
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS reviews (
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          customer_name TEXT NOT NULL,
+          customer_location TEXT NOT NULL,
+          rating INTEGER NOT NULL DEFAULT 5,
+          content TEXT NOT NULL,
+          image_url TEXT,
+          featured BOOLEAN DEFAULT false,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `);
+
       const columnMigrations = [
         { table: 'products', column: 'track_inventory', type: 'BOOLEAN DEFAULT true' },
         { table: 'products', column: 'inventory', type: 'INTEGER' },
         { table: 'orders', column: 'shipping_state', type: 'TEXT' },
         { table: 'orders', column: 'archived', type: 'BOOLEAN DEFAULT false' },
         { table: 'orders', column: 'updated_at', type: 'TIMESTAMP DEFAULT NOW()' },
+        { table: 'orders', column: 'delivery_method', type: "TEXT NOT NULL DEFAULT 'shipping'" },
+        { table: 'order_items', column: 'variant_id', type: 'INTEGER' },
       ];
 
       for (const migration of columnMigrations) {
