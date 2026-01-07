@@ -1,0 +1,19 @@
+Starting Container
+npm warn config production Use `--omit=dev` instead.
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+[Storage] Using Cloudflare R2 for file uploads
+(node:25) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+5:35:09 PM [express] serving on port 8080
+5:35:09 PM [express] Server initialization complete
+[DB] Connecting to database, URL starts with: postgresql://postgres:AEShbwAA...
+[DB] Running automatic migrations...
+5:35:43 PM [express] GET /api/reviews/featured 200 in 73ms :: []
+5:35:43 PM [express] GET /api/products/active 200 in 90ms :: [{"id":1,"name":"Athletic Shoe Lace","description":"Athletic shoe laces available in various styles, sizes and colors","price":"3.95","compareAtPrice":null,"cost":null,"imageUrl":"https://pub-f6599d1fd6174621afcfcb9c0e548516.r2.dev/uploads/48b5de42-1500-4af1-b7d2-b798c1a3961c","category":"Accessories","productType":"Shoe Laces","brand":"Bulldog","color":"Black, Brown, White, Beige/Mocha, Grey, Navy, Red","status":"active","trackInventory":true,"inventory":2,"sku":null,"tags":"Laces, Athletic, Round, Flat","createdAt":"2026-01-06T23:29:23.537Z"}]
+[DB] Migrations completed successfully
+[Email] Using Brevo SMTP
+5:38:06 PM [express] POST /api/orders 201 in 120152ms :: {"id":4,"customerName":"Curtis Rose","customerEmail":"plentysneakers@gmail.com","customerPhone":"3233335326","deliveryMethod":"pickup","shippingAddress":"In-Store Pickup","shippingCity":"Centerville","shippingState":"MA","shippingZip":"02632","repairDescription":null,"total":"4.20","shipping":"0.00","status":"Pending","paymentStatus":"unpaid","fulfillmentStatus":"unfulfilled","archived":false,"adminNotes":null,"trackingNumber":null,"createdAt":"2026-01-07T17:36:06.557Z","updatedAt":"2026-01-07T17:36:06.557Z"}
+[Email] Customer confirmation failed for order #4: Connection timeout
+[Email] Admin notification failed for order #4: Connection timeout
+Order #4 - Email notifications sent

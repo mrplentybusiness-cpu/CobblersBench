@@ -647,39 +647,42 @@ export async function registerRoutes(
         }
       }
       
-      // Send email notifications
-      try {
-        const orderItems = await storage.getOrderItems(createdOrder.id);
-        const emailDetails: OrderDetails = {
-          orderId: createdOrder.id,
-          customerName: createdOrder.customerName,
-          customerEmail: createdOrder.customerEmail,
-          customerPhone: createdOrder.customerPhone,
-          shippingAddress: createdOrder.shippingAddress,
-          shippingCity: createdOrder.shippingCity,
-          shippingState: createdOrder.shippingState,
-          shippingZip: createdOrder.shippingZip,
-          total: createdOrder.total,
-          shipping: createdOrder.shipping,
-          repairDescription: createdOrder.repairDescription || null,
-          items: orderItems.map(item => ({
-            productName: item.productName,
-            quantity: item.quantity,
-            price: item.productPrice,
-            variantTitle: null,
-          })),
-        };
-        
-        await Promise.all([
-          sendCustomerOrderConfirmation(emailDetails),
-          sendAdminOrderNotification(emailDetails),
-        ]);
-        console.log(`Order #${createdOrder.id} - Email notifications sent`);
-      } catch (emailError) {
-        console.error("Failed to send order emails:", emailError);
-      }
-      
+      // Send response immediately - don't wait for emails
       res.status(201).json(createdOrder);
+      
+      // Send email notifications in background (fire-and-forget)
+      (async () => {
+        try {
+          const orderItems = await storage.getOrderItems(createdOrder.id);
+          const emailDetails: OrderDetails = {
+            orderId: createdOrder.id,
+            customerName: createdOrder.customerName,
+            customerEmail: createdOrder.customerEmail,
+            customerPhone: createdOrder.customerPhone,
+            shippingAddress: createdOrder.shippingAddress,
+            shippingCity: createdOrder.shippingCity,
+            shippingState: createdOrder.shippingState,
+            shippingZip: createdOrder.shippingZip,
+            total: createdOrder.total,
+            shipping: createdOrder.shipping,
+            repairDescription: createdOrder.repairDescription || null,
+            items: orderItems.map(item => ({
+              productName: item.productName,
+              quantity: item.quantity,
+              price: item.productPrice,
+              variantTitle: null,
+            })),
+          };
+          
+          await Promise.all([
+            sendCustomerOrderConfirmation(emailDetails),
+            sendAdminOrderNotification(emailDetails),
+          ]);
+          console.log(`Order #${createdOrder.id} - Email notifications sent`);
+        } catch (emailError) {
+          console.error(`Order #${createdOrder.id} - Failed to send emails:`, emailError);
+        }
+      })();
     } catch (error) {
       console.error("Error creating order:", error);
       res.status(500).json({ error: "Failed to create order" });
