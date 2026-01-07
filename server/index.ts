@@ -12,6 +12,45 @@ declare module "http" {
   }
 }
 
+// Health check endpoints - respond immediately for deployment health checks
+// These must be registered BEFORE any async setup to ensure fast response
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+// Track initialization state for graceful startup
+let isInitialized = false;
+export function setInitialized() {
+  isInitialized = true;
+}
+export function getInitialized() {
+  return isInitialized;
+}
+
+// In production, serve a minimal response at / before full initialization completes
+// This allows health checks on / to pass while the app is still starting
+if (process.env.NODE_ENV === "production") {
+  const fs = require("fs");
+  const path = require("path");
+  const distPath = path.resolve(process.cwd(), "dist", "public");
+  const indexPath = path.resolve(distPath, "index.html");
+  
+  // Pre-read index.html so it's available immediately
+  if (fs.existsSync(indexPath)) {
+    const indexHtml = fs.readFileSync(indexPath, "utf-8");
+    app.get("/", (_req, res, next) => {
+      if (!isInitialized) {
+        // Serve cached index.html before full initialization
+        res.setHeader("Content-Type", "text/html");
+        res.send(indexHtml);
+      } else {
+        // Once initialized, let the static middleware handle it
+        next();
+      }
+    });
+  }
+}
+
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -21,11 +60,6 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
-
-// Health check endpoint - responds immediately for deployment health checks
-app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok" });
-});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -64,6 +98,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// Start server FIRST so health checks pass immediately
+const port = parseInt(process.env.PORT || "5000", 10);
+httpServer.listen(
+  {
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  },
+  () => {
+    log(`serving on port ${port}`);
+  },
+);
+
+// Then do async setup (database, routes, and in development: Vite)
 (async () => {
   await registerRoutes(httpServer, app);
 
@@ -85,19 +133,6 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  setInitialized();
+  log("Server initialization complete");
 })();
