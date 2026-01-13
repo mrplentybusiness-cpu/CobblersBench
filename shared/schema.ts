@@ -202,6 +202,7 @@ export const reviews = pgTable("reviews", {
   content: text("content").notNull(),
   imageUrl: text("image_url"),
   featured: boolean("featured").default(false),
+  published: boolean("published").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

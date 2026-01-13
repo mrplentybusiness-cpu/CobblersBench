@@ -961,13 +961,24 @@ export async function registerRoutes(
 
   // ===== REVIEWS =====
 
-  // Get featured reviews (public)
+  // Get featured reviews (public - for homepage)
   app.get("/api/reviews/featured", async (req, res) => {
     try {
       const reviews = await storage.getFeaturedReviews();
-      res.json(reviews);
+      res.json(reviews.slice(0, 6));
     } catch (error) {
       console.error("Error fetching featured reviews:", error);
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  // Get published reviews (public - for reviews page)
+  app.get("/api/reviews/published", async (req, res) => {
+    try {
+      const reviews = await storage.getPublishedReviews();
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching published reviews:", error);
       res.status(500).json({ error: "Failed to fetch reviews" });
     }
   });
@@ -1008,8 +1019,39 @@ export async function registerRoutes(
     content: z.string().min(1, "Review content is required"),
     imageUrl: z.string().nullable().optional(),
     featured: z.boolean().default(false),
+    published: z.boolean().default(false),
   });
 
+  // Public customer review submission schema
+  const publicReviewSchema = z.object({
+    customerName: z.string().min(1, "Name is required"),
+    customerLocation: z.string().min(1, "Location is required"),
+    rating: z.number().int().min(1).max(5).default(5),
+    content: z.string().min(10, "Review must be at least 10 characters"),
+  });
+
+  // Submit review (public - customers)
+  app.post("/api/reviews/submit", async (req, res) => {
+    try {
+      const parseResult = publicReviewSchema.safeParse(req.body);
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid review data", details: parseResult.error.errors });
+      }
+
+      const review = await storage.createReview({
+        ...parseResult.data,
+        featured: false,
+        published: false,
+      });
+      res.status(201).json({ message: "Thank you for your review! It will be published after approval." });
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      res.status(500).json({ error: "Failed to submit review" });
+    }
+  });
+
+  // Create review (admin)
   app.post("/api/reviews", async (req, res) => {
     try {
       const parseResult = reviewSchema.safeParse(req.body);

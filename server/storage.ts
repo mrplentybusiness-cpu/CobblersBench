@@ -77,6 +77,7 @@ export interface IStorage {
   // Reviews
   getAllReviews(): Promise<Review[]>;
   getFeaturedReviews(): Promise<Review[]>;
+  getPublishedReviews(): Promise<Review[]>;
   getReviewById(id: number): Promise<Review | undefined>;
   createReview(review: InsertReview): Promise<Review>;
   updateReview(id: number, data: Partial<InsertReview>): Promise<Review | undefined>;
@@ -251,6 +252,7 @@ export class DatabaseStorage implements IStorage {
         { table: 'orders', column: 'updated_at', type: 'TIMESTAMP DEFAULT NOW()' },
         { table: 'orders', column: 'delivery_method', type: "TEXT NOT NULL DEFAULT 'shipping'" },
         { table: 'order_items', column: 'variant_id', type: 'INTEGER' },
+        { table: 'reviews', column: 'published', type: 'BOOLEAN DEFAULT false' },
       ];
 
       for (const migration of columnMigrations) {
@@ -616,6 +618,13 @@ export class DatabaseStorage implements IStorage {
     return this.getDb().select().from(schema.reviews)
       .where(eq(schema.reviews.featured, true))
       .orderBy(desc(schema.reviews.createdAt));
+  }
+
+  async getPublishedReviews(): Promise<Review[]> {
+    return this.getDb().select().from(schema.reviews)
+      .where(eq(schema.reviews.published, true))
+      .orderBy(desc(schema.reviews.createdAt))
+      .limit(6);
   }
 
   async getReviewById(id: number): Promise<Review | undefined> {

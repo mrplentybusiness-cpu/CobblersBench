@@ -10,6 +10,7 @@ import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
 import Services from "@/pages/Services";
 import PlantarFasciitis from "@/pages/PlantarFasciitis";
+import Reviews from "@/pages/Reviews";
 import Product from "@/pages/Product";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/shop" component={Shop} />
       <Route path="/services" component={Services} />
       <Route path="/plantar-fasciitis" component={PlantarFasciitis} />
+      <Route path="/reviews" component={Reviews} />
       <Route path="/product/:id" component={Product} />
       <Route path="/cart" component={Cart} />
       <Route path="/checkout" component={Checkout} />

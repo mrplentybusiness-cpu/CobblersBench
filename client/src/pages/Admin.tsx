@@ -2502,6 +2502,23 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
     },
   });
 
+  const togglePublishedMutation = useMutation({
+    mutationFn: async ({ id, published }: { id: number; published: boolean }) => {
+      const response = await fetch(`/api/reviews/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published }),
+      });
+      if (!response.ok) throw new Error('Failed to toggle published');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews/published'] });
+      toast({ title: "Published status updated" });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingReview) {
@@ -2648,6 +2665,7 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
                 <TableHead>Customer</TableHead>
                 <TableHead>Rating</TableHead>
                 <TableHead>Review</TableHead>
+                <TableHead>Published</TableHead>
                 <TableHead>Featured</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -2683,6 +2701,13 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
                   </TableCell>
                   <TableCell className="max-w-xs">
                     <p className="text-sm text-muted-foreground line-clamp-2">"{review.content}"</p>
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={review.published || false}
+                      onCheckedChange={(checked) => togglePublishedMutation.mutate({ id: review.id, published: checked })}
+                      data-testid={`switch-published-${review.id}`}
+                    />
                   </TableCell>
                   <TableCell>
                     <Switch
