@@ -1,4 +1,4 @@
-import { eq, desc, and, not } from "drizzle-orm";
+import { eq, desc, and, not, or, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
@@ -26,6 +26,7 @@ export interface IStorage {
   // Products
   getAllProducts(): Promise<Product[]>;
   getActiveProducts(): Promise<Product[]>;
+  getGalleryProducts(): Promise<Product[]>;
   getProductById(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
@@ -253,6 +254,7 @@ export class DatabaseStorage implements IStorage {
         { table: 'orders', column: 'delivery_method', type: "TEXT NOT NULL DEFAULT 'shipping'" },
         { table: 'order_items', column: 'variant_id', type: 'INTEGER' },
         { table: 'reviews', column: 'published', type: 'BOOLEAN DEFAULT false' },
+        { table: 'products', column: 'in_store_only', type: 'BOOLEAN DEFAULT false' },
       ];
 
       for (const migration of columnMigrations) {
@@ -262,6 +264,9 @@ export class DatabaseStorage implements IStorage {
           console.log(`[DB] Column ${migration.column} may already exist`);
         }
       }
+
+      // Backfill existing products with NULL in_store_only to false
+      await client.query(`UPDATE products SET in_store_only = false WHERE in_store_only IS NULL`);
 
       console.log('[DB] Migrations completed successfully');
     } catch (error) {
@@ -282,7 +287,19 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveProducts(): Promise<Product[]> {
     return this.getDb().select().from(schema.products)
-      .where(eq(schema.products.status, "active"))
+      .where(and(
+        eq(schema.products.status, "active"),
+        or(eq(schema.products.inStoreOnly, false), isNull(schema.products.inStoreOnly))
+      ))
+      .orderBy(desc(schema.products.createdAt));
+  }
+
+  async getGalleryProducts(): Promise<Product[]> {
+    return this.getDb().select().from(schema.products)
+      .where(and(
+        eq(schema.products.status, "active"),
+        eq(schema.products.inStoreOnly, true)
+      ))
       .orderBy(desc(schema.products.createdAt));
   }
 

@@ -127,7 +127,7 @@ export async function registerRoutes(
     }
   });
 
-  // Get active products only (storefront)
+  // Get active products only (storefront - excludes in-store only items)
   app.get("/api/products/active", async (req, res) => {
     try {
       const products = await storage.getActiveProducts();
@@ -135,6 +135,17 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching active products:", error);
       res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  // Get gallery products (in-store only items for showcase)
+  app.get("/api/products/gallery", async (req, res) => {
+    try {
+      const products = await storage.getGalleryProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching gallery products:", error);
+      res.status(500).json({ error: "Failed to fetch gallery products" });
     }
   });
 
@@ -174,6 +185,7 @@ export async function registerRoutes(
         inventory: req.body.inventory ?? null,
         sku: req.body.sku || null,
         tags: req.body.tags || null,
+        inStoreOnly: req.body.inStoreOnly ?? false,
       };
       
       if (!productData.name || !productData.description || !productData.price || !productData.imageUrl || !productData.category) {
@@ -210,6 +222,7 @@ export async function registerRoutes(
       if (req.body.inventory !== undefined) productData.inventory = req.body.inventory;
       if (req.body.sku !== undefined) productData.sku = req.body.sku || null;
       if (req.body.tags !== undefined) productData.tags = req.body.tags || null;
+      if (req.body.inStoreOnly !== undefined) productData.inStoreOnly = req.body.inStoreOnly;
       
       const product = await storage.updateProduct(id, productData);
       

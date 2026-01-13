@@ -46,6 +46,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
             <NavLink href="/services">Our Services</NavLink>
             <NavLink href="/plantar-fasciitis">Knowledge</NavLink>
             <NavLink href="/shop">Shop</NavLink>
+            <NavLink href="/gallery">Gallery</NavLink>
             <NavLink href="/reviews">Reviews</NavLink>
             <NavLink href="/admin">Admin</NavLink>
             {/* <NavLink href="/about">Our Story</NavLink> */}
@@ -93,6 +94,9 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
                   </Link>
                   <Link href="/shop" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Shop
+                  </Link>
+                  <Link href="/gallery" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
+                    Gallery
                   </Link>
                   <Link href="/reviews" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Reviews

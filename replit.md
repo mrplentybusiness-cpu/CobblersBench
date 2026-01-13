@@ -42,6 +42,14 @@ The products table includes comprehensive fields for professional product manage
 - **Pricing**: Price, compare-at price (for sales), cost per item (for margin calculation)
 - **SKU**: Stock keeping unit for internal tracking
 - **Tags**: Comma-separated tags for organization
+- **In-Store Only**: Products marked as in-store only appear in the Gallery instead of Shop (not purchasable online)
+
+### Gallery (In-Store Only Items)
+A dedicated Gallery page showcases leather goods and products available for in-store purchase only:
+- **Separate from Shop**: In-store only items appear on `/gallery` page, not the Shop
+- **No Cart Functionality**: Customers can view but cannot add these items to cart
+- **Admin Toggle**: Products can be marked as "In-Store Only" in the product form under Status tab
+- **Store Info**: Gallery page displays store address and hours for customers to visit
 
 ### Product Variants (Shopify-like)
 Products can have options and variants for different sizes, colors, etc:

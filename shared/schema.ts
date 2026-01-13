@@ -19,6 +19,7 @@ export const products = pgTable("products", {
   inventory: integer("inventory"),
   sku: text("sku"),
   tags: text("tags"),
+  inStoreOnly: boolean("in_store_only").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

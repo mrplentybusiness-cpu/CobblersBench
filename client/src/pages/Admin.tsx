@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff } from "lucide-react";
@@ -1570,6 +1571,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   const [inventory, setInventory] = useState(product?.inventory?.toString() || "0");
   const [sku, setSku] = useState(product?.sku || "");
   const [tags, setTags] = useState(product?.tags || "");
+  const [inStoreOnly, setInStoreOnly] = useState(product?.inStoreOnly || false);
   
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
@@ -1716,6 +1718,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
       inventory: trackInventory ? parseInt(inventory) || 0 : null,
       sku: sku.trim() || null,
       tags: tags.trim() || null,
+      inStoreOnly,
     };
     
     if (product) {
@@ -2039,6 +2042,23 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
                 {status === 'draft' && "This product is hidden from customers"}
                 {status === 'archived' && "This product is archived and hidden"}
               </p>
+
+              <div className="flex items-center space-x-3 pt-4 border-t mt-4">
+                <Checkbox
+                  id="inStoreOnly"
+                  checked={inStoreOnly}
+                  onCheckedChange={(checked) => setInStoreOnly(checked === true)}
+                  data-testid="checkbox-in-store-only"
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label htmlFor="inStoreOnly" className="font-medium cursor-pointer">
+                    In-Store Only (Gallery Item)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    This product will appear in the Gallery instead of the Shop. Customers cannot purchase online.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
