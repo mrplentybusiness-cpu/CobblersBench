@@ -99,6 +99,7 @@ export class DatabaseStorage implements IStorage {
     console.log(`[DB] Connecting to database, URL starts with: ${dbUrl?.substring(0, 30)}...`);
     this.pool = new Pool({
       connectionString: dbUrl!,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
     });
     this.db = drizzle(this.pool, { schema });
     this.migrationComplete = this.runMigrations();
@@ -384,7 +385,7 @@ export class DatabaseStorage implements IStorage {
     
     const ordersWithItems = await Promise.all(
       orders.map(async (order) => {
-        const items = await this.db
+        const items = await this.getDb()
           .select()
           .from(schema.orderItems)
           .where(eq(schema.orderItems.orderId, order.id));
@@ -399,7 +400,7 @@ export class DatabaseStorage implements IStorage {
     const results = await this.getDb().select().from(schema.orders).where(eq(schema.orders.id, id));
     if (results.length === 0) return undefined;
 
-    const items = await this.db
+    const items = await this.getDb()
       .select()
       .from(schema.orderItems)
       .where(eq(schema.orderItems.orderId, id));
@@ -429,7 +430,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.orders)
       .set({ status })
       .where(eq(schema.orders.id, id))
@@ -438,7 +439,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderTracking(id: number, trackingNumber: string): Promise<Order | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.orders)
       .set({ trackingNumber, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
@@ -447,7 +448,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderPaymentStatus(id: number, paymentStatus: string): Promise<Order | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.orders)
       .set({ paymentStatus, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
@@ -456,7 +457,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderFulfillmentStatus(id: number, fulfillmentStatus: string): Promise<Order | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.orders)
       .set({ fulfillmentStatus, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
@@ -465,7 +466,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderNotes(id: number, adminNotes: string): Promise<Order | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.orders)
       .set({ adminNotes, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
@@ -474,7 +475,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async archiveOrder(id: number, archived: boolean): Promise<Order | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.orders)
       .set({ archived, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
@@ -483,7 +484,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteOrder(id: number): Promise<boolean> {
-    const results = await this.db
+    const results = await this.getDb()
       .delete(schema.orders)
       .where(eq(schema.orders.id, id))
       .returning();
@@ -506,7 +507,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateServiceInquiryStatus(id: number, status: string): Promise<ServiceInquiry | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.serviceInquiries)
       .set({ status })
       .where(eq(schema.serviceInquiries.id, id))
@@ -515,7 +516,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateServiceInquiryNotes(id: number, adminNotes: string): Promise<ServiceInquiry | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.serviceInquiries)
       .set({ adminNotes })
       .where(eq(schema.serviceInquiries.id, id))
@@ -524,7 +525,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteServiceInquiry(id: number): Promise<boolean> {
-    const results = await this.db
+    const results = await this.getDb()
       .delete(schema.serviceInquiries)
       .where(eq(schema.serviceInquiries.id, id))
       .returning();
@@ -544,7 +545,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProductOption(id: number, data: Partial<InsertProductOption>): Promise<ProductOption | undefined> {
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.productOptions)
       .set(data)
       .where(eq(schema.productOptions.id, id))
@@ -608,7 +609,7 @@ export class DatabaseStorage implements IStorage {
         ? data.optionValues 
         : JSON.stringify(data.optionValues || {});
     }
-    const results = await this.db
+    const results = await this.getDb()
       .update(schema.productVariants)
       .set(normalizedData)
       .where(eq(schema.productVariants.id, id))

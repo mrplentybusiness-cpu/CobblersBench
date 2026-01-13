@@ -99,7 +99,7 @@ app.use((req, res, next) => {
 });
 
 // Start server FIRST so health checks pass immediately
-const port = parseInt(process.env.PORT || "5000", 10);
+const port = parseInt(process.env.PORT || "3000", 10);
 httpServer.listen(
   {
     port,
