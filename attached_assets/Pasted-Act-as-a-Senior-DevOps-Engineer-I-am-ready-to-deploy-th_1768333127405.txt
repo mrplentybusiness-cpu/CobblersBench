@@ -1,0 +1,24 @@
+Act as a Senior DevOps Engineer. I am ready to deploy this full-stack application to Railway.
+
+Please perform a comprehensive Infrastructure & Code Audit to ensure the codebase is production-ready, strictly preserving the current visual design.
+
+1. Server & Networking (The Railway Standard):
+* Port Binding: Ensure the server listens strictly on 0.0.0.0 and uses process.env.PORT. It should fallback to port 3000 only if the variable is missing.
+* Production Start: Verify the package.json 'start' script runs the production build (e.g., node dist/index.js) and not a development watcher (like nodemon).
+
+2. Database Resilience (Universal):
+* Connection Safety: Ensure the database client connects using process.env.DATABASE_URL. It must handle SSL connections correctly (rejectUnauthorized: false) for cloud environments.
+* Schema Sync: If an ORM (like Prisma, Sequelize, or TypeORM) is detected, ensure the startup sequence includes logic to automatically sync or push the schema to the database. The app must self-heal missing tables upon deployment.
+
+3. Async Architecture (Non-Blocking):
+* Fire-and-Forget Pattern: Scan all controllers. Ensure that any heavy background tasks (emails, third-party API calls, file uploads) are non-blocking. The server must send a response to the client immediately before processing these background tasks.
+* Error Containment: Ensure background task failures are caught and logged silently to the console without crashing the main server process.
+
+4. Mobile Responsiveness Audit:
+* Touch Targets: Review the frontend code to ensure all interactive elements (buttons, forms, navigation) handle touch events correctly on mobile devices.
+* Viewport: Confirm the standard viewport meta tag is present to prevent scaling issues on phones.
+
+5. Visual Preservation (Strict):
+* Design Freeze: Do NOT alter the CSS, layout, colors, or fonts. Only modify the underlying logic to ensure functional stability.
+
+Review the entire codebase and apply these standardized production fixes.
