@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Product, Order, OrderItem, ServiceInquiry, Review } from "@shared/schema";
@@ -36,6 +36,10 @@ export default function Admin() {
   const [selectedInquiry, setSelectedInquiry] = useState<ServiceInquiry | null>(null);
   const [editingInquiryNotes, setEditingInquiryNotes] = useState<number | null>(null);
   const [inquiryNotesText, setInquiryNotesText] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState<string>("all");
+  const [productStatusFilter, setProductStatusFilter] = useState<string>("all");
+  const [productViewMode, setProductViewMode] = useState<'grid' | 'table'>('grid');
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -589,129 +593,350 @@ export default function Admin() {
           </div>
         ) : activeTab === 'products' ? (
           <div className="space-y-6">
-            <div className="flex justify-end">
-              <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
-                <DialogTrigger asChild>
-                  <Button data-testid="button-add-product">
-                    <Plus className="mr-2 h-4 w-4" /> Add New Product
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Product</DialogTitle>
-                  </DialogHeader>
-                  <ProductForm onSuccess={() => setIsAddProductOpen(false)} existingCategories={Array.from(new Set(products.map(p => p.category)))} />
-                </DialogContent>
-              </Dialog>
-            </div>
-            
-            <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-              {productsLoading ? (
-                <div className="p-8 text-center text-muted-foreground" data-testid="loading-products">
-                  Loading products...
-                </div>
-              ) : products.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground" data-testid="no-products-admin">
-                  No products yet. Add your first product to get started.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Image</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Inventory</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.map((product) => (
-                      <TableRow key={product.id} data-testid={`product-row-${product.id}`}>
-                        <TableCell>
-                          <img 
-                            src={product.imageUrl} 
-                            alt={product.name} 
-                            className="h-10 w-10 rounded object-cover bg-muted" 
-                            data-testid={`product-image-${product.id}`}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium" data-testid={`product-name-${product.id}`}>
-                          {product.name}
-                          {product.sku && (
-                            <span className="block text-xs text-muted-foreground">SKU: {product.sku}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              product.status === 'active' ? 'default' : 
-                              product.status === 'draft' ? 'secondary' : 'outline'
-                            }
-                            className={product.status === 'archived' ? 'opacity-50' : ''}
-                            data-testid={`product-status-${product.id}`}
-                          >
-                            {product.status === 'active' && <CheckCircle className="h-3 w-3 mr-1" />}
-                            {product.status === 'archived' && <Archive className="h-3 w-3 mr-1" />}
-                            {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell data-testid={`product-inventory-${product.id}`}>
-                          {product.trackInventory ? (
-                            <span className={product.inventory !== null && product.inventory <= 5 ? 'text-destructive font-medium' : ''}>
-                              {product.inventory !== null && product.inventory <= 5 && (
-                                <AlertCircle className="h-3 w-3 inline mr-1" />
-                              )}
-                              {product.inventory ?? 0} in stock
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">Not tracked</span>
-                          )}
-                        </TableCell>
-                        <TableCell data-testid={`product-category-${product.id}`}>{product.category}</TableCell>
-                        <TableCell data-testid={`product-price-${product.id}`}>
-                          <div>
-                            ${product.price}
-                            {product.compareAtPrice && (
-                              <span className="block text-xs text-muted-foreground line-through">
-                                ${product.compareAtPrice}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => setEditingProduct(product)}
-                              data-testid={`button-edit-product-${product.id}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-destructive"
-                              onClick={() => {
-                                if (confirm(`Delete ${product.name}?`)) {
-                                  deleteProductMutation.mutate(product.id);
-                                }
-                              }}
-                              data-testid={`button-delete-product-${product.id}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+            {productsLoading ? (
+              <div className="p-8 text-center text-muted-foreground" data-testid="loading-products">
+                Loading products...
+              </div>
+            ) : (() => {
+              const categories = Array.from(new Set(products.map(p => p.category).filter(c => c && c.trim()))).sort();
+              const categoryCounts = products.reduce((acc, p) => {
+                const cat = p.category || 'Uncategorized';
+                acc[cat] = (acc[cat] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+              const statusCounts = products.reduce((acc, p) => {
+                acc[p.status] = (acc[p.status] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+              
+              const filteredProducts = products.filter(p => {
+                const searchTerm = productSearch.toLowerCase();
+                const matchesSearch = productSearch === "" || 
+                  (p.name || '').toLowerCase().includes(searchTerm) ||
+                  (p.sku || '').toLowerCase().includes(searchTerm) ||
+                  (p.tags || '').toLowerCase().includes(searchTerm);
+                const matchesCategory = productCategoryFilter === "all" || p.category === productCategoryFilter;
+                const matchesStatus = productStatusFilter === "all" || p.status === productStatusFilter;
+                return matchesSearch && matchesCategory && matchesStatus;
+              });
+              
+              return (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search products by name, SKU, or tags..."
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        className="pl-9"
+                        data-testid="input-product-search"
+                      />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex border rounded-md">
+                        <Button
+                          variant={productViewMode === 'grid' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          className="rounded-r-none"
+                          onClick={() => setProductViewMode('grid')}
+                          data-testid="button-view-grid"
+                        >
+                          <LayoutGrid className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant={productViewMode === 'table' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          className="rounded-l-none"
+                          onClick={() => setProductViewMode('table')}
+                          data-testid="button-view-table"
+                        >
+                          <List className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                        <DialogTrigger asChild>
+                          <Button data-testid="button-add-product">
+                            <Plus className="mr-2 h-4 w-4" /> Add Product
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Add New Product</DialogTitle>
+                          </DialogHeader>
+                          <ProductForm onSuccess={() => setIsAddProductOpen(false)} existingCategories={categories} />
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={productCategoryFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setProductCategoryFilter("all")}
+                      data-testid="filter-category-all"
+                    >
+                      All Categories
+                      <Badge variant="secondary" className="ml-2 bg-background/20">{products.length}</Badge>
+                    </Button>
+                    {categories.map(cat => (
+                      <Button
+                        key={cat}
+                        variant={productCategoryFilter === cat ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setProductCategoryFilter(cat)}
+                        data-testid={`filter-category-${cat}`}
+                      >
+                        {cat}
+                        <Badge variant="secondary" className="ml-2 bg-background/20">{categoryCounts[cat] || 0}</Badge>
+                      </Button>
                     ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm text-muted-foreground">Status:</span>
+                    <Select value={productStatusFilter} onValueChange={setProductStatusFilter}>
+                      <SelectTrigger className="w-40" data-testid="filter-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status ({products.length})</SelectItem>
+                        <SelectItem value="active">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Active ({statusCounts['active'] || 0})
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="draft">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-3 w-3 text-yellow-500" />
+                            Draft ({statusCounts['draft'] || 0})
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="archived">
+                          <div className="flex items-center gap-2">
+                            <Archive className="h-3 w-3 text-gray-500" />
+                            Archived ({statusCounts['archived'] || 0})
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {(productSearch || productCategoryFilter !== "all" || productStatusFilter !== "all") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setProductSearch("");
+                          setProductCategoryFilter("all");
+                          setProductStatusFilter("all");
+                        }}
+                        className="text-muted-foreground"
+                        data-testid="button-clear-filters"
+                      >
+                        Clear filters
+                      </Button>
+                    )}
+                    <span className="text-sm text-muted-foreground ml-auto">
+                      Showing {filteredProducts.length} of {products.length} products
+                    </span>
+                  </div>
+            
+                  {products.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground bg-card rounded-lg border" data-testid="no-products-admin">
+                      No products yet. Add your first product to get started.
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground bg-card rounded-lg border" data-testid="no-matching-products">
+                      No products match your filters.
+                    </div>
+                  ) : productViewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {filteredProducts.map((product) => (
+                        <Card key={product.id} className="overflow-hidden group" data-testid={`product-card-${product.id}`}>
+                          <div className="aspect-square relative bg-muted">
+                            {product.imageUrl ? (
+                              <img 
+                                src={product.imageUrl} 
+                                alt={product.name} 
+                                className="w-full h-full object-cover"
+                                data-testid={`product-image-${product.id}`}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <ImageOff className="h-12 w-12 text-muted-foreground/50" />
+                              </div>
+                            )}
+                            <div className="absolute top-2 left-2 flex gap-1">
+                              <Badge 
+                                variant={product.status === 'active' ? 'default' : product.status === 'draft' ? 'secondary' : 'outline'}
+                                className={`${product.status === 'archived' ? 'opacity-70' : ''} text-xs`}
+                                data-testid={`product-status-${product.id}`}
+                              >
+                                {product.status === 'active' && <CheckCircle className="h-3 w-3 mr-1" />}
+                                {product.status === 'archived' && <Archive className="h-3 w-3 mr-1" />}
+                                {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+                              </Badge>
+                            </div>
+                            <div className="absolute top-2 right-2 flex gap-1">
+                              <Button 
+                                variant="secondary" 
+                                size="icon"
+                                className="h-8 w-8 shadow-sm"
+                                onClick={() => setEditingProduct(product)}
+                                data-testid={`button-edit-product-${product.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="secondary" 
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive shadow-sm"
+                                onClick={() => {
+                                  if (confirm(`Delete ${product.name}?`)) {
+                                    deleteProductMutation.mutate(product.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-product-${product.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-medium truncate" data-testid={`product-name-${product.id}`}>{product.name}</h3>
+                                <p className="text-xs text-muted-foreground">{product.category}</p>
+                                {product.sku && (
+                                  <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                                )}
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="font-bold text-primary" data-testid={`product-price-${product.id}`}>${product.price}</p>
+                                {product.compareAtPrice && (
+                                  <p className="text-xs text-muted-foreground line-through">${product.compareAtPrice}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-2 pt-2 border-t" data-testid={`product-inventory-${product.id}`}>
+                              {product.trackInventory ? (
+                                <span className={`text-sm ${product.inventory !== null && product.inventory <= 5 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                  {product.inventory !== null && product.inventory <= 5 && (
+                                    <AlertCircle className="h-3 w-3 inline mr-1" />
+                                  )}
+                                  {product.inventory ?? 0} in stock
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Inventory not tracked</span>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Image</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Inventory</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredProducts.map((product) => (
+                            <TableRow key={product.id} data-testid={`product-row-${product.id}`}>
+                              <TableCell>
+                                <img 
+                                  src={product.imageUrl} 
+                                  alt={product.name} 
+                                  className="h-10 w-10 rounded object-cover bg-muted" 
+                                  data-testid={`product-image-${product.id}`}
+                                />
+                              </TableCell>
+                              <TableCell className="font-medium" data-testid={`product-name-${product.id}`}>
+                                {product.name}
+                                {product.sku && (
+                                  <span className="block text-xs text-muted-foreground">SKU: {product.sku}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={
+                                    product.status === 'active' ? 'default' : 
+                                    product.status === 'draft' ? 'secondary' : 'outline'
+                                  }
+                                  className={product.status === 'archived' ? 'opacity-50' : ''}
+                                  data-testid={`product-status-${product.id}`}
+                                >
+                                  {product.status === 'active' && <CheckCircle className="h-3 w-3 mr-1" />}
+                                  {product.status === 'archived' && <Archive className="h-3 w-3 mr-1" />}
+                                  {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell data-testid={`product-inventory-${product.id}`}>
+                                {product.trackInventory ? (
+                                  <span className={product.inventory !== null && product.inventory <= 5 ? 'text-destructive font-medium' : ''}>
+                                    {product.inventory !== null && product.inventory <= 5 && (
+                                      <AlertCircle className="h-3 w-3 inline mr-1" />
+                                    )}
+                                    {product.inventory ?? 0} in stock
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">Not tracked</span>
+                                )}
+                              </TableCell>
+                              <TableCell data-testid={`product-category-${product.id}`}>{product.category}</TableCell>
+                              <TableCell data-testid={`product-price-${product.id}`}>
+                                <div>
+                                  ${product.price}
+                                  {product.compareAtPrice && (
+                                    <span className="block text-xs text-muted-foreground line-through">
+                                      ${product.compareAtPrice}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => setEditingProduct(product)}
+                                    data-testid={`button-edit-product-${product.id}`}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      if (confirm(`Delete ${product.name}?`)) {
+                                        deleteProductMutation.mutate(product.id);
+                                      }
+                                    }}
+                                    data-testid={`button-delete-product-${product.id}`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         ) : activeTab === 'inquiries' ? (
           <div className="space-y-4">
