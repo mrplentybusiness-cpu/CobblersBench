@@ -40,6 +40,7 @@ export default function Admin() {
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState<string>("all");
   const [productStatusFilter, setProductStatusFilter] = useState<string>("all");
+  const [productBrandFilter, setProductBrandFilter] = useState<string>("all");
   const [productViewMode, setProductViewMode] = useState<'grid' | 'table'>('grid');
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -600,6 +601,7 @@ export default function Admin() {
               </div>
             ) : (() => {
               const categories = Array.from(new Set(products.map(p => p.category).filter(c => c && c.trim()))).sort();
+              const brands = Array.from(new Set(products.map(p => p.brand).filter((b): b is string => !!b && b.trim() !== ''))).sort();
               const categoryCounts = products.reduce((acc, p) => {
                 const cat = p.category || 'Uncategorized';
                 acc[cat] = (acc[cat] || 0) + 1;
@@ -607,6 +609,11 @@ export default function Admin() {
               }, {} as Record<string, number>);
               const statusCounts = products.reduce((acc, p) => {
                 acc[p.status] = (acc[p.status] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+              const brandCounts = products.reduce((acc, p) => {
+                const brand = p.brand || 'No Brand';
+                acc[brand] = (acc[brand] || 0) + 1;
                 return acc;
               }, {} as Record<string, number>);
               
@@ -618,7 +625,8 @@ export default function Admin() {
                   (p.tags || '').toLowerCase().includes(searchTerm);
                 const matchesCategory = productCategoryFilter === "all" || p.category === productCategoryFilter;
                 const matchesStatus = productStatusFilter === "all" || p.status === productStatusFilter;
-                return matchesSearch && matchesCategory && matchesStatus;
+                const matchesBrand = productBrandFilter === "all" || p.brand === productBrandFilter || (productBrandFilter === "none" && !p.brand);
+                return matchesSearch && matchesCategory && matchesStatus && matchesBrand;
               });
               
               return (
@@ -695,35 +703,56 @@ export default function Admin() {
                     ))}
                   </div>
 
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm text-muted-foreground">Status:</span>
-                    <Select value={productStatusFilter} onValueChange={setProductStatusFilter}>
-                      <SelectTrigger className="w-40" data-testid="filter-status">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status ({products.length})</SelectItem>
-                        <SelectItem value="active">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-3 w-3 text-green-500" />
-                            Active ({statusCounts['active'] || 0})
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="draft">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-3 w-3 text-yellow-500" />
-                            Draft ({statusCounts['draft'] || 0})
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="archived">
-                          <div className="flex items-center gap-2">
-                            <Archive className="h-3 w-3 text-gray-500" />
-                            Archived ({statusCounts['archived'] || 0})
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {(productSearch || productCategoryFilter !== "all" || productStatusFilter !== "all") && (
+                  <div className="flex flex-wrap gap-4 items-center">
+                    <div className="flex gap-2 items-center">
+                      <span className="text-sm text-muted-foreground">Status:</span>
+                      <Select value={productStatusFilter} onValueChange={setProductStatusFilter}>
+                        <SelectTrigger className="w-40" data-testid="filter-status">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status ({products.length})</SelectItem>
+                          <SelectItem value="active">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-3 w-3 text-green-500" />
+                              Active ({statusCounts['active'] || 0})
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="draft">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-3 w-3 text-yellow-500" />
+                              Draft ({statusCounts['draft'] || 0})
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="archived">
+                            <div className="flex items-center gap-2">
+                              <Archive className="h-3 w-3 text-gray-500" />
+                              Archived ({statusCounts['archived'] || 0})
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex gap-2 items-center">
+                      <span className="text-sm text-muted-foreground">Brand:</span>
+                      <Select value={productBrandFilter} onValueChange={setProductBrandFilter}>
+                        <SelectTrigger className="w-44" data-testid="filter-brand">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Brands ({products.length})</SelectItem>
+                          <SelectItem value="none">No Brand ({brandCounts['No Brand'] || 0})</SelectItem>
+                          {brands.map(brand => (
+                            <SelectItem key={brand} value={brand}>
+                              {brand} ({brandCounts[brand] || 0})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {(productSearch || productCategoryFilter !== "all" || productStatusFilter !== "all" || productBrandFilter !== "all") && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -731,6 +760,7 @@ export default function Admin() {
                           setProductSearch("");
                           setProductCategoryFilter("all");
                           setProductStatusFilter("all");
+                          setProductBrandFilter("all");
                         }}
                         className="text-muted-foreground"
                         data-testid="button-clear-filters"
