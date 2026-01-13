@@ -9,17 +9,8 @@ import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
 import { Loader2, Grid3X3, LayoutGrid, X, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type FilterType = 'all' | 'repair' | 'goods' | 'care';
-
-const filterConfig: { key: FilterType; label: string; description: string }[] = [
-  { key: 'all', label: 'All Products', description: 'Browse our complete collection' },
-  { key: 'repair', label: 'Repair Services', description: 'Professional shoe & leather repair' },
-  { key: 'care', label: 'Shoe Care', description: 'Premium care products' },
-  { key: 'goods', label: 'Leather Goods', description: 'Handcrafted leather accessories' },
-];
-
 export default function Shop() {
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter, setFilter] = useState<string>('all');
   const [brandFilter, setBrandFilter] = useState<string>('all');
   const [productTypeFilter, setProductTypeFilter] = useState<string>('all');
   const [gridSize, setGridSize] = useState<'normal' | 'large'>('normal');
@@ -33,14 +24,19 @@ export default function Shop() {
     },
   });
 
+  const availableCategories = useMemo(() => {
+    const categories = products.map(p => p.category).filter(Boolean) as string[];
+    return Array.from(new Set(categories)).sort();
+  }, [products]);
+
   const availableBrands = useMemo(() => {
     const brands = products.map(p => p.brand).filter(Boolean) as string[];
-    return [...new Set(brands)].sort();
+    return Array.from(new Set(brands)).sort();
   }, [products]);
 
   const availableProductTypes = useMemo(() => {
     const types = products.map(p => p.productType).filter(Boolean) as string[];
-    return [...new Set(types)].sort();
+    return Array.from(new Set(types)).sort();
   }, [products]);
 
   const filteredProducts = useMemo(() => {
@@ -64,22 +60,30 @@ export default function Shop() {
     setProductTypeFilter('all');
   };
 
-  const getCategoryCount = (category: FilterType) => {
+  const getCategoryCount = (category: string) => {
     if (category === 'all') return products.length;
     return products.filter(p => p.category === category).length;
   };
 
-  const currentFilterConfig = filterConfig.find(f => f.key === filter);
+  const getFilterLabel = () => {
+    if (filter === 'all') return 'All Products';
+    return filter.charAt(0).toUpperCase() + filter.slice(1);
+  };
+
+  const getFilterDescription = () => {
+    if (filter === 'all') return 'Browse our complete collection';
+    return `Browse our ${filter.toLowerCase()} products`;
+  };
 
   return (
     <Layout>
       <div className="bg-gradient-to-b from-muted/50 to-background py-16 border-b">
         <div className="container mx-auto px-4">
           <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4" data-testid="shop-title">
-            {currentFilterConfig?.label || 'Shop'}
+            {getFilterLabel()}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl" data-testid="shop-description">
-            {currentFilterConfig?.description}
+            {getFilterDescription()}
           </p>
           {!isLoading && (
             <p className="text-sm text-muted-foreground mt-4" data-testid="product-count">
@@ -92,20 +96,34 @@ export default function Shop() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div className="flex flex-wrap gap-2">
-            {filterConfig.map(({ key, label }) => (
-              <Button 
-                key={key}
-                variant={filter === key ? "default" : "outline"}
-                onClick={() => setFilter(key)}
-                className="rounded-full"
-                data-testid={`filter-${key}`}
+            <Button 
+              variant={filter === 'all' ? "default" : "outline"}
+              onClick={() => setFilter('all')}
+              className="rounded-full"
+              data-testid="filter-all"
+            >
+              All Products
+              <Badge 
+                variant={filter === 'all' ? "secondary" : "outline"} 
+                className="ml-2 text-xs"
               >
-                {label}
+                {products.length}
+              </Badge>
+            </Button>
+            {availableCategories.map((category) => (
+              <Button 
+                key={category}
+                variant={filter === category ? "default" : "outline"}
+                onClick={() => setFilter(category)}
+                className="rounded-full"
+                data-testid={`filter-${category}`}
+              >
+                {category.charAt(0).toUpperCase() + category.slice(1)}
                 <Badge 
-                  variant={filter === key ? "secondary" : "outline"} 
+                  variant={filter === category ? "secondary" : "outline"} 
                   className="ml-2 text-xs"
                 >
-                  {getCategoryCount(key)}
+                  {getCategoryCount(category)}
                 </Badge>
               </Button>
             ))}
