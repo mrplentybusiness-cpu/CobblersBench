@@ -48,12 +48,12 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
             <NavLink href="/shop">Shop</NavLink>
             <NavLink href="/gallery">Gallery</NavLink>
             <NavLink href="/reviews">Reviews</NavLink>
+            <NavLink href="/about">About</NavLink>
             <Button variant="ghost" size="icon" className="text-white/50 hover:text-amber-400 hover:bg-gray-800" asChild data-testid="link-admin-desktop">
               <Link href="/admin">
                 <Lock className="h-4 w-4" strokeWidth={1.5} />
               </Link>
             </Button>
-            {/* <NavLink href="/about">Our Story</NavLink> */}
             <Button variant="ghost" size="icon" className="relative text-white hover:text-amber-400 hover:bg-gray-800" asChild>
               <Link href="/cart">
                 <ShoppingBag className="h-5 w-5" />
@@ -104,6 +104,9 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
                   </Link>
                   <Link href="/reviews" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Reviews
+                  </Link>
+                  <Link href="/about" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
+                    About
                   </Link>
                   <Link href="/cart" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Cart ({cartCount})

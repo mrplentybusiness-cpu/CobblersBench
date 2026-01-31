@@ -18,6 +18,7 @@ import Checkout from "@/pages/Checkout";
 import Confirmation from "@/pages/Confirmation";
 import Compare from "@/pages/Compare";
 import Admin from "@/pages/Admin";
+import About from "@/pages/About";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/confirmation" component={Confirmation} />
       <Route path="/compare" component={Compare} />
+      <Route path="/about" component={About} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>

@@ -19,7 +19,7 @@ Preferred communication style: Simple, everyday language.
 - **Form Handling**: React Hook Form with Zod validation
 - **File Uploads**: Uppy with AWS S3-compatible presigned URL flow
 
-The frontend follows a page-based architecture with shared components. Key pages include Home, Shop, Cart, Checkout, Confirmation, and Admin. The Layout component provides consistent navigation and branding across all public pages.
+The frontend follows a page-based architecture with shared components. Key pages include Home, Shop, Cart, Checkout, Confirmation, About, and Admin. The Layout component provides consistent navigation and branding across all public pages.
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript
