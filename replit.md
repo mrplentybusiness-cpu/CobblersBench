@@ -96,7 +96,15 @@ Customer reviews/testimonials displayed on the homepage:
 Dynamic site content that can be edited via admin portal:
 - **Hero Section**: Title, subtitle, and background image for the homepage hero
 - **About Us Section**: Title, content, and image displayed on the homepage
+- **Value Propositions**: Three value props (titles + descriptions) shown below homepage hero
+- **Homepage CTA**: "Ready to restore your favorites?" call-to-action section
+- **Layout Content**: Header tagline and footer about text
+- **Shop CTA**: "Need Something Custom?" section at bottom of Shop page
+- **Gallery Section**: Gallery page title and description
+- **Services Section**: Services page title and description
+- **Business Info**: Address, phone, and store hours
 - **Database Storage**: `site_content` table stores key-value content blocks
+- **Site Content Keys**: hero, about-us, value-props, homepage-cta, layout, shop-cta, gallery, services, business-info
 - **Admin Tab**: "Site Content" tab in admin dashboard to edit all content sections
 - **Default Fallback**: If content not set, sensible defaults are displayed
 - **Admin Navigation**: Discreet lock icon in header, mobile menu, and footer links to admin portal
