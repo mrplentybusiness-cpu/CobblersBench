@@ -1300,12 +1300,13 @@ export async function registerRoutes(
   // Create/Update site content (admin)
   app.put("/api/site-content/:key", async (req, res) => {
     try {
-      const { title, content, imageUrl } = req.body;
+      const { title, content, imageUrl, imageUrls } = req.body;
       const result = await storage.upsertSiteContent({
         key: req.params.key,
         title: title || null,
         content: content || null,
         imageUrl: imageUrl || null,
+        imageUrls: imageUrls || null,
       });
       res.json(result);
     } catch (error) {
