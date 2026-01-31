@@ -46,16 +46,20 @@ export async function registerRoutes(
   app.post("/api/admin/auth", async (req, res) => {
     try {
       const { password } = req.body;
-      const adminPassword = process.env.ADMIN_PASSWORD;
+      const adminPassword = process.env.ADMIN_PASSWORD?.trim();
       
       if (!adminPassword) {
         console.error("ADMIN_PASSWORD environment variable not set");
         return res.status(500).json({ error: "Admin authentication not configured" });
       }
       
-      if (password === adminPassword) {
+      const trimmedPassword = password?.trim();
+      console.log("[Auth] Password check - received length:", trimmedPassword?.length, "expected length:", adminPassword.length);
+      
+      if (trimmedPassword === adminPassword) {
         res.json({ success: true });
       } else {
+        console.log("[Auth] Password mismatch");
         res.status(401).json({ error: "Invalid password" });
       }
     } catch (error) {
