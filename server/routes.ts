@@ -6,6 +6,7 @@ import { insertProductSchema, insertServiceInquirySchema } from "@shared/schema"
 import { z } from "zod";
 import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
 import { isR2Configured, r2StorageService } from "./r2Storage";
+import { isCloudinaryConfigured, cloudinaryService } from "./cloudinaryStorage";
 import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, type OrderDetails } from "./email";
 
 function sendError(res: Response, status: number, message: string, error: unknown) {
@@ -71,7 +72,87 @@ export async function registerRoutes(
       imgbb: isImgBBConfigured(),
       replitStorage: !!process.env.PRIVATE_OBJECT_DIR || isR2Configured(),
       r2: isR2Configured(),
+      cloudinary: isCloudinaryConfigured(),
     });
+  });
+
+  // Get Cloudinary upload signature
+  app.post("/api/uploads/cloudinary-signature", async (req, res) => {
+    try {
+      if (!isCloudinaryConfigured()) {
+        return res.status(400).json({ error: "Cloudinary not configured" });
+      }
+
+      const { folder } = req.body;
+      const result = await cloudinaryService.getUploadSignature(folder || "cobblers-bench");
+      res.json(result);
+    } catch (error) {
+      console.error("Error getting Cloudinary signature:", error);
+      res.status(500).json({ error: "Failed to get upload signature" });
+    }
+  });
+
+  // Upload image to Cloudinary from base64
+  app.post("/api/uploads/cloudinary", async (req, res) => {
+    try {
+      if (!isCloudinaryConfigured()) {
+        return res.status(400).json({ error: "Cloudinary not configured" });
+      }
+
+      const { image, folder } = req.body;
+      
+      if (!image) {
+        return res.status(400).json({ error: "Missing required field: image (base64)" });
+      }
+
+      const imageUrl = await cloudinaryService.uploadFromBase64(image, folder || "cobblers-bench");
+      res.json({ url: imageUrl });
+    } catch (error) {
+      console.error("Error uploading to Cloudinary:", error);
+      res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+
+  // Upload image to Cloudinary from URL
+  app.post("/api/uploads/cloudinary-url", async (req, res) => {
+    try {
+      if (!isCloudinaryConfigured()) {
+        return res.status(400).json({ error: "Cloudinary not configured" });
+      }
+
+      const { imageUrl, folder } = req.body;
+      
+      if (!imageUrl) {
+        return res.status(400).json({ error: "Missing required field: imageUrl" });
+      }
+
+      const url = await cloudinaryService.uploadFromUrl(imageUrl, folder || "cobblers-bench");
+      res.json({ url });
+    } catch (error) {
+      console.error("Error uploading URL to Cloudinary:", error);
+      res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+
+  // Delete image from Cloudinary
+  app.delete("/api/uploads/cloudinary", async (req, res) => {
+    try {
+      if (!isCloudinaryConfigured()) {
+        return res.status(400).json({ error: "Cloudinary not configured" });
+      }
+
+      const { publicId } = req.body;
+      
+      if (!publicId) {
+        return res.status(400).json({ error: "Missing required field: publicId" });
+      }
+
+      await cloudinaryService.deleteImage(publicId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting from Cloudinary:", error);
+      res.status(500).json({ error: "Failed to delete image" });
+    }
   });
 
   // Get presigned URL for R2 upload

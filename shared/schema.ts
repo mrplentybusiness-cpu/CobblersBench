@@ -221,6 +221,7 @@ export const siteContent = pgTable("site_content", {
   title: text("title"),
   content: text("content"),
   imageUrl: text("image_url"),
+  imageUrls: text("image_urls").array(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

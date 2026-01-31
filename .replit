@@ -51,3 +51,5 @@ integrations = ["javascript_object_storage:2.0.0", "google-mail:1.0.0", "resend:
 
 [userenv.shared]
 R2_PUBLIC_URL = "https://pub-f6599d1fd6174621afcfcb9c0e548516.r2.dev"
+CLOUDINARY_CLOUD_NAME = "dicm5snxa"
+CLOUDINARY_API_KEY = "384915293832891"

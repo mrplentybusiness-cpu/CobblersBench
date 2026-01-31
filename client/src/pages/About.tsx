@@ -1,16 +1,10 @@
 import Layout from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
 import { Hammer, MapPin, Clock, Phone } from "lucide-react";
-
-interface SiteContent {
-  id: number;
-  key: string;
-  value: Record<string, string>;
-  updatedAt: string;
-}
+import type { SiteContent } from "@shared/schema";
 
 export default function About() {
-  const { data: aboutContent } = useQuery<SiteContent>({
+  const { data: aboutContent } = useQuery<SiteContent | null>({
     queryKey: ["/api/site-content/about-us"],
     queryFn: async () => {
       const res = await fetch("/api/site-content/about-us");
@@ -19,16 +13,17 @@ export default function About() {
     },
   });
 
-  const title = aboutContent?.value?.title || "Our Story";
-  const content = aboutContent?.value?.content || "For over 35 years, Cobbler's Bench has been Cape Cod's trusted destination for expert shoe repair and leather restoration. Our skilled craftsmen combine time-honored techniques with modern expertise to breathe new life into your favorite footwear and leather goods.";
-  const imageUrl = aboutContent?.value?.imageUrl || "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800";
+  const title = aboutContent?.title || "Our Story";
+  const content = aboutContent?.content || "For over 35 years, Cobbler's Bench has been Cape Cod's trusted destination for expert shoe repair and leather restoration. Our skilled craftsmen combine time-honored techniques with modern expertise to breathe new life into your favorite footwear and leather goods.";
+  const imageUrls = aboutContent?.imageUrls || [];
+  const heroImage = imageUrls.length > 0 ? imageUrls[0] : "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800";
 
   return (
     <Layout>
       <div className="min-h-screen bg-stone-50">
         <div className="relative h-64 md:h-80 overflow-hidden">
           <img
-            src={imageUrl}
+            src={heroImage}
             alt="About Cobbler's Bench"
             className="w-full h-full object-cover"
           />
@@ -53,6 +48,24 @@ export default function About() {
                 ))}
               </div>
             </div>
+
+            {imageUrls.length > 1 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-serif font-bold text-gray-900 mb-4">Gallery</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {imageUrls.slice(1).map((url, index) => (
+                    <div key={index} className="aspect-square rounded-lg overflow-hidden shadow-sm">
+                      <img
+                        src={url}
+                        alt={`Gallery image ${index + 1}`}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        data-testid={`about-gallery-image-${index}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid md:grid-cols-3 gap-6">
               <div className="bg-white rounded-lg shadow-sm p-6 text-center">

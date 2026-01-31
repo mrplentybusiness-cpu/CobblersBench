@@ -20,6 +20,8 @@ import type { Product, Order, OrderItem, ServiceInquiry, Review, SiteContent } f
 import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploader } from "@/components/ImageUploader";
+import CloudinaryUpload from "@/components/CloudinaryUpload";
+import MultiImageUpload from "@/components/MultiImageUpload";
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -2825,6 +2827,7 @@ function SiteContentManagement({ queryClient, toast }: {
   const [aboutTitle, setAboutTitle] = useState("");
   const [aboutContent, setAboutContent] = useState("");
   const [aboutImageUrl, setAboutImageUrl] = useState("");
+  const [aboutImageUrls, setAboutImageUrls] = useState<string[]>([]);
 
   const [heroTitle, setHeroTitle] = useState("");
   const [heroSubtitle, setHeroSubtitle] = useState("");
@@ -2845,6 +2848,7 @@ function SiteContentManagement({ queryClient, toast }: {
       setAboutTitle(aboutUs.title || '');
       setAboutContent(aboutUs.content || '');
       setAboutImageUrl(aboutUs.imageUrl || '');
+      setAboutImageUrls(aboutUs.imageUrls || []);
     }
     const hero = siteContent.find(c => c.key === 'hero');
     if (hero) {
@@ -2863,6 +2867,7 @@ function SiteContentManagement({ queryClient, toast }: {
           title: aboutTitle,
           content: aboutContent,
           imageUrl: aboutImageUrl || null,
+          imageUrls: aboutImageUrls.length > 0 ? aboutImageUrls : null,
         }),
       });
       if (!response.ok) throw new Error('Failed to save about us content');
@@ -2954,31 +2959,13 @@ function SiteContentManagement({ queryClient, toast }: {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Background Image (Optional)</Label>
-            <div className="flex gap-4 items-start">
-              {heroImageUrl && (
-                <div className="relative w-48 h-24 rounded-lg overflow-hidden border">
-                  <img src={heroImageUrl} alt="Hero background" className="w-full h-full object-cover" />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
-                    onClick={() => setHeroImageUrl('')}
-                    data-testid="button-remove-hero-image"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-              <div className="flex-1">
-                <ImageUploader
-                  onUploadComplete={(url) => setHeroImageUrl(url)}
-                  className="h-24"
-                />
-              </div>
-            </div>
-          </div>
+          <CloudinaryUpload
+            value={heroImageUrl}
+            onChange={setHeroImageUrl}
+            folder="cobblers-bench/hero"
+            label="Background Image (Optional)"
+            testId="hero-image"
+          />
 
           <div className="flex gap-4 pt-4">
             <Button 
@@ -3040,31 +3027,14 @@ function SiteContentManagement({ queryClient, toast }: {
             <p className="text-xs text-muted-foreground">Use line breaks to create separate paragraphs.</p>
           </div>
 
-          <div className="space-y-2">
-            <Label>Image (Optional)</Label>
-            <div className="flex gap-4 items-start">
-              {aboutImageUrl && (
-                <div className="relative w-32 h-32 rounded-lg overflow-hidden border">
-                  <img src={aboutImageUrl} alt="About Us" className="w-full h-full object-cover" />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
-                    onClick={() => setAboutImageUrl('')}
-                    data-testid="button-remove-about-image"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-              <div className="flex-1">
-                <ImageUploader
-                  onUploadComplete={(url) => setAboutImageUrl(url)}
-                  className="h-32"
-                />
-              </div>
-            </div>
-          </div>
+          <MultiImageUpload
+            values={aboutImageUrls}
+            onChange={setAboutImageUrls}
+            folder="cobblers-bench/about"
+            label="Images (Multiple allowed - will display in a gallery)"
+            maxImages={10}
+            testId="about-images"
+          />
 
           <div className="flex gap-4 pt-4">
             <Button 
@@ -3074,13 +3044,14 @@ function SiteContentManagement({ queryClient, toast }: {
             >
               {saveAboutUsMutation.isPending ? 'Saving...' : 'Save About Us'}
             </Button>
-            {(aboutTitle || aboutContent || aboutImageUrl) && (
+            {(aboutTitle || aboutContent || aboutImageUrls.length > 0) && (
               <Button 
                 variant="outline"
                 onClick={() => {
                   setAboutTitle('');
                   setAboutContent('');
                   setAboutImageUrl('');
+                  setAboutImageUrls([]);
                 }}
                 data-testid="button-clear-about-us"
               >
