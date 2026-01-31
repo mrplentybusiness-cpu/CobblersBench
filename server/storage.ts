@@ -1,4 +1,4 @@
-import { eq, desc, and, not, or, isNull } from "drizzle-orm";
+import { eq, desc, and, not, or, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
@@ -94,6 +94,7 @@ export interface IStorage {
   // Admin Settings
   getAdminSetting(key: string): Promise<string | undefined>;
   setAdminSetting(key: string, value: string): Promise<void>;
+  clearAdminPasswordSettings(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -726,6 +727,15 @@ export class DatabaseStorage implements IStorage {
         .insert(schema.adminSettings)
         .values({ key, value });
     }
+  }
+
+  async clearAdminPasswordSettings(): Promise<void> {
+    await this.getDb()
+      .delete(schema.adminSettings)
+      .where(
+        sql`${schema.adminSettings.key} IN ('admin_password_hash', 'admin_password_salt')`
+      );
+    console.log("[Auth] Cleared stored admin password - using environment variable");
   }
 }
 

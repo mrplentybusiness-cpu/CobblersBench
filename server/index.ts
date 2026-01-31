@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
@@ -114,6 +115,9 @@ httpServer.listen(
 // Then do async setup (database, routes, and in development: Vite)
 (async () => {
   await registerRoutes(httpServer, app);
+  
+  // Clear any stored admin passwords on startup to ensure ADMIN_PASSWORD env var is used
+  await storage.clearAdminPasswordSettings();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
