@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useCart } from "@/lib/store";
-import { ShoppingBag, Menu, Hammer } from "lucide-react";
+import { ShoppingBag, Menu, Hammer, Lock } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -48,7 +48,11 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
             <NavLink href="/shop">Shop</NavLink>
             <NavLink href="/gallery">Gallery</NavLink>
             <NavLink href="/reviews">Reviews</NavLink>
-            <NavLink href="/admin">Admin</NavLink>
+            <Button variant="ghost" size="icon" className="text-white/50 hover:text-amber-400 hover:bg-gray-800" asChild>
+              <Link href="/admin">
+                <Lock className="h-4 w-4" strokeWidth={1.5} />
+              </Link>
+            </Button>
             {/* <NavLink href="/about">Our Story</NavLink> */}
             <Button variant="ghost" size="icon" className="relative text-white hover:text-amber-400 hover:bg-gray-800" asChild>
               <Link href="/cart">
@@ -104,8 +108,8 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
                   <Link href="/cart" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Cart ({cartCount})
                   </Link>
-                  <Link href="/admin" className="text-sm text-muted-foreground mt-4" onClick={() => setIsMobileOpen(false)}>
-                     Admin Login
+                  <Link href="/admin" className="flex items-center gap-2 text-sm text-muted-foreground mt-4" onClick={() => setIsMobileOpen(false)}>
+                    <Lock className="h-4 w-4" strokeWidth={1.5} />
                   </Link>
                 </div>
               </SheetContent>
@@ -149,7 +153,9 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
         </div>
         <div className="container mx-auto px-4 mt-8 pt-8 border-t border-primary-foreground/20 flex flex-col md:flex-row justify-between items-center text-xs text-primary-foreground/60">
           <span>© {new Date().getFullYear()} Cobbler's Bench. All rights reserved.</span>
-          <Link href="/admin" className="hover:text-primary-foreground transition-colors mt-2 md:mt-0">Admin Login</Link>
+          <Link href="/admin" className="hover:text-primary-foreground transition-colors mt-2 md:mt-0 flex items-center gap-1">
+            <Lock className="h-3 w-3" strokeWidth={1.5} />
+          </Link>
         </div>
       </footer>
     </div>
