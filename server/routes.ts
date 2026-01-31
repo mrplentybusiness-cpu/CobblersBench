@@ -64,26 +64,15 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Password is required" });
       }
       
-      // Check database for custom password first
-      const storedHash = await storage.getAdminSetting("admin_password_hash");
-      const storedSalt = await storage.getAdminSetting("admin_password_salt");
+      // Use environment variable for authentication
+      const adminPassword = process.env.ADMIN_PASSWORD?.trim();
+      if (!adminPassword) {
+        console.error("ADMIN_PASSWORD environment variable not set");
+        return res.status(500).json({ error: "Admin authentication not configured" });
+      }
       
-      if (storedHash && storedSalt) {
-        // Verify against database password
-        if (verifyPassword(trimmedPassword, storedHash, storedSalt)) {
-          return res.json({ success: true });
-        }
-      } else {
-        // Fall back to environment variable
-        const adminPassword = process.env.ADMIN_PASSWORD?.trim();
-        if (!adminPassword) {
-          console.error("ADMIN_PASSWORD environment variable not set");
-          return res.status(500).json({ error: "Admin authentication not configured" });
-        }
-        
-        if (trimmedPassword === adminPassword) {
-          return res.json({ success: true });
-        }
+      if (trimmedPassword === adminPassword) {
+        return res.json({ success: true });
       }
       
       console.log("[Auth] Password mismatch");
