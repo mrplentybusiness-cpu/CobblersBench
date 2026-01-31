@@ -1,5 +1,6 @@
 import Layout from "@/components/Layout";
 import ProductCard from "@/components/ProductCard";
+import QuickViewDialog from "@/components/QuickViewDialog";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,13 @@ export default function Shop() {
   const [brandFilter, setBrandFilter] = useState<string>('all');
   const [productTypeFilter, setProductTypeFilter] = useState<string>('all');
   const [gridSize, setGridSize] = useState<'normal' | 'large'>('normal');
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [quickViewOpen, setQuickViewOpen] = useState(false);
+
+  const handleQuickView = (product: Product) => {
+    setQuickViewProduct(product);
+    setQuickViewOpen(true);
+  };
 
   const { data: products = [], isLoading, error } = useQuery<Product[]>({
     queryKey: ['/api/products/active'],
@@ -243,7 +251,7 @@ export default function Shop() {
                 }`}
               >
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} onQuickView={handleQuickView} />
                 ))}
               </div>
             )}
@@ -265,6 +273,12 @@ export default function Shop() {
           </div>
         )}
       </div>
+
+      <QuickViewDialog 
+        product={quickViewProduct} 
+        open={quickViewOpen} 
+        onOpenChange={setQuickViewOpen} 
+      />
     </Layout>
   );
 }

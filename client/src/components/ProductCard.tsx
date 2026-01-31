@@ -4,10 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart, useCompare } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
-import { ImageOff, ShoppingBag, GitCompareArrows, Check } from "lucide-react";
+import { ImageOff, ShoppingBag, GitCompareArrows, Check, Eye } from "lucide-react";
 import { Link } from "wouter";
 
-export default function ProductCard({ product }: { product: Product }) {
+interface ProductCardProps {
+  product: Product;
+  onQuickView?: (product: Product) => void;
+}
+
+export default function ProductCard({ product, onQuickView }: ProductCardProps) {
   const addToCart = useCart((state) => state.addToCart);
   const { addToCompare, removeFromCompare, isInCompare, canAddMore } = useCompare();
   const inCompare = isInCompare(product.id);
@@ -48,6 +53,12 @@ export default function ProductCard({ product }: { product: Product }) {
     }
   };
 
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onQuickView?.(product);
+  };
+
   const hasComparePrice = product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price);
   const savingsPercent = hasComparePrice 
     ? Math.round((1 - parseFloat(product.price) / parseFloat(product.compareAtPrice!)) * 100)
@@ -62,7 +73,7 @@ export default function ProductCard({ product }: { product: Product }) {
           </Badge>
         )}
         
-        <div className="aspect-square w-full overflow-hidden bg-muted">
+        <div className="aspect-square w-full overflow-hidden bg-muted relative">
           {imageError ? (
             <div className="h-full w-full flex items-center justify-center bg-muted text-muted-foreground">
               <ImageOff className="h-12 w-12" />
@@ -75,6 +86,34 @@ export default function ProductCard({ product }: { product: Product }) {
               data-testid={`product-image-${product.id}`}
               onError={() => setImageError(true)}
             />
+          )}
+          
+          {onQuickView && (
+            <Button
+              onClick={handleQuickView}
+              variant="secondary"
+              size="icon"
+              className="absolute top-3 right-3 z-10 h-9 w-9 shadow-lg opacity-0 group-hover:opacity-100 md:opacity-0 transition-opacity focus:opacity-100"
+              data-testid={`button-quick-view-${product.id}`}
+              title="Quick View"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {onQuickView && (
+            <div className="absolute bottom-3 left-3 right-3 md:hidden">
+              <Button
+                onClick={handleQuickView}
+                variant="secondary"
+                size="sm"
+                className="w-full shadow-lg text-xs"
+                data-testid={`button-quick-view-mobile-${product.id}`}
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                Quick View
+              </Button>
+            </div>
           )}
         </div>
         
