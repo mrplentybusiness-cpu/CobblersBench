@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import type { Product } from "@shared/schema";
+import type { Product, SiteContent } from "@shared/schema";
 import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
 import { Loader2, Grid3X3, LayoutGrid, X, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,6 +28,16 @@ export default function Shop() {
     queryFn: async () => {
       const response = await fetch('/api/products/active');
       if (!response.ok) throw new Error('Failed to fetch products');
+      return response.json();
+    },
+  });
+
+  const { data: shopCta } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/shop-cta'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/shop-cta');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch shop CTA');
       return response.json();
     },
   });
@@ -260,10 +270,11 @@ export default function Shop() {
 
         {!isLoading && !error && filteredProducts.length > 0 && (
           <div className="mt-16 py-12 border-t text-center">
-            <h2 className="font-serif text-2xl font-semibold mb-4">Need Something Custom?</h2>
+            <h2 className="font-serif text-2xl font-semibold mb-4">
+              {shopCta?.title || "Need Something Custom?"}
+            </h2>
             <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-              We specialize in custom leather work and specialty repairs. 
-              Contact us to discuss your unique project.
+              {shopCta?.content || "We specialize in custom leather work and specialty repairs. Contact us to discuss your unique project."}
             </p>
             <Button variant="outline" size="lg" asChild>
               <a href="tel:+15087756221" data-testid="button-call-us">

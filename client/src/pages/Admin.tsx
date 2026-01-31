@@ -2873,6 +2873,9 @@ function SiteContentManagement({ queryClient, toast }: {
   const [layoutTagline, setLayoutTagline] = useState("");
   const [footerAbout, setFooterAbout] = useState("");
 
+  const [shopCtaTitle, setShopCtaTitle] = useState("");
+  const [shopCtaDescription, setShopCtaDescription] = useState("");
+
   const { data: siteContent = [], isLoading } = useQuery<SiteContent[]>({
     queryKey: ['/api/site-content'],
     queryFn: async () => {
@@ -2933,6 +2936,11 @@ function SiteContentManagement({ queryClient, toast }: {
     if (layout) {
       setLayoutTagline(layout.title || '');
       setFooterAbout(layout.content || '');
+    }
+    const shopCta = siteContent.find(c => c.key === 'shop-cta');
+    if (shopCta) {
+      setShopCtaTitle(shopCta.title || '');
+      setShopCtaDescription(shopCta.content || '');
     }
   }, [siteContent]);
 
@@ -3170,6 +3178,35 @@ function SiteContentManagement({ queryClient, toast }: {
       toast({
         title: "Error",
         description: "Failed to save layout content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveShopCtaMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/shop-cta', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: shopCtaTitle,
+          content: shopCtaDescription,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save shop CTA content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "Shop CTA content has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save shop CTA content. Please try again.",
         variant: "destructive",
       });
     },
@@ -3636,6 +3673,45 @@ function SiteContentManagement({ queryClient, toast }: {
               disabled={saveLayoutMutation.isPending}
             >
               {saveLayoutMutation.isPending ? 'Saving...' : 'Save Layout Content'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Shop Page CTA Section
+          </CardTitle>
+          <CardDescription>
+            Edit the "Need Something Custom?" call-to-action section at the bottom of the Shop page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>CTA Title</Label>
+            <Input
+              placeholder="Need Something Custom?"
+              value={shopCtaTitle}
+              onChange={(e) => setShopCtaTitle(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>CTA Description</Label>
+            <Textarea
+              placeholder="We specialize in custom leather work and specialty repairs..."
+              value={shopCtaDescription}
+              onChange={(e) => setShopCtaDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveShopCtaMutation.mutate()}
+              disabled={saveShopCtaMutation.isPending}
+            >
+              {saveShopCtaMutation.isPending ? 'Saving...' : 'Save Shop CTA'}
             </Button>
           </div>
         </CardContent>
