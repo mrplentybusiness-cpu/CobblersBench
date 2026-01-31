@@ -2860,6 +2860,19 @@ function SiteContentManagement({ queryClient, toast }: {
   const [servicesDescription, setServicesDescription] = useState("");
   const [servicesImages, setServicesImages] = useState<string[]>([]);
 
+  const [valueProp1Title, setValueProp1Title] = useState("");
+  const [valueProp1Desc, setValueProp1Desc] = useState("");
+  const [valueProp2Title, setValueProp2Title] = useState("");
+  const [valueProp2Desc, setValueProp2Desc] = useState("");
+  const [valueProp3Title, setValueProp3Title] = useState("");
+  const [valueProp3Desc, setValueProp3Desc] = useState("");
+
+  const [ctaTitle, setCtaTitle] = useState("");
+  const [ctaDescription, setCtaDescription] = useState("");
+
+  const [layoutTagline, setLayoutTagline] = useState("");
+  const [footerAbout, setFooterAbout] = useState("");
+
   const { data: siteContent = [], isLoading } = useQuery<SiteContent[]>({
     queryKey: ['/api/site-content'],
     queryFn: async () => {
@@ -2900,6 +2913,26 @@ function SiteContentManagement({ queryClient, toast }: {
       setServicesTitle(services.title || '');
       setServicesDescription(services.content || '');
       setServicesImages(services.imageUrls || []);
+    }
+    const valueProps = siteContent.find(c => c.key === 'value-props');
+    if (valueProps) {
+      const props = valueProps.imageUrls || [];
+      setValueProp1Title(props[0] || '');
+      setValueProp1Desc(props[1] || '');
+      setValueProp2Title(props[2] || '');
+      setValueProp2Desc(props[3] || '');
+      setValueProp3Title(props[4] || '');
+      setValueProp3Desc(props[5] || '');
+    }
+    const cta = siteContent.find(c => c.key === 'homepage-cta');
+    if (cta) {
+      setCtaTitle(cta.title || '');
+      setCtaDescription(cta.content || '');
+    }
+    const layout = siteContent.find(c => c.key === 'layout');
+    if (layout) {
+      setLayoutTagline(layout.title || '');
+      setFooterAbout(layout.content || '');
     }
   }, [siteContent]);
 
@@ -3049,6 +3082,94 @@ function SiteContentManagement({ queryClient, toast }: {
       toast({
         title: "Error",
         description: "Failed to save services content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveValuePropsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/value-props', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Value Props',
+          content: '',
+          imageUrls: [valueProp1Title, valueProp1Desc, valueProp2Title, valueProp2Desc, valueProp3Title, valueProp3Desc],
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save value props');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "Value propositions have been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save value props. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveCtaMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/homepage-cta', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: ctaTitle,
+          content: ctaDescription,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save CTA content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "CTA section has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save CTA content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveLayoutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/layout', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: layoutTagline,
+          content: footerAbout,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save layout content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "Layout content has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save layout content. Please try again.",
         variant: "destructive",
       });
     },
@@ -3371,6 +3492,150 @@ function SiteContentManagement({ queryClient, toast }: {
               data-testid="button-save-services"
             >
               {saveServicesMutation.isPending ? 'Saving...' : 'Save Services'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Homepage Value Propositions
+          </CardTitle>
+          <CardDescription>
+            Edit the three value propositions that appear below the hero on the homepage (Master Craftsmanship, Quality Materials, Quick Turnaround).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label>Value Prop 1 Title</Label>
+              <Input
+                placeholder="Master Craftsmanship"
+                value={valueProp1Title}
+                onChange={(e) => setValueProp1Title(e.target.value)}
+              />
+              <Textarea
+                placeholder="Over 40 years of experience..."
+                value={valueProp1Desc}
+                onChange={(e) => setValueProp1Desc(e.target.value)}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Value Prop 2 Title</Label>
+              <Input
+                placeholder="Quality Materials"
+                value={valueProp2Title}
+                onChange={(e) => setValueProp2Title(e.target.value)}
+              />
+              <Textarea
+                placeholder="We use only premium leathers..."
+                value={valueProp2Desc}
+                onChange={(e) => setValueProp2Desc(e.target.value)}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Value Prop 3 Title</Label>
+              <Input
+                placeholder="Quick Turnaround"
+                value={valueProp3Title}
+                onChange={(e) => setValueProp3Title(e.target.value)}
+              />
+              <Textarea
+                placeholder="Most repairs completed within..."
+                value={valueProp3Desc}
+                onChange={(e) => setValueProp3Desc(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveValuePropsMutation.mutate()}
+              disabled={saveValuePropsMutation.isPending}
+            >
+              {saveValuePropsMutation.isPending ? 'Saving...' : 'Save Value Props'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Homepage CTA Section
+          </CardTitle>
+          <CardDescription>
+            Edit the "Ready to restore your favorites?" call-to-action section at the bottom of the homepage.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>CTA Title</Label>
+            <Input
+              placeholder="Ready to restore your favorites?"
+              value={ctaTitle}
+              onChange={(e) => setCtaTitle(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>CTA Description</Label>
+            <Textarea
+              placeholder="Don't throw away quality footwear..."
+              value={ctaDescription}
+              onChange={(e) => setCtaDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveCtaMutation.mutate()}
+              disabled={saveCtaMutation.isPending}
+            >
+              {saveCtaMutation.isPending ? 'Saving...' : 'Save CTA Section'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Layout (Header & Footer)
+          </CardTitle>
+          <CardDescription>
+            Edit the tagline in the header and the about text in the footer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Header Tagline</Label>
+            <Input
+              placeholder="We doctor your shoes and save your sole."
+              value={layoutTagline}
+              onChange={(e) => setLayoutTagline(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Footer About Text</Label>
+            <Textarea
+              placeholder="Restoring your favorite footsteps since 1985..."
+              value={footerAbout}
+              onChange={(e) => setFooterAbout(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveLayoutMutation.mutate()}
+              disabled={saveLayoutMutation.isPending}
+            >
+              {saveLayoutMutation.isPending ? 'Saving...' : 'Save Layout Content'}
             </Button>
           </div>
         </CardContent>

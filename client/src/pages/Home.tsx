@@ -47,6 +47,34 @@ export default function Home() {
     },
   });
 
+  const { data: valueProps } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/value-props'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/value-props');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch value props');
+      return response.json();
+    },
+  });
+
+  const { data: ctaContent } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/homepage-cta'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/homepage-cta');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch CTA content');
+      return response.json();
+    },
+  });
+
+  const props = valueProps?.imageUrls || [];
+  const valueProp1Title = props[0] || "Master Craftsmanship";
+  const valueProp1Desc = props[1] || "Over 40 years of experience in traditional shoe making and repair.";
+  const valueProp2Title = props[2] || "Quality Materials";
+  const valueProp2Desc = props[3] || "We use only premium leathers and durable Vibram soles.";
+  const valueProp3Title = props[4] || "Quick Turnaround";
+  const valueProp3Desc = props[5] || "Most repairs completed within 3-5 business days.";
+
   const testimonials = featuredReviews.slice(0, 3);
   
   const featuredProducts = products.slice(0, 3);
@@ -87,22 +115,22 @@ export default function Home() {
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
                 <Star className="h-6 w-6" />
               </div>
-              <h3 className="font-serif text-xl font-bold mb-2">Master Craftsmanship</h3>
-              <p className="text-muted-foreground">Over 40 years of experience in traditional shoe making and repair.</p>
+              <h3 className="font-serif text-xl font-bold mb-2">{valueProp1Title}</h3>
+              <p className="text-muted-foreground">{valueProp1Desc}</p>
             </div>
             <div className="flex flex-col items-center p-6 rounded-xl bg-secondary/20">
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
                 <ShieldCheck className="h-6 w-6" />
               </div>
-              <h3 className="font-serif text-xl font-bold mb-2">Quality Materials</h3>
-              <p className="text-muted-foreground">We use only premium leathers and durable Vibram soles.</p>
+              <h3 className="font-serif text-xl font-bold mb-2">{valueProp2Title}</h3>
+              <p className="text-muted-foreground">{valueProp2Desc}</p>
             </div>
             <div className="flex flex-col items-center p-6 rounded-xl bg-secondary/20">
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
                 <Clock className="h-6 w-6" />
               </div>
-              <h3 className="font-serif text-xl font-bold mb-2">Quick Turnaround</h3>
-              <p className="text-muted-foreground">Most repairs completed within 3-5 business days.</p>
+              <h3 className="font-serif text-xl font-bold mb-2">{valueProp3Title}</h3>
+              <p className="text-muted-foreground">{valueProp3Desc}</p>
             </div>
           </div>
         </div>
@@ -210,9 +238,11 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-24 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="font-serif text-3xl md:text-5xl font-bold mb-6">Ready to restore your favorites?</h2>
+          <h2 className="font-serif text-3xl md:text-5xl font-bold mb-6">
+            {ctaContent?.title || "Ready to restore your favorites?"}
+          </h2>
           <p className="text-primary-foreground/80 max-w-xl mx-auto mb-10 text-lg">
-            Don't throw away quality footwear. Give them a second life with our expert repair services.
+            {ctaContent?.content || "Don't throw away quality footwear. Give them a second life with our expert repair services."}
           </p>
           <Button size="lg" className="bg-background text-foreground hover:bg-background/90 text-lg px-8" asChild>
             <Link href="/services">

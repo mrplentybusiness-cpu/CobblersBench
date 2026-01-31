@@ -30,6 +30,19 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: layoutContent } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/layout"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/layout");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const tagline = layoutContent?.title || '"We doctor your shoes and save your sole."';
+  const footerAbout = layoutContent?.content || "Restoring your favorite footsteps since 1985. We combine traditional craftsmanship with modern care to bring your leather goods back to life.";
+
   const streetAddress = businessInfo?.title || "1600 Falmouth Rd";
   const cityStateZip = businessInfo?.content || "Centerville, MA 02632";
   const phone = businessInfo?.imageUrl || "+1 (508) 775-6221";
@@ -55,7 +68,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
               />
             </div>
           </Link>
-          <span className="hidden lg:block text-sm italic text-amber-300/90 ml-4">"We doctor your shoes and save your sole."</span>
+          <span className="hidden lg:block text-sm italic text-amber-300/90 ml-4">{tagline}</span>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
@@ -151,7 +164,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
               <Hammer className="h-5 w-5" /> Cobbler's Bench
             </h3>
             <p className="text-primary-foreground/80 text-sm max-w-xs">
-              Restoring your favorite footsteps since 1985. We combine traditional craftsmanship with modern care to bring your leather goods back to life.
+              {footerAbout}
             </p>
           </div>
           <div>
