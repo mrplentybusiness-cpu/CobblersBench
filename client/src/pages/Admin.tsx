@@ -3162,13 +3162,21 @@ function SiteContentManagement({ queryClient, toast }: {
             <p className="text-xs text-muted-foreground">Use line breaks to create separate paragraphs.</p>
           </div>
 
+          <CloudinaryUpload
+            value={aboutImageUrl}
+            onChange={setAboutImageUrl}
+            folder="cobblers-bench/about"
+            label="Banner Image (displays at top of About page)"
+            testId="about-banner-image"
+          />
+
           <MultiImageUpload
             values={aboutImageUrls}
             onChange={setAboutImageUrls}
             folder="cobblers-bench/about"
-            label="Images (Multiple allowed - will display in a gallery)"
+            label="Gallery Images (Optional - displays below the About content)"
             maxImages={10}
-            testId="about-images"
+            testId="about-gallery-images"
           />
 
           <div className="flex gap-4 pt-4">

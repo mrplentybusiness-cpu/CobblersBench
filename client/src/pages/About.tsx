@@ -24,8 +24,8 @@ export default function About() {
 
   const title = aboutContent?.title || "Our Story";
   const content = aboutContent?.content || "For over 35 years, Cobbler's Bench has been Cape Cod's trusted destination for expert shoe repair and leather restoration. Our skilled craftsmen combine time-honored techniques with modern expertise to breathe new life into your favorite footwear and leather goods.";
-  const imageUrls = aboutContent?.imageUrls || [];
-  const heroImage = imageUrls.length > 0 ? imageUrls[0] : "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800";
+  const heroImage = aboutContent?.imageUrl || "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800";
+  const galleryImages = aboutContent?.imageUrls || [];
 
   const streetAddress = businessInfo?.title || "1600 Falmouth Rd";
   const cityStateZip = businessInfo?.content || "Centerville, MA 02632";
@@ -63,11 +63,11 @@ export default function About() {
               </div>
             </div>
 
-            {imageUrls.length > 1 && (
+            {galleryImages.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-xl font-serif font-bold text-gray-900 mb-4">Gallery</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {imageUrls.slice(1).map((url, index) => (
+                  {galleryImages.map((url, index) => (
                     <div key={index} className="aspect-square rounded-lg overflow-hidden shadow-sm">
                       <img
                         src={url}
