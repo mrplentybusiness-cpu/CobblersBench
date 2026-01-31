@@ -2960,7 +2960,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "About Us section has been updated successfully.",
@@ -2990,7 +2992,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "Hero section has been updated successfully.",
@@ -3021,7 +3025,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "Business info has been updated successfully.",
@@ -3050,7 +3056,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "Gallery section has been updated successfully.",
@@ -3080,7 +3088,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "Services section has been updated successfully.",
@@ -3110,7 +3120,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "Value propositions have been updated successfully.",
@@ -3139,7 +3151,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "CTA section has been updated successfully.",
@@ -3168,7 +3182,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "Layout content has been updated successfully.",
@@ -3197,7 +3213,9 @@ function SiteContentManagement({ queryClient, toast }: {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
       toast({
         title: "Content Saved",
         description: "Shop CTA content has been updated successfully.",
