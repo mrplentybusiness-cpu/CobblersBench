@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import logo from "@assets/Cobbler's_Bench_Logo_1767715154008.png";
 import CompareTray from "@/components/CompareTray";
+import { useQuery } from "@tanstack/react-query";
+import type { SiteContent } from "@shared/schema";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +19,21 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
   const cartItems = useCart((state) => state.items);
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const { data: businessInfo } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/business-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/business-info");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const streetAddress = businessInfo?.title || "1600 Falmouth Rd";
+  const cityStateZip = businessInfo?.content || "Centerville, MA 02632";
+  const phone = businessInfo?.imageUrl || "+1 (508) 775-6221";
+  const hours = businessInfo?.imageUrls || ["Mon - Fri: 8:00 AM – 4:00 PM", "Sat: 8:00 AM – 12:00 PM", "Sun: Closed"];
 
   const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
     <Link href={href} className={`text-sm font-semibold uppercase tracking-wide transition-colors hover:text-amber-400 ${location === href ? "text-amber-400" : "text-white"}`}>
@@ -139,18 +156,18 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
           </div>
           <div>
             <h4 className="font-bold mb-4">Visit Us</h4>
-            <p className="text-sm text-primary-foreground/80">
-              1600 Falmouth Rd<br />
-              Centerville, MA 02632<br />
-              +1 (508) 775-6221
+            <p className="text-sm text-primary-foreground/80" data-testid="footer-address">
+              {streetAddress}<br />
+              {cityStateZip}<br />
+              {phone}
             </p>
           </div>
           <div>
             <h4 className="font-bold mb-4">Hours</h4>
-            <p className="text-sm text-primary-foreground/80">
-              Mon - Fri: 8:00 AM – 4:00 PM<br />
-              Sat: 8:00 AM – 12:00 PM<br />
-              Sun: Closed
+            <p className="text-sm text-primary-foreground/80" data-testid="footer-hours">
+              {hours.map((line, i) => (
+                <span key={i}>{line}{i < hours.length - 1 && <br />}</span>
+              ))}
             </p>
           </div>
         </div>

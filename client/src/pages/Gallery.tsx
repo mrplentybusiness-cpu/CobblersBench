@@ -1,6 +1,6 @@
 import Layout from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
-import type { Product } from "@shared/schema";
+import type { Product, SiteContent } from "@shared/schema";
 import { Loader2, Store, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,32 @@ export default function Gallery() {
     },
   });
 
+  const { data: galleryContent } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/gallery'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/gallery');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch gallery content');
+      return response.json();
+    },
+  });
+
+  const { data: businessInfo } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/business-info'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/business-info');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch business info');
+      return response.json();
+    },
+  });
+
+  const title = galleryContent?.title || "In-Store Gallery";
+  const description = galleryContent?.content || "Browse our exclusive collection of handcrafted leather goods and specialty items. These unique pieces are available for purchase in-store only.";
+  const address = businessInfo?.title && businessInfo?.content 
+    ? `${businessInfo.title}, ${businessInfo.content}` 
+    : "1600 Falmouth Rd, Centerville, MA 02632";
+
   return (
     <Layout>
       <div className="bg-gradient-to-b from-amber-50 to-background py-16 border-b">
@@ -22,16 +48,15 @@ export default function Gallery() {
           <div className="flex items-center gap-3 mb-4">
             <Store className="h-8 w-8 text-amber-600" />
             <h1 className="font-serif text-4xl md:text-5xl font-bold" data-testid="gallery-title">
-              In-Store Gallery
+              {title}
             </h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mb-4" data-testid="gallery-description">
-            Browse our exclusive collection of handcrafted leather goods and specialty items. 
-            These unique pieces are available for purchase in-store only.
+            {description}
           </p>
           <div className="flex items-center gap-2 text-amber-700 bg-amber-100 rounded-lg px-4 py-3 w-fit">
             <MapPin className="h-5 w-5" />
-            <span className="font-medium">Visit us: 1600 Falmouth Rd, Centerville, MA 02632</span>
+            <span className="font-medium">Visit us: {address}</span>
           </div>
         </div>
       </div>
@@ -80,32 +105,17 @@ export default function Gallery() {
                     <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
                       {product.description}
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-amber-700">
-                        ${parseFloat(product.price).toFixed(2)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        Visit store to purchase
-                      </span>
-                    </div>
+                    {product.price && (
+                      <p className="text-lg font-bold text-primary">
+                        ${Number(product.price).toFixed(2)}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
           </>
         )}
-
-        <div className="mt-16 bg-muted/50 rounded-2xl p-8 text-center">
-          <h2 className="font-serif text-2xl font-bold mb-3">Visit Our Shop</h2>
-          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            Stop by to see these beautiful pieces in person. Our craftsmen are happy to answer 
-            any questions and help you find the perfect item.
-          </p>
-          <div className="space-y-2 text-sm">
-            <p><strong>Address:</strong> 1600 Falmouth Rd, Centerville, MA 02632</p>
-            <p><strong>Hours:</strong> Mon-Fri 8AM-4PM, Sat 8AM-12PM</p>
-          </div>
-        </div>
       </div>
     </Layout>
   );

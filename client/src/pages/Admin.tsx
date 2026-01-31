@@ -2833,6 +2833,18 @@ function SiteContentManagement({ queryClient, toast }: {
   const [heroSubtitle, setHeroSubtitle] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
 
+  const [businessAddress, setBusinessAddress] = useState("");
+  const [businessCity, setBusinessCity] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessHours, setBusinessHours] = useState("");
+
+  const [galleryTitle, setGalleryTitle] = useState("");
+  const [galleryDescription, setGalleryDescription] = useState("");
+
+  const [servicesTitle, setServicesTitle] = useState("");
+  const [servicesDescription, setServicesDescription] = useState("");
+  const [servicesImages, setServicesImages] = useState<string[]>([]);
+
   const { data: siteContent = [], isLoading } = useQuery<SiteContent[]>({
     queryKey: ['/api/site-content'],
     queryFn: async () => {
@@ -2855,6 +2867,24 @@ function SiteContentManagement({ queryClient, toast }: {
       setHeroTitle(hero.title || '');
       setHeroSubtitle(hero.content || '');
       setHeroImageUrl(hero.imageUrl || '');
+    }
+    const business = siteContent.find(c => c.key === 'business-info');
+    if (business) {
+      setBusinessAddress(business.title || '');
+      setBusinessCity(business.content || '');
+      setBusinessPhone(business.imageUrl || '');
+      setBusinessHours((business.imageUrls || []).join('\n'));
+    }
+    const gallery = siteContent.find(c => c.key === 'gallery');
+    if (gallery) {
+      setGalleryTitle(gallery.title || '');
+      setGalleryDescription(gallery.content || '');
+    }
+    const services = siteContent.find(c => c.key === 'services');
+    if (services) {
+      setServicesTitle(services.title || '');
+      setServicesDescription(services.content || '');
+      setServicesImages(services.imageUrls || []);
     }
   }, [siteContent]);
 
@@ -2914,6 +2944,96 @@ function SiteContentManagement({ queryClient, toast }: {
       toast({
         title: "Error",
         description: "Failed to save content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveBusinessInfoMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/business-info', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: businessAddress,
+          content: businessCity,
+          imageUrl: businessPhone,
+          imageUrls: businessHours.split('\n').filter(h => h.trim()),
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save business info');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "Business info has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save business info. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveGalleryMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/gallery', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: galleryTitle,
+          content: galleryDescription,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save gallery content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "Gallery section has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save gallery content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveServicesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: servicesTitle,
+          content: servicesDescription,
+          imageUrls: servicesImages.length > 0 ? servicesImages : null,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save services content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "Services section has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save services content. Please try again.",
         variant: "destructive",
       });
     },
@@ -3062,9 +3182,180 @@ function SiteContentManagement({ queryClient, toast }: {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Business Information
+          </CardTitle>
+          <CardDescription>
+            Edit business address, phone, and hours. This information appears across the site.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="businessAddress">Street Address</Label>
+              <Input
+                id="businessAddress"
+                placeholder="1600 Falmouth Rd"
+                value={businessAddress}
+                onChange={(e) => setBusinessAddress(e.target.value)}
+                data-testid="input-business-address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="businessCity">City, State, Zip</Label>
+              <Input
+                id="businessCity"
+                placeholder="Centerville, MA 02632"
+                value={businessCity}
+                onChange={(e) => setBusinessCity(e.target.value)}
+                data-testid="input-business-city"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="businessPhone">Phone Number</Label>
+            <Input
+              id="businessPhone"
+              placeholder="(508) 775-6221"
+              value={businessPhone}
+              onChange={(e) => setBusinessPhone(e.target.value)}
+              data-testid="input-business-phone"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="businessHours">Business Hours</Label>
+            <Textarea
+              id="businessHours"
+              placeholder="Mon - Fri: 8AM - 4PM&#10;Sat: 8AM - 12PM&#10;Sun: Closed"
+              rows={4}
+              value={businessHours}
+              onChange={(e) => setBusinessHours(e.target.value)}
+              data-testid="input-business-hours"
+            />
+            <p className="text-xs text-muted-foreground">One line per schedule entry.</p>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveBusinessInfoMutation.mutate()}
+              disabled={saveBusinessInfoMutation.isPending}
+              data-testid="button-save-business-info"
+            >
+              {saveBusinessInfoMutation.isPending ? 'Saving...' : 'Save Business Info'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LayoutGrid className="h-5 w-5" />
+            Gallery Page
+          </CardTitle>
+          <CardDescription>
+            Edit the Gallery page title and description.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="galleryTitle">Page Title</Label>
+            <Input
+              id="galleryTitle"
+              placeholder="In-Store Gallery"
+              value={galleryTitle}
+              onChange={(e) => setGalleryTitle(e.target.value)}
+              data-testid="input-gallery-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="galleryDescription">Page Description</Label>
+            <Textarea
+              id="galleryDescription"
+              placeholder="Browse our exclusive collection..."
+              rows={3}
+              value={galleryDescription}
+              onChange={(e) => setGalleryDescription(e.target.value)}
+              data-testid="input-gallery-description"
+            />
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveGalleryMutation.mutate()}
+              disabled={saveGalleryMutation.isPending}
+              data-testid="button-save-gallery"
+            >
+              {saveGalleryMutation.isPending ? 'Saving...' : 'Save Gallery'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Services Page
+          </CardTitle>
+          <CardDescription>
+            Edit the Services page title, description, and upload showcase images.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="servicesTitle">Page Title</Label>
+            <Input
+              id="servicesTitle"
+              placeholder="Our Services"
+              value={servicesTitle}
+              onChange={(e) => setServicesTitle(e.target.value)}
+              data-testid="input-services-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="servicesDescription">Page Description</Label>
+            <Textarea
+              id="servicesDescription"
+              placeholder="Professional shoe repair and leather restoration..."
+              rows={3}
+              value={servicesDescription}
+              onChange={(e) => setServicesDescription(e.target.value)}
+              data-testid="input-services-description"
+            />
+          </div>
+
+          <MultiImageUpload
+            values={servicesImages}
+            onChange={setServicesImages}
+            folder="cobblers-bench/services"
+            label="Showcase Images"
+            maxImages={10}
+            testId="services-images"
+          />
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveServicesMutation.mutate()}
+              disabled={saveServicesMutation.isPending}
+              data-testid="button-save-services"
+            >
+              {saveServicesMutation.isPending ? 'Saving...' : 'Save Services'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
         <p className="text-amber-800">
-          <strong>Tip:</strong> The About Us section will only appear on the homepage if content is saved. Clear the section to hide it completely.
+          <strong>Tip:</strong> All content sections update the live site immediately when saved. Empty sections will use default content or be hidden.
         </p>
       </div>
     </div>

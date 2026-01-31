@@ -13,10 +13,24 @@ export default function About() {
     },
   });
 
+  const { data: businessInfo } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/business-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/business-info");
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
   const title = aboutContent?.title || "Our Story";
   const content = aboutContent?.content || "For over 35 years, Cobbler's Bench has been Cape Cod's trusted destination for expert shoe repair and leather restoration. Our skilled craftsmen combine time-honored techniques with modern expertise to breathe new life into your favorite footwear and leather goods.";
   const imageUrls = aboutContent?.imageUrls || [];
   const heroImage = imageUrls.length > 0 ? imageUrls[0] : "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800";
+
+  const streetAddress = businessInfo?.title || "1600 Falmouth Rd";
+  const cityStateZip = businessInfo?.content || "Centerville, MA 02632";
+  const phone = businessInfo?.imageUrl || "(508) 775-6221";
+  const hours = businessInfo?.imageUrls || ["Mon - Fri: 8AM – 4PM", "Sat: 8AM – 12PM", "Sun: Closed"];
 
   return (
     <Layout>
@@ -71,27 +85,27 @@ export default function About() {
               <div className="bg-white rounded-lg shadow-sm p-6 text-center">
                 <MapPin className="h-8 w-8 text-amber-600 mx-auto mb-4" />
                 <h3 className="font-bold text-lg mb-2">Location</h3>
-                <p className="text-gray-600 text-sm">
-                  1600 Falmouth Rd<br />
-                  Centerville, MA 02632
+                <p className="text-gray-600 text-sm" data-testid="text-about-address">
+                  {streetAddress}<br />
+                  {cityStateZip}
                 </p>
               </div>
 
               <div className="bg-white rounded-lg shadow-sm p-6 text-center">
                 <Clock className="h-8 w-8 text-amber-600 mx-auto mb-4" />
                 <h3 className="font-bold text-lg mb-2">Hours</h3>
-                <p className="text-gray-600 text-sm">
-                  Mon - Fri: 8AM – 4PM<br />
-                  Sat: 8AM – 12PM<br />
-                  Sun: Closed
+                <p className="text-gray-600 text-sm" data-testid="text-about-hours">
+                  {hours.map((line, i) => (
+                    <span key={i}>{line}{i < hours.length - 1 && <br />}</span>
+                  ))}
                 </p>
               </div>
 
               <div className="bg-white rounded-lg shadow-sm p-6 text-center">
                 <Phone className="h-8 w-8 text-amber-600 mx-auto mb-4" />
                 <h3 className="font-bold text-lg mb-2">Contact</h3>
-                <p className="text-gray-600 text-sm">
-                  (508) 775-6221<br />
+                <p className="text-gray-600 text-sm" data-testid="text-about-phone">
+                  {phone}<br />
                   <span className="text-amber-600">Walk-ins Welcome</span>
                 </p>
               </div>
