@@ -90,6 +90,10 @@ export interface IStorage {
   getSiteContentByKey(key: string): Promise<SiteContent | undefined>;
   getAllSiteContent(): Promise<SiteContent[]>;
   upsertSiteContent(data: InsertSiteContent): Promise<SiteContent>;
+
+  // Admin Settings
+  getAdminSetting(key: string): Promise<string | undefined>;
+  setAdminSetting(key: string, value: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -698,6 +702,29 @@ export class DatabaseStorage implements IStorage {
     } else {
       const results = await this.getDb().insert(schema.siteContent).values(data).returning();
       return results[0];
+    }
+  }
+
+  // Admin Settings
+  async getAdminSetting(key: string): Promise<string | undefined> {
+    const results = await this.getDb()
+      .select()
+      .from(schema.adminSettings)
+      .where(eq(schema.adminSettings.key, key));
+    return results[0]?.value;
+  }
+
+  async setAdminSetting(key: string, value: string): Promise<void> {
+    const existing = await this.getAdminSetting(key);
+    if (existing !== undefined) {
+      await this.getDb()
+        .update(schema.adminSettings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(schema.adminSettings.key, key));
+    } else {
+      await this.getDb()
+        .insert(schema.adminSettings)
+        .values({ key, value });
     }
   }
 }

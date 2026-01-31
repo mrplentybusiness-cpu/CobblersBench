@@ -232,3 +232,12 @@ export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
 
 export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
 export type SiteContent = typeof siteContent.$inferSelect;
+
+export const adminSettings = pgTable("admin_settings", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type AdminSettings = typeof adminSettings.$inferSelect;

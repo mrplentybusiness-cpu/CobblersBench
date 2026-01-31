@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Product, Order, OrderItem, ServiceInquiry, Review, SiteContent } from "@shared/schema";
@@ -404,6 +404,14 @@ export default function Admin() {
             data-testid="tab-content"
           >
             <FileEdit className="mr-2 h-4 w-4" /> Site Content
+          </Button>
+          <Button 
+            variant={activeTab === 'settings' ? 'default' : 'ghost'} 
+            className="w-full justify-start"
+            onClick={() => setActiveTab('settings')}
+            data-testid="tab-settings"
+          >
+            <Settings className="mr-2 h-4 w-4" /> Settings
           </Button>
         </nav>
 
@@ -1089,6 +1097,8 @@ export default function Admin() {
           <ReviewsManagement reviews={reviews} isLoading={reviewsLoading} queryClient={queryClient} toast={toast} />
         ) : activeTab === 'content' ? (
           <SiteContentManagement queryClient={queryClient} toast={toast} />
+        ) : activeTab === 'settings' ? (
+          <SettingsManagement toast={toast} />
         ) : null}
       </div>
 
@@ -3361,6 +3371,174 @@ function SiteContentManagement({ queryClient, toast }: {
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
         <p className="text-amber-800">
           <strong>Tip:</strong> All content sections update the live site immediately when saved. Empty sections will use default content or be hidden.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SettingsManagement({ toast }: { toast: (props: { title: string; description?: string; variant?: "default" | "destructive" }) => void }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentPassword.trim()) {
+      toast({ title: "Current password is required", variant: "destructive" });
+      return;
+    }
+    
+    if (!newPassword.trim()) {
+      toast({ title: "New password is required", variant: "destructive" });
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      toast({ title: "New password must be at least 8 characters", variant: "destructive" });
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      toast({ title: "New passwords do not match", variant: "destructive" });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/admin/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        toast({ title: data.error || "Failed to change password", variant: "destructive" });
+        return;
+      }
+      
+      toast({ title: "Password changed successfully" });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast({ title: "Failed to change password", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold font-serif">Settings</h2>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            Change Admin Password
+          </CardTitle>
+          <CardDescription>
+            Update your admin login credentials. Password must be at least 8 characters.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+            <div>
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="currentPassword"
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="pr-10"
+                  data-testid="input-current-password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min 8 characters)"
+                  className="pr-10"
+                  data-testid="input-new-password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className="pr-10"
+                  data-testid="input-confirm-password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              data-testid="button-change-password"
+            >
+              {isLoading ? "Changing..." : "Change Password"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
+        <p className="text-amber-800">
+          <strong>Note:</strong> After changing your password, you will need to use the new password to log in. Make sure to remember it!
         </p>
       </div>
     </div>

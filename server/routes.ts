@@ -8,6 +8,18 @@ import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
 import { isR2Configured, r2StorageService } from "./r2Storage";
 import { isCloudinaryConfigured, cloudinaryService } from "./cloudinaryStorage";
 import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, type OrderDetails } from "./email";
+import { createHash, randomBytes } from "crypto";
+
+function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
+  const useSalt = salt || randomBytes(16).toString("hex");
+  const hash = createHash("sha256").update(password + useSalt).digest("hex");
+  return { hash, salt: useSalt };
+}
+
+function verifyPassword(password: string, storedHash: string, salt: string): boolean {
+  const { hash } = hashPassword(password, salt);
+  return hash === storedHash;
+}
 
 function sendError(res: Response, status: number, message: string, error: unknown) {
   const details = error instanceof Error ? error.message : String(error);
@@ -46,25 +58,83 @@ export async function registerRoutes(
   app.post("/api/admin/auth", async (req, res) => {
     try {
       const { password } = req.body;
-      const adminPassword = process.env.ADMIN_PASSWORD?.trim();
-      
-      if (!adminPassword) {
-        console.error("ADMIN_PASSWORD environment variable not set");
-        return res.status(500).json({ error: "Admin authentication not configured" });
-      }
-      
       const trimmedPassword = password?.trim();
-      console.log("[Auth] Password check - received length:", trimmedPassword?.length, "expected length:", adminPassword.length);
       
-      if (trimmedPassword === adminPassword) {
-        res.json({ success: true });
-      } else {
-        console.log("[Auth] Password mismatch");
-        res.status(401).json({ error: "Invalid password" });
+      if (!trimmedPassword) {
+        return res.status(400).json({ error: "Password is required" });
       }
+      
+      // Check database for custom password first
+      const storedHash = await storage.getAdminSetting("admin_password_hash");
+      const storedSalt = await storage.getAdminSetting("admin_password_salt");
+      
+      if (storedHash && storedSalt) {
+        // Verify against database password
+        if (verifyPassword(trimmedPassword, storedHash, storedSalt)) {
+          return res.json({ success: true });
+        }
+      } else {
+        // Fall back to environment variable
+        const adminPassword = process.env.ADMIN_PASSWORD?.trim();
+        if (!adminPassword) {
+          console.error("ADMIN_PASSWORD environment variable not set");
+          return res.status(500).json({ error: "Admin authentication not configured" });
+        }
+        
+        if (trimmedPassword === adminPassword) {
+          return res.json({ success: true });
+        }
+      }
+      
+      console.log("[Auth] Password mismatch");
+      res.status(401).json({ error: "Invalid password" });
     } catch (error) {
       console.error("Error during admin auth:", error);
       res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
+  // Change admin password
+  app.post("/api/admin/change-password", async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword?.trim() || !newPassword?.trim()) {
+        return res.status(400).json({ error: "Current and new passwords are required" });
+      }
+      
+      if (newPassword.trim().length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+      
+      const trimmedCurrent = currentPassword.trim();
+      const trimmedNew = newPassword.trim();
+      
+      // Verify current password
+      const storedHash = await storage.getAdminSetting("admin_password_hash");
+      const storedSalt = await storage.getAdminSetting("admin_password_salt");
+      
+      let isValid = false;
+      if (storedHash && storedSalt) {
+        isValid = verifyPassword(trimmedCurrent, storedHash, storedSalt);
+      } else {
+        const adminPassword = process.env.ADMIN_PASSWORD?.trim();
+        isValid = trimmedCurrent === adminPassword;
+      }
+      
+      if (!isValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+      
+      // Hash and store new password
+      const { hash, salt } = hashPassword(trimmedNew);
+      await storage.setAdminSetting("admin_password_hash", hash);
+      await storage.setAdminSetting("admin_password_salt", salt);
+      
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ error: "Failed to change password" });
     }
   });
 
