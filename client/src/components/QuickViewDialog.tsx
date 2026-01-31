@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import type { Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { ImageOff, ShoppingBag, ExternalLink, Minus, Plus } from "lucide-react";
@@ -54,6 +54,9 @@ export default function QuickViewDialog({ product, open, onOpenChange }: QuickVi
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto" data-testid="quick-view-dialog">
         <DialogHeader>
           <DialogTitle className="sr-only">{product.name}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Quick view of {product.name} - ${product.price}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="grid md:grid-cols-2 gap-6">

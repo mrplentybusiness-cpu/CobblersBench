@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -682,6 +682,7 @@ export default function Admin() {
                         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>Add New Product</DialogTitle>
+                            <DialogDescription className="sr-only">Fill out the form to add a new product to your store</DialogDescription>
                           </DialogHeader>
                           <ProductForm onSuccess={() => setIsAddProductOpen(false)} existingCategories={categories} />
                         </DialogContent>
@@ -1098,6 +1099,7 @@ export default function Admin() {
             <DialogTitle className="font-serif text-2xl flex items-center gap-3">
               Service Inquiry #{selectedInquiry?.id}
             </DialogTitle>
+            <DialogDescription className="sr-only">View and manage service inquiry details</DialogDescription>
           </DialogHeader>
           {selectedInquiry && (
             <div className="space-y-6">
@@ -1278,6 +1280,7 @@ export default function Admin() {
                 </Badge>
               )}
             </DialogTitle>
+            <DialogDescription className="sr-only">View and manage order details</DialogDescription>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-6">
@@ -1563,6 +1566,7 @@ export default function Admin() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
+            <DialogDescription className="sr-only">Edit product details and settings</DialogDescription>
           </DialogHeader>
           {editingProduct && (
             <ProductForm 
@@ -2621,6 +2625,7 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>{editingReview ? 'Edit Review' : 'Add Review'}</DialogTitle>
+              <DialogDescription className="sr-only">{editingReview ? 'Update customer review details' : 'Add a new customer review'}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
