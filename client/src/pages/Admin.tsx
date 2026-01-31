@@ -13,10 +13,10 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit } from "lucide-react";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Product, Order, OrderItem, ServiceInquiry, Review } from "@shared/schema";
+import type { Product, Order, OrderItem, ServiceInquiry, Review, SiteContent } from "@shared/schema";
 import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploader } from "@/components/ImageUploader";
@@ -25,7 +25,7 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews'>('orders');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews' | 'content'>('orders');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<(Order & { items: OrderItem[] }) | null>(null);
@@ -395,6 +395,14 @@ export default function Admin() {
           >
             <Star className="mr-2 h-4 w-4" /> Reviews
           </Button>
+          <Button 
+            variant={activeTab === 'content' ? 'default' : 'ghost'} 
+            className="w-full justify-start"
+            onClick={() => setActiveTab('content')}
+            data-testid="tab-content"
+          >
+            <FileEdit className="mr-2 h-4 w-4" /> Site Content
+          </Button>
         </nav>
 
         <div className="mt-auto pt-8">
@@ -406,7 +414,7 @@ export default function Admin() {
 
       <div className="flex-1 p-8 overflow-auto">
         <div className="flex justify-between items-center mb-8">
-           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : 'Reviews'}</h1>
+           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : activeTab === 'reviews' ? 'Reviews' : 'Site Content'}</h1>
            <div className="md:hidden">
               <Link href="/" className="text-sm text-primary">
                 Back to Store
@@ -1076,6 +1084,8 @@ export default function Admin() {
           </div>
         ) : activeTab === 'reviews' ? (
           <ReviewsManagement reviews={reviews} isLoading={reviewsLoading} queryClient={queryClient} toast={toast} />
+        ) : activeTab === 'content' ? (
+          <SiteContentManagement queryClient={queryClient} toast={toast} />
         ) : null}
       </div>
 
@@ -2802,6 +2812,288 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
         <p className="text-blue-800">
           <strong>Tip:</strong> Only featured reviews appear on the homepage. Toggle the "Featured" switch to control which reviews are displayed. Up to 3 featured reviews will be shown.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SiteContentManagement({ queryClient, toast }: {
+  queryClient: ReturnType<typeof useQueryClient>;
+  toast: ReturnType<typeof useToast>['toast'];
+}) {
+  const [aboutTitle, setAboutTitle] = useState("");
+  const [aboutContent, setAboutContent] = useState("");
+  const [aboutImageUrl, setAboutImageUrl] = useState("");
+
+  const [heroTitle, setHeroTitle] = useState("");
+  const [heroSubtitle, setHeroSubtitle] = useState("");
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+
+  const { data: siteContent = [], isLoading } = useQuery<SiteContent[]>({
+    queryKey: ['/api/site-content'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content');
+      if (!response.ok) throw new Error('Failed to fetch site content');
+      return response.json();
+    },
+  });
+
+  useEffect(() => {
+    const aboutUs = siteContent.find(c => c.key === 'about-us');
+    if (aboutUs) {
+      setAboutTitle(aboutUs.title || '');
+      setAboutContent(aboutUs.content || '');
+      setAboutImageUrl(aboutUs.imageUrl || '');
+    }
+    const hero = siteContent.find(c => c.key === 'hero');
+    if (hero) {
+      setHeroTitle(hero.title || '');
+      setHeroSubtitle(hero.content || '');
+      setHeroImageUrl(hero.imageUrl || '');
+    }
+  }, [siteContent]);
+
+  const saveAboutUsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/about-us', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: aboutTitle,
+          content: aboutContent,
+          imageUrl: aboutImageUrl || null,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save about us content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "About Us section has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveHeroMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/hero', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: heroTitle,
+          content: heroSubtitle,
+          imageUrl: heroImageUrl || null,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save hero content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/site-content'] });
+      toast({
+        title: "Content Saved",
+        description: "Hero section has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center py-12">Loading...</div>;
+  }
+
+  return (
+    <div className="space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Hero Section
+          </CardTitle>
+          <CardDescription>
+            Edit the hero section at the top of the homepage. Leave empty to use defaults.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="heroTitle">Hero Title</Label>
+            <Input
+              id="heroTitle"
+              placeholder="Revive Your Sole"
+              value={heroTitle}
+              onChange={(e) => setHeroTitle(e.target.value)}
+              data-testid="input-hero-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="heroSubtitle">Hero Subtitle</Label>
+            <Textarea
+              id="heroSubtitle"
+              placeholder="Master craftsmanship for your beloved footwear..."
+              rows={3}
+              value={heroSubtitle}
+              onChange={(e) => setHeroSubtitle(e.target.value)}
+              data-testid="input-hero-subtitle"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Background Image (Optional)</Label>
+            <div className="flex gap-4 items-start">
+              {heroImageUrl && (
+                <div className="relative w-48 h-24 rounded-lg overflow-hidden border">
+                  <img src={heroImageUrl} alt="Hero background" className="w-full h-full object-cover" />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6"
+                    onClick={() => setHeroImageUrl('')}
+                    data-testid="button-remove-hero-image"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex-1">
+                <ImageUploader
+                  onUploadComplete={(url) => setHeroImageUrl(url)}
+                  className="h-24"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveHeroMutation.mutate()}
+              disabled={saveHeroMutation.isPending}
+              data-testid="button-save-hero"
+            >
+              {saveHeroMutation.isPending ? 'Saving...' : 'Save Hero'}
+            </Button>
+            {(heroTitle || heroSubtitle || heroImageUrl) && (
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setHeroTitle('');
+                  setHeroSubtitle('');
+                  setHeroImageUrl('');
+                }}
+                data-testid="button-clear-hero"
+              >
+                Reset to Defaults
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            About Us Section
+          </CardTitle>
+          <CardDescription>
+            Edit the About Us section that appears on the homepage. Leave empty to hide the section.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="aboutTitle">Section Title</Label>
+            <Input
+              id="aboutTitle"
+              placeholder="About Us"
+              value={aboutTitle}
+              onChange={(e) => setAboutTitle(e.target.value)}
+              data-testid="input-about-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="aboutContent">Content</Label>
+            <Textarea
+              id="aboutContent"
+              placeholder="Tell your story..."
+              rows={8}
+              value={aboutContent}
+              onChange={(e) => setAboutContent(e.target.value)}
+              data-testid="input-about-content"
+            />
+            <p className="text-xs text-muted-foreground">Use line breaks to create separate paragraphs.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Image (Optional)</Label>
+            <div className="flex gap-4 items-start">
+              {aboutImageUrl && (
+                <div className="relative w-32 h-32 rounded-lg overflow-hidden border">
+                  <img src={aboutImageUrl} alt="About Us" className="w-full h-full object-cover" />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6"
+                    onClick={() => setAboutImageUrl('')}
+                    data-testid="button-remove-about-image"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex-1">
+                <ImageUploader
+                  onUploadComplete={(url) => setAboutImageUrl(url)}
+                  className="h-32"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveAboutUsMutation.mutate()}
+              disabled={saveAboutUsMutation.isPending}
+              data-testid="button-save-about-us"
+            >
+              {saveAboutUsMutation.isPending ? 'Saving...' : 'Save About Us'}
+            </Button>
+            {(aboutTitle || aboutContent || aboutImageUrl) && (
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setAboutTitle('');
+                  setAboutContent('');
+                  setAboutImageUrl('');
+                }}
+                data-testid="button-clear-about-us"
+              >
+                Clear Section
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
+        <p className="text-amber-800">
+          <strong>Tip:</strong> The About Us section will only appear on the homepage if content is saved. Clear the section to hide it completely.
         </p>
       </div>
     </div>

@@ -5,7 +5,7 @@ import heroBg from "@assets/stock_images/leather_cobbler_work_faee252e.jpg";
 import { ArrowRight, Star, ShieldCheck, Clock, Quote, User } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { useQuery } from "@tanstack/react-query";
-import type { Product, Review } from "@shared/schema";
+import type { Product, Review, SiteContent } from "@shared/schema";
 
 
 export default function Home() {
@@ -27,6 +27,26 @@ export default function Home() {
     },
   });
 
+  const { data: aboutUs } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/about-us'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/about-us');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch about us content');
+      return response.json();
+    },
+  });
+
+  const { data: heroContent } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/hero'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/hero');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch hero content');
+      return response.json();
+    },
+  });
+
   const testimonials = featuredReviews.slice(0, 3);
   
   const featuredProducts = products.slice(0, 3);
@@ -37,7 +57,7 @@ export default function Home() {
       <section className="relative h-[600px] w-full flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img 
-            src={heroBg} 
+            src={heroContent?.imageUrl || heroBg} 
             alt="Cobbler Workshop" 
             className="h-full w-full object-cover"
           />
@@ -46,11 +66,10 @@ export default function Home() {
         
         <div className="relative container mx-auto px-4 text-center z-10">
           <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 drop-shadow-md animate-in slide-in-from-bottom-5 duration-700">
-            Revive Your Sole
+            {heroContent?.title || "Revive Your Sole"}
           </h1>
           <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-8 leading-relaxed animate-in slide-in-from-bottom-5 duration-700 delay-150">
-            Master craftsmanship for your beloved footwear and leather goods. 
-            We restore quality, comfort, and style, one stitch at a time.
+            {heroContent?.content || "Master craftsmanship for your beloved footwear and leather goods. We restore quality, comfort, and style, one stitch at a time."}
           </p>
           <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-6 rounded-full animate-in slide-in-from-bottom-5 duration-700 delay-300" asChild>
             <Link href="/services">
@@ -116,9 +135,38 @@ export default function Home() {
         </div>
       </section>
 
+      {/* About Us Section - only shown when content exists */}
+      {aboutUs && (
+        <section className="py-20 bg-background" data-testid="about-us-section">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              {aboutUs.imageUrl && (
+                <div className="relative">
+                  <img 
+                    src={aboutUs.imageUrl} 
+                    alt={aboutUs.title || "About Cobbler's Bench"} 
+                    className="rounded-xl shadow-lg w-full h-auto object-cover"
+                  />
+                </div>
+              )}
+              <div className={aboutUs.imageUrl ? "" : "md:col-span-2 text-center"}>
+                <h2 className="font-serif text-3xl md:text-4xl font-bold mb-6 text-foreground">
+                  {aboutUs.title || "About Us"}
+                </h2>
+                <div className="text-muted-foreground leading-relaxed space-y-4">
+                  {aboutUs.content?.split('\n').map((paragraph, index) => (
+                    <p key={index}>{paragraph}</p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Customer Stories Section - only shown when there are featured reviews */}
       {testimonials.length > 0 && (
-        <section className="py-20 bg-background">
+        <section className="py-20 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3 text-foreground">Customer Stories</h2>

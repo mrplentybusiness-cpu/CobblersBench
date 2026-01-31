@@ -17,7 +17,9 @@ import type {
   ProductVariant,
   InsertProductVariant,
   Review,
-  InsertReview
+  InsertReview,
+  SiteContent,
+  InsertSiteContent
 } from "@shared/schema";
 
 const { Pool } = pg;
@@ -83,6 +85,11 @@ export interface IStorage {
   createReview(review: InsertReview): Promise<Review>;
   updateReview(id: number, data: Partial<InsertReview>): Promise<Review | undefined>;
   deleteReview(id: number): Promise<boolean>;
+
+  // Site Content
+  getSiteContentByKey(key: string): Promise<SiteContent | undefined>;
+  getAllSiteContent(): Promise<SiteContent[]>;
+  upsertSiteContent(data: InsertSiteContent): Promise<SiteContent>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -667,6 +674,31 @@ export class DatabaseStorage implements IStorage {
   async deleteReview(id: number): Promise<boolean> {
     const result = await this.getDb().delete(schema.reviews).where(eq(schema.reviews.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Site Content methods
+  async getSiteContentByKey(key: string): Promise<SiteContent | undefined> {
+    const results = await this.getDb().select().from(schema.siteContent).where(eq(schema.siteContent.key, key));
+    return results[0];
+  }
+
+  async getAllSiteContent(): Promise<SiteContent[]> {
+    return this.getDb().select().from(schema.siteContent);
+  }
+
+  async upsertSiteContent(data: InsertSiteContent): Promise<SiteContent> {
+    const existing = await this.getSiteContentByKey(data.key);
+    if (existing) {
+      const results = await this.getDb()
+        .update(schema.siteContent)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.siteContent.key, data.key))
+        .returning();
+      return results[0];
+    } else {
+      const results = await this.getDb().insert(schema.siteContent).values(data).returning();
+      return results[0];
+    }
   }
 }
 

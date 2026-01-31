@@ -33,7 +33,7 @@ The backend serves both the API endpoints and static files in production. In dev
 - **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts` - shared between client and server
 - **Migrations**: Drizzle Kit with push-based migrations (`db:push`)
-- **Tables**: products, product_images, orders, order_items, service_inquiries, reviews with proper foreign key relationships
+- **Tables**: products, product_images, orders, order_items, service_inquiries, reviews, site_content with proper foreign key relationships
 
 ### Product Management (Shopify-like)
 The products table includes comprehensive fields for professional product management:
@@ -92,6 +92,15 @@ Customer reviews/testimonials displayed on the homepage:
 - **Admin Tab**: "Reviews" tab in admin dashboard to add, edit, delete, and toggle featured status
 - **Homepage Display**: Up to 3 featured reviews shown in Customer Stories section (only when reviews exist)
 
+### Site Content Management
+Dynamic site content that can be edited via admin portal:
+- **Hero Section**: Title, subtitle, and background image for the homepage hero
+- **About Us Section**: Title, content, and image displayed on the homepage
+- **Database Storage**: `site_content` table stores key-value content blocks
+- **Admin Tab**: "Site Content" tab in admin dashboard to edit all content sections
+- **Default Fallback**: If content not set, sensible defaults are displayed
+- **Admin Navigation**: Discreet lock icon in header, mobile menu, and footer links to admin portal
+
 ### API Structure
 RESTful API endpoints under `/api/`:
 - `GET /api/products` - List all products (admin)
@@ -125,6 +134,9 @@ RESTful API endpoints under `/api/`:
 - `POST /api/reviews` - Create review (admin)
 - `PATCH /api/reviews/:id` - Update review (admin)
 - `DELETE /api/reviews/:id` - Delete review (admin)
+- `GET /api/site-content` - List all site content (admin)
+- `GET /api/site-content/:key` - Get site content by key (public)
+- `PUT /api/site-content/:key` - Create/update site content (admin)
 
 ### Object Storage Integration
 Uses Cloudflare R2 for image uploads (works on both Replit and Railway):

@@ -48,7 +48,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
             <NavLink href="/shop">Shop</NavLink>
             <NavLink href="/gallery">Gallery</NavLink>
             <NavLink href="/reviews">Reviews</NavLink>
-            <Button variant="ghost" size="icon" className="text-white/50 hover:text-amber-400 hover:bg-gray-800" asChild>
+            <Button variant="ghost" size="icon" className="text-white/50 hover:text-amber-400 hover:bg-gray-800" asChild data-testid="link-admin-desktop">
               <Link href="/admin">
                 <Lock className="h-4 w-4" strokeWidth={1.5} />
               </Link>
@@ -108,7 +108,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
                   <Link href="/cart" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Cart ({cartCount})
                   </Link>
-                  <Link href="/admin" className="flex items-center gap-2 text-sm text-muted-foreground mt-4" onClick={() => setIsMobileOpen(false)}>
+                  <Link href="/admin" className="flex items-center gap-2 text-sm text-muted-foreground mt-4" onClick={() => setIsMobileOpen(false)} data-testid="link-admin-mobile">
                     <Lock className="h-4 w-4" strokeWidth={1.5} />
                   </Link>
                 </div>
@@ -153,7 +153,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
         </div>
         <div className="container mx-auto px-4 mt-8 pt-8 border-t border-primary-foreground/20 flex flex-col md:flex-row justify-between items-center text-xs text-primary-foreground/60">
           <span>© {new Date().getFullYear()} Cobbler's Bench. All rights reserved.</span>
-          <Link href="/admin" className="hover:text-primary-foreground transition-colors mt-2 md:mt-0 flex items-center gap-1">
+          <Link href="/admin" className="hover:text-primary-foreground transition-colors mt-2 md:mt-0 flex items-center gap-1" data-testid="link-admin-footer">
             <Lock className="h-3 w-3" strokeWidth={1.5} />
           </Link>
         </div>

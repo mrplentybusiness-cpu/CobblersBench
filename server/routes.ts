@@ -1115,5 +1115,49 @@ export async function registerRoutes(
     }
   });
 
+  // ===== SITE CONTENT =====
+
+  // Get all site content (admin)
+  app.get("/api/site-content", async (_req, res) => {
+    try {
+      const content = await storage.getAllSiteContent();
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching site content:", error);
+      res.status(500).json({ error: "Failed to fetch site content" });
+    }
+  });
+
+  // Get site content by key (public)
+  app.get("/api/site-content/:key", async (req, res) => {
+    try {
+      const content = await storage.getSiteContentByKey(req.params.key);
+      if (!content) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching site content:", error);
+      res.status(500).json({ error: "Failed to fetch site content" });
+    }
+  });
+
+  // Create/Update site content (admin)
+  app.put("/api/site-content/:key", async (req, res) => {
+    try {
+      const { title, content, imageUrl } = req.body;
+      const result = await storage.upsertSiteContent({
+        key: req.params.key,
+        title: title || null,
+        content: content || null,
+        imageUrl: imageUrl || null,
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("Error saving site content:", error);
+      res.status(500).json({ error: "Failed to save site content" });
+    }
+  });
+
   return httpServer;
 }
