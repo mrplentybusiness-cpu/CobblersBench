@@ -54,27 +54,42 @@ export class CloudinaryStorageService {
   }
 
   async uploadFromUrl(imageUrl: string, folder: string = "cobblers-bench"): Promise<string> {
-    configureCloudinary();
-    const result = await cloudinary.uploader.upload(imageUrl, {
-      folder,
-      public_id: randomUUID(),
-    });
-    return result.secure_url;
+    try {
+      configureCloudinary();
+      const result = await cloudinary.uploader.upload(imageUrl, {
+        folder,
+        public_id: randomUUID(),
+      });
+      return result.secure_url;
+    } catch (error) {
+      console.error("[Cloudinary] Upload from URL failed:", error);
+      throw new Error("Failed to upload image to Cloudinary");
+    }
   }
 
   async uploadFromBase64(base64Data: string, folder: string = "cobblers-bench"): Promise<string> {
-    configureCloudinary();
-    const dataUri = base64Data.startsWith("data:") ? base64Data : `data:image/jpeg;base64,${base64Data}`;
-    const result = await cloudinary.uploader.upload(dataUri, {
-      folder,
-      public_id: randomUUID(),
-    });
-    return result.secure_url;
+    try {
+      configureCloudinary();
+      const dataUri = base64Data.startsWith("data:") ? base64Data : `data:image/jpeg;base64,${base64Data}`;
+      const result = await cloudinary.uploader.upload(dataUri, {
+        folder,
+        public_id: randomUUID(),
+      });
+      return result.secure_url;
+    } catch (error) {
+      console.error("[Cloudinary] Upload from base64 failed:", error);
+      throw new Error("Failed to upload image to Cloudinary");
+    }
   }
 
   async deleteImage(publicId: string): Promise<void> {
-    configureCloudinary();
-    await cloudinary.uploader.destroy(publicId);
+    try {
+      configureCloudinary();
+      await cloudinary.uploader.destroy(publicId);
+    } catch (error) {
+      console.error("[Cloudinary] Delete image failed:", error);
+      throw new Error("Failed to delete image from Cloudinary");
+    }
   }
 
   getPublicIdFromUrl(url: string): string | null {
