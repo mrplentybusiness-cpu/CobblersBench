@@ -116,8 +116,13 @@ httpServer.listen(
 (async () => {
   await registerRoutes(httpServer, app);
   
-  // Clear any stored admin passwords on startup to ensure ADMIN_PASSWORD env var is used
-  await storage.clearAdminPasswordSettings();
+  // Wait for migrations to complete, then clear any stored admin passwords
+  try {
+    await storage.waitForMigrations();
+    await storage.clearAdminPasswordSettings();
+  } catch (error) {
+    console.log("[Auth] Could not clear stored passwords:", error);
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
