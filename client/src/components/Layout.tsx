@@ -40,8 +40,19 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: brandingContent } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/branding"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/branding");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const tagline = layoutContent?.title || '"We doctor your shoes and save your sole."';
   const footerAbout = layoutContent?.content || "Restoring your favorite footsteps since 1985. We combine traditional craftsmanship with modern care to bring your leather goods back to life.";
+  const headerLogo = brandingContent?.imageUrl || logo;
 
   const streetAddress = businessInfo?.title || "1600 Falmouth Rd";
   const cityStateZip = businessInfo?.content || "Centerville, MA 02632";
@@ -62,7 +73,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
           <Link href="/" className="flex items-center gap-2 group">
             <div className="relative h-16 w-auto overflow-hidden">
               <img 
-                src={logo} 
+                src={headerLogo} 
                 alt="Cobbler's Bench" 
                 className="h-full w-auto object-contain"
               />

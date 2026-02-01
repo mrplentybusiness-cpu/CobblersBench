@@ -2848,7 +2848,9 @@ function SiteContentManagement({ queryClient, toast }: {
   const [servicesOpen, setServicesOpen] = useState(false);
   const [businessOpen, setBusinessOpen] = useState(false);
   const [layoutOpen, setLayoutOpen] = useState(false);
+  const [brandingOpen, setBrandingOpen] = useState(false);
 
+  const [brandingLogoUrl, setBrandingLogoUrl] = useState("");
   const [aboutTitle, setAboutTitle] = useState("");
   const [aboutContent, setAboutContent] = useState("");
   const [aboutImageUrl, setAboutImageUrl] = useState("");
@@ -2946,6 +2948,10 @@ function SiteContentManagement({ queryClient, toast }: {
     if (layout) {
       setLayoutTagline(layout.title || '');
       setFooterAbout(layout.content || '');
+    }
+    const branding = siteContent.find(c => c.key === 'branding');
+    if (branding) {
+      setBrandingLogoUrl(branding.imageUrl || '');
     }
     const shopCta = siteContent.find(c => c.key === 'shop-cta');
     if (shopCta) {
@@ -3235,6 +3241,36 @@ function SiteContentManagement({ queryClient, toast }: {
       toast({
         title: "Error",
         description: "Failed to save shop CTA content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveBrandingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/site-content/branding', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: brandingLogoUrl,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save branding');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
+      toast({
+        title: "Content Saved",
+        description: "Branding has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save branding. Please try again.",
         variant: "destructive",
       });
     },
@@ -3804,6 +3840,82 @@ function SiteContentManagement({ queryClient, toast }: {
             >
               {saveShopCtaMutation.isPending ? 'Saving...' : 'Save Shop CTA'}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+      </CollapsibleSection>
+
+      {/* Branding Section */}
+      <CollapsibleSection
+        title="Branding"
+        description="Logo and brand assets"
+        icon={Image}
+        isOpen={brandingOpen}
+        onToggle={() => setBrandingOpen(!brandingOpen)}
+      >
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Header Logo
+          </CardTitle>
+          <CardDescription>
+            Upload a custom logo for the website header. Leave empty to use the default logo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Logo Image URL</Label>
+            {brandingLogoUrl && (
+              <div className="mb-4 p-4 border rounded-lg bg-muted/20">
+                <img 
+                  src={brandingLogoUrl} 
+                  alt="Current logo" 
+                  className="max-h-16 w-auto object-contain"
+                />
+              </div>
+            )}
+            <CloudinaryUpload
+              onChange={(url: string) => setBrandingLogoUrl(url)}
+              label="Upload Logo"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Or paste an image URL directly:
+            </p>
+            <Input
+              placeholder="https://example.com/logo.png"
+              value={brandingLogoUrl}
+              onChange={(e) => setBrandingLogoUrl(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveBrandingMutation.mutate()}
+              disabled={saveBrandingMutation.isPending}
+            >
+              {saveBrandingMutation.isPending ? 'Saving...' : 'Save Branding'}
+            </Button>
+            {brandingLogoUrl && (
+              <Button 
+                variant="outline"
+                onClick={async () => {
+                  const response = await fetch('/api/site-content/branding', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageUrl: '' }),
+                  });
+                  if (response.ok) {
+                    setBrandingLogoUrl('');
+                    queryClient.invalidateQueries({ predicate: (query) => 
+                      Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+                    });
+                    toast({ title: "Branding Reset", description: "Logo has been reset to default." });
+                  }
+                }}
+              >
+                Reset to Default
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
