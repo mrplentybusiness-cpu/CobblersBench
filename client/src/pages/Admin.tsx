@@ -13,7 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Product, Order, OrderItem, ServiceInquiry, Review, SiteContent } from "@shared/schema";
@@ -2839,6 +2840,15 @@ function SiteContentManagement({ queryClient, toast }: {
   queryClient: ReturnType<typeof useQueryClient>;
   toast: ReturnType<typeof useToast>['toast'];
 }) {
+  // Collapsible section states
+  const [homepageOpen, setHomepageOpen] = useState(true);
+  const [shopOpen, setShopOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const [businessOpen, setBusinessOpen] = useState(false);
+  const [layoutOpen, setLayoutOpen] = useState(false);
+
   const [aboutTitle, setAboutTitle] = useState("");
   const [aboutContent, setAboutContent] = useState("");
   const [aboutImageUrl, setAboutImageUrl] = useState("");
@@ -3234,8 +3244,53 @@ function SiteContentManagement({ queryClient, toast }: {
     return <div className="flex items-center justify-center py-12">Loading...</div>;
   }
 
+  // Collapsible section component for cleaner structure
+  const CollapsibleSection = ({ 
+    title, 
+    description, 
+    icon: Icon, 
+    isOpen, 
+    onToggle, 
+    children 
+  }: { 
+    title: string; 
+    description: string; 
+    icon: React.ComponentType<{ className?: string }>; 
+    isOpen: boolean; 
+    onToggle: () => void; 
+    children: React.ReactNode;
+  }) => (
+    <Collapsible open={isOpen} onOpenChange={onToggle}>
+      <CollapsibleTrigger asChild>
+        <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Icon className="h-5 w-5 text-primary" />
+                {title}
+              </span>
+              {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+            </CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+        </Card>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-4 mt-4 pl-4 border-l-2 border-primary/20">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
+      {/* Homepage Section */}
+      <CollapsibleSection
+        title="Homepage"
+        description="Hero, Value Propositions, About Us Preview, and CTA"
+        icon={Home}
+        isOpen={homepageOpen}
+        onToggle={() => setHomepageOpen(!homepageOpen)}
+      >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -3656,7 +3711,16 @@ function SiteContentManagement({ queryClient, toast }: {
           </div>
         </CardContent>
       </Card>
+      </CollapsibleSection>
 
+      {/* Layout Section */}
+      <CollapsibleSection
+        title="Layout"
+        description="Header & Footer content"
+        icon={Building2}
+        isOpen={layoutOpen}
+        onToggle={() => setLayoutOpen(!layoutOpen)}
+      >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -3695,7 +3759,16 @@ function SiteContentManagement({ queryClient, toast }: {
           </div>
         </CardContent>
       </Card>
+      </CollapsibleSection>
 
+      {/* Shop Section */}
+      <CollapsibleSection
+        title="Shop"
+        description="Shop page CTA section"
+        icon={ShoppingBag}
+        isOpen={shopOpen}
+        onToggle={() => setShopOpen(!shopOpen)}
+      >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -3734,6 +3807,7 @@ function SiteContentManagement({ queryClient, toast }: {
           </div>
         </CardContent>
       </Card>
+      </CollapsibleSection>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
         <p className="text-amber-800">
