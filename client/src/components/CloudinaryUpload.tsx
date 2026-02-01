@@ -48,24 +48,39 @@ export default function CloudinaryUpload({
 
     setIsUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        const response = await fetch("/api/uploads/cloudinary", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64, folder }),
-        });
+      // Get upload signature from server
+      const signatureResponse = await fetch("/api/uploads/cloudinary-signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder }),
+      });
 
-        if (!response.ok) {
-          throw new Error("Upload failed");
-        }
+      if (!signatureResponse.ok) {
+        throw new Error("Failed to get upload signature");
+      }
 
-        const data = await response.json();
-        onChange(data.url);
-        toast({ title: "Success", description: "Image uploaded successfully" });
-      };
-      reader.readAsDataURL(file);
+      const { signature, timestamp, cloudName, apiKey, folder: uploadFolder } = await signatureResponse.json();
+
+      // Upload directly to Cloudinary (bypasses server size limits)
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("signature", signature);
+      formData.append("timestamp", timestamp.toString());
+      formData.append("api_key", apiKey);
+      formData.append("folder", uploadFolder);
+
+      const cloudinaryResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: formData }
+      );
+
+      if (!cloudinaryResponse.ok) {
+        throw new Error("Upload to Cloudinary failed");
+      }
+
+      const data = await cloudinaryResponse.json();
+      onChange(data.secure_url);
+      toast({ title: "Success", description: "Image uploaded successfully" });
     } catch (error) {
       console.error("Upload error:", error);
       toast({ title: "Error", description: "Failed to upload image", variant: "destructive" });
