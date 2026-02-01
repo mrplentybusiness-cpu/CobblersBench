@@ -59,7 +59,7 @@ export default function CloudinaryUpload({
         throw new Error("Failed to get upload signature");
       }
 
-      const { signature, timestamp, cloudName, apiKey, folder: uploadFolder } = await signatureResponse.json();
+      const { signature, timestamp, cloudName, apiKey, folder: uploadFolder, publicId } = await signatureResponse.json();
 
       // Upload directly to Cloudinary (bypasses server size limits)
       const formData = new FormData();
@@ -68,6 +68,7 @@ export default function CloudinaryUpload({
       formData.append("timestamp", timestamp.toString());
       formData.append("api_key", apiKey);
       formData.append("folder", uploadFolder);
+      formData.append("public_id", publicId);
 
       const cloudinaryResponse = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
