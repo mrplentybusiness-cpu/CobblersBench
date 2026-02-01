@@ -2836,6 +2836,42 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
   );
 }
 
+const CollapsibleSection = ({ 
+  title, 
+  description, 
+  icon: Icon, 
+  isOpen, 
+  onToggle, 
+  children 
+}: { 
+  title: string; 
+  description: string; 
+  icon: React.ComponentType<{ className?: string }>; 
+  isOpen: boolean; 
+  onToggle: () => void; 
+  children: React.ReactNode;
+}) => (
+  <Collapsible open={isOpen} onOpenChange={onToggle}>
+    <CollapsibleTrigger asChild>
+      <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Icon className="h-5 w-5 text-primary" />
+              {title}
+            </span>
+            {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+      </Card>
+    </CollapsibleTrigger>
+    <CollapsibleContent className="space-y-4 mt-4 pl-4 border-l-2 border-primary/20">
+      {children}
+    </CollapsibleContent>
+  </Collapsible>
+);
+
 function SiteContentManagement({ queryClient, toast }: {
   queryClient: ReturnType<typeof useQueryClient>;
   toast: ReturnType<typeof useToast>['toast'];
@@ -2895,9 +2931,15 @@ function SiteContentManagement({ queryClient, toast }: {
       if (!response.ok) throw new Error('Failed to fetch site content');
       return response.json();
     },
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
   });
+  
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
+    if (hasInitialized || siteContent.length === 0) return;
+    
     const aboutUs = siteContent.find(c => c.key === 'about-us');
     if (aboutUs) {
       setAboutTitle(aboutUs.title || '');
@@ -2958,7 +3000,8 @@ function SiteContentManagement({ queryClient, toast }: {
       setShopCtaTitle(shopCta.title || '');
       setShopCtaDescription(shopCta.content || '');
     }
-  }, [siteContent]);
+    setHasInitialized(true);
+  }, [siteContent, hasInitialized]);
 
   const saveAboutUsMutation = useMutation({
     mutationFn: async () => {
@@ -3279,43 +3322,6 @@ function SiteContentManagement({ queryClient, toast }: {
   if (isLoading) {
     return <div className="flex items-center justify-center py-12">Loading...</div>;
   }
-
-  // Collapsible section component for cleaner structure
-  const CollapsibleSection = ({ 
-    title, 
-    description, 
-    icon: Icon, 
-    isOpen, 
-    onToggle, 
-    children 
-  }: { 
-    title: string; 
-    description: string; 
-    icon: React.ComponentType<{ className?: string }>; 
-    isOpen: boolean; 
-    onToggle: () => void; 
-    children: React.ReactNode;
-  }) => (
-    <Collapsible open={isOpen} onOpenChange={onToggle}>
-      <CollapsibleTrigger asChild>
-        <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Icon className="h-5 w-5 text-primary" />
-                {title}
-              </span>
-              {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-            </CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </CardHeader>
-        </Card>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-4 mt-4 pl-4 border-l-2 border-primary/20">
-        {children}
-      </CollapsibleContent>
-    </Collapsible>
-  );
 
   return (
     <div className="space-y-4">
