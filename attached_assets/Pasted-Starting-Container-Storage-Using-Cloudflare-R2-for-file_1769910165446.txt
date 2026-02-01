@@ -1,0 +1,111 @@
+Starting Container
+[Storage] Using Cloudflare R2 for file uploads
+(node:1) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+1:39:19 AM [express] serving on port 8080
+1:39:19 AM [express] Server initialization complete
+  position: '86',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  file: 'parse_relation.c',
+  routine: 'parserOpenTable'
+  line: '1449',
+}
+[DB] Connecting to database, URL starts with: postgresql://postgres:AEShbwAA...
+1:40:45 AM [express] GET /api/site-content/business-info 500 in 130ms :: {"error":"Failed to fetch site content"}
+  column: undefined,
+[DB] Running automatic migrations...
+  dataType: undefined,
+Error fetching site content: error: relation "site_content" does not exist
+    at /app/dist/index.cjs:64:13330
+  constraint: undefined,
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /app/dist/index.cjs:151:31389
+    at async qv.getSiteContentByKey (/app/dist/index.cjs:257:7386)
+    at async /app/dist/index.cjs:405:24924 {
+  length: 111,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+    at /app/dist/index.cjs:64:13330
+  position: '86',
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+  internalPosition: undefined,
+    at async /app/dist/index.cjs:151:31389
+    at async qv.getSiteContentByKey (/app/dist/index.cjs:257:7386)
+  internalQuery: undefined,
+    at async /app/dist/index.cjs:405:24924 {
+  length: 111,
+}
+  where: undefined,
+1:40:45 AM [express] GET /api/site-content/layout 500 in 128ms :: {"error":"Failed to fetch site content"}
+[DB] Migrations completed successfully
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  schema: undefined,
+  hint: undefined,
+  table: undefined,
+  column: undefined,
+  constraint: undefined,
+  dataType: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+Error fetching site content: error: relation "site_content" does not exist
+    at /app/dist/index.cjs:64:13330
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /app/dist/index.cjs:151:31389
+    at async qv.getSiteContentByKey (/app/dist/index.cjs:257:7386)
+    at async /app/dist/index.cjs:405:24924 {
+  length: 111,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '86',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+1:40:45 AM [express] GET /api/site-content/about-us 500 in 118ms :: {"error":"Failed to fetch site content"}
+Error fetching site content: error: relation "site_content" does not exist
+1:40:53 AM [express] GET /api/orders 200 in 9ms :: []
+1:40:53 AM [express] POST /api/admin/auth 200 in 1ms :: {"success":true}
+Error fetching site content: error: relation "site_content" does not exist
+    at /app/dist/index.cjs:64:13330
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /app/dist/index.cjs:151:31389
+    at async /app/dist/index.cjs:405:24713 {
+  length: 111,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '86',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+1:40:55 AM [express] GET /api/site-content 500 in 4ms :: {"error":"Failed to fetch site content"}
+1:41:05 AM [express] POST /api/uploads/cloudinary-signature 400 in 1ms :: {"error":"Cloudinary not configured"}
