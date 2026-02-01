@@ -27,7 +27,7 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews' | 'content'>('orders');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews' | 'content' | 'settings'>('orders');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<(Order & { items: OrderItem[] }) | null>(null);
@@ -424,7 +424,7 @@ export default function Admin() {
 
       <div className="flex-1 p-8 overflow-auto">
         <div className="flex justify-between items-center mb-8">
-           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : activeTab === 'reviews' ? 'Reviews' : 'Site Content'}</h1>
+           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : activeTab === 'reviews' ? 'Reviews' : activeTab === 'settings' ? 'Settings' : 'Site Content'}</h1>
            <div className="md:hidden">
               <Link href="/" className="text-sm text-primary">
                 Back to Store
