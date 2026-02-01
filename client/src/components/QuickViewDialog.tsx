@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
-import type { Product } from "@shared/schema";
+import { useState, useEffect, useMemo } from "react";
+import type { Product, ProductOption, ProductVariant } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { ImageOff, ShoppingBag, ExternalLink, Minus, Plus } from "lucide-react";
 import { Link } from "wouter";
 
@@ -19,27 +20,85 @@ export default function QuickViewDialog({ product, open, onOpenChange }: QuickVi
   const { toast } = useToast();
   const [imageError, setImageError] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+
+  const { data: options = [] } = useQuery<ProductOption[]>({
+    queryKey: ['/api/products', product?.id, 'options'],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/${product?.id}/options`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: open && !!product?.id,
+  });
+
+  const { data: variants = [] } = useQuery<ProductVariant[]>({
+    queryKey: ['/api/products', product?.id, 'variants'],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/${product?.id}/variants`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: open && !!product?.id,
+  });
+
+  const hasVariants = options.length > 0 && variants.length > 0;
+
+  const selectedVariant = useMemo(() => {
+    if (!hasVariants || Object.keys(selectedOptions).length !== options.length) return null;
+    return variants.find(variant => {
+      const variantOptions = typeof variant.optionValues === 'string' 
+        ? JSON.parse(variant.optionValues) 
+        : variant.optionValues;
+      return options.every(opt => variantOptions[opt.name] === selectedOptions[opt.name]);
+    });
+  }, [hasVariants, selectedOptions, variants, options]);
+
+  const currentPrice = useMemo(() => {
+    if (selectedVariant) return selectedVariant.price;
+    return product?.price || "0";
+  }, [selectedVariant, product]);
 
   useEffect(() => {
     if (open && product) {
       setQuantity(1);
       setImageError(false);
+      setSelectedOptions({});
     }
   }, [open, product?.id]);
 
   if (!product) return null;
 
   const handleAddToCart = () => {
+    if (hasVariants && !selectedVariant) {
+      toast({
+        title: "Please select options",
+        description: "Choose all options before adding to cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cartItem = {
+      ...product,
+      price: currentPrice,
+      name: selectedVariant ? `${product.name} - ${selectedVariant.title}` : product.name,
+      variantId: selectedVariant?.id,
+    };
+
     for (let i = 0; i < quantity; i++) {
-      addToCart(product);
+      addToCart(cartItem);
     }
     toast({
       title: "Added to cart",
-      description: `${quantity}x ${product.name} has been added to your cart.`,
+      description: `${quantity}x ${cartItem.name} has been added to your cart.`,
     });
     setQuantity(1);
+    setSelectedOptions({});
     onOpenChange(false);
   };
+
+  const allOptionsSelected = !hasVariants || Object.keys(selectedOptions).length === options.length;
 
   const hasComparePrice = product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price);
   const savingsPercent = hasComparePrice 
@@ -88,9 +147,9 @@ export default function QuickViewDialog({ product, open, onOpenChange }: QuickVi
 
             <div className="flex items-baseline gap-2 mb-4">
               <span className="text-2xl font-bold text-primary" data-testid="quick-view-price">
-                ${product.price}
+                ${currentPrice}
               </span>
-              {hasComparePrice && (
+              {hasComparePrice && !selectedVariant && (
                 <span className="text-lg text-muted-foreground line-through">
                   ${product.compareAtPrice}
                 </span>
@@ -103,19 +162,48 @@ export default function QuickViewDialog({ product, open, onOpenChange }: QuickVi
               </Badge>
             )}
 
-            <p className="text-muted-foreground mb-6 flex-1" data-testid="quick-view-description">
+            <p className="text-muted-foreground mb-4" data-testid="quick-view-description">
               {product.description}
             </p>
 
-            {product.trackInventory && product.inventory !== null && product.inventory <= 5 && product.inventory > 0 && (
-              <p className="text-sm text-amber-600 font-medium mb-4">
-                Only {product.inventory} left in stock
-              </p>
+            {hasVariants && (
+              <div className="space-y-4 mb-4 p-4 bg-muted/50 rounded-lg">
+                {options.map((option) => (
+                  <div key={option.id}>
+                    <label className="text-sm font-medium mb-2 block">
+                      {option.name}: {selectedOptions[option.name] && (
+                        <span className="text-primary">{selectedOptions[option.name]}</span>
+                      )}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {(option.values || []).map((value) => (
+                        <Button
+                          key={value}
+                          type="button"
+                          variant={selectedOptions[option.name] === value ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedOptions(prev => ({
+                            ...prev,
+                            [option.name]: value
+                          }))}
+                          className="min-w-[60px]"
+                          data-testid={`option-${option.name}-${value}`}
+                        >
+                          {value}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {hasVariants && !selectedVariant && Object.keys(selectedOptions).length === options.length && (
+                  <p className="text-sm text-amber-600">This combination is not available.</p>
+                )}
+              </div>
             )}
 
-            {product.color && (
-              <p className="text-sm text-muted-foreground mb-2">
-                <span className="font-medium">Colors:</span> {product.color}
+            {product.trackInventory && product.inventory !== null && product.inventory <= 5 && product.inventory > 0 && !hasVariants && (
+              <p className="text-sm text-amber-600 font-medium mb-4">
+                Only {product.inventory} left in stock
               </p>
             )}
 
@@ -159,11 +247,17 @@ export default function QuickViewDialog({ product, open, onOpenChange }: QuickVi
                 onClick={handleAddToCart}
                 className="w-full"
                 size="lg"
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || (hasVariants && !selectedVariant)}
                 data-testid="quick-view-add-to-cart"
               >
                 <ShoppingBag className="h-5 w-5 mr-2" />
-                {isOutOfStock ? 'Out of Stock' : `Add to Order - $${(parseFloat(product.price) * quantity).toFixed(2)}`}
+                {isOutOfStock 
+                  ? 'Out of Stock' 
+                  : hasVariants && !allOptionsSelected
+                    ? 'Select Options'
+                    : hasVariants && !selectedVariant
+                      ? 'Unavailable Combination'
+                      : `Add to Order - $${(parseFloat(currentPrice) * quantity).toFixed(2)}`}
               </Button>
               
               <Button

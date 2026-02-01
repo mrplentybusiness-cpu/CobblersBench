@@ -22,11 +22,15 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product);
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart.`,
-    });
+    if (onQuickView) {
+      onQuickView(product);
+    } else {
+      addToCart(product);
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart.`,
+      });
+    }
   };
 
   const handleCompareToggle = (e: React.MouseEvent) => {
