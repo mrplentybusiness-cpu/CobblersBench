@@ -1,22 +1,29 @@
 import { v2 as cloudinary } from "cloudinary";
 import { randomUUID } from "crypto";
 
-const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
-const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+// Read env vars at runtime, not module load time
+function getCloudinaryConfig() {
+  return {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  };
+}
 
 export function isCloudinaryConfigured(): boolean {
-  return !!(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
+  const config = getCloudinaryConfig();
+  return !!(config.cloudName && config.apiKey && config.apiSecret);
 }
 
 function configureCloudinary() {
-  if (!isCloudinaryConfigured()) {
+  const config = getCloudinaryConfig();
+  if (!config.cloudName || !config.apiKey || !config.apiSecret) {
     throw new Error("Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET");
   }
   cloudinary.config({
-    cloud_name: CLOUDINARY_CLOUD_NAME,
-    api_key: CLOUDINARY_API_KEY,
-    api_secret: CLOUDINARY_API_SECRET,
+    cloud_name: config.cloudName,
+    api_key: config.apiKey,
+    api_secret: config.apiSecret,
     secure: true,
   });
 }
@@ -30,6 +37,7 @@ export class CloudinaryStorageService {
     folder: string;
     publicId: string;
   }> {
+    const config = getCloudinaryConfig();
     configureCloudinary();
     const timestamp = Math.round(new Date().getTime() / 1000);
     const publicId = `${folder}/${randomUUID()}`;
@@ -40,14 +48,14 @@ export class CloudinaryStorageService {
         folder,
         public_id: publicId,
       },
-      CLOUDINARY_API_SECRET!
+      config.apiSecret!
     );
 
     return {
       signature,
       timestamp,
-      cloudName: CLOUDINARY_CLOUD_NAME!,
-      apiKey: CLOUDINARY_API_KEY!,
+      cloudName: config.cloudName!,
+      apiKey: config.apiKey!,
       folder,
       publicId,
     };
