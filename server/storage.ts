@@ -258,6 +258,27 @@ export class DatabaseStorage implements IStorage {
         )
       `);
 
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS site_content (
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          key TEXT NOT NULL UNIQUE,
+          title TEXT,
+          content TEXT,
+          image_url TEXT,
+          image_urls TEXT[],
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS admin_settings (
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          key TEXT NOT NULL UNIQUE,
+          value TEXT NOT NULL,
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `);
+
       const columnMigrations = [
         { table: 'products', column: 'track_inventory', type: 'BOOLEAN DEFAULT true' },
         { table: 'products', column: 'inventory', type: 'INTEGER' },
