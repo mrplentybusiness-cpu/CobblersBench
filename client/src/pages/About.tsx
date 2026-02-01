@@ -65,15 +65,54 @@ export default function About() {
 
             {galleryImages.length > 0 && (
               <div className="mb-8">
-                <h3 className="text-xl font-serif font-bold text-gray-900 mb-4">Gallery</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {galleryImages.map((url, index) => (
-                    <div key={index} className="aspect-square rounded-lg overflow-hidden shadow-sm">
+                <h3 className="text-xl font-serif font-bold text-gray-900 mb-6">Our Workshop</h3>
+                {/* Asymmetrical Editorial Grid - Desktop */}
+                <div className="hidden md:grid md:grid-cols-12 md:gap-4 md:auto-rows-[200px]">
+                  {galleryImages.slice(0, 5).map((url, index) => {
+                    const gridStyles = [
+                      "col-span-7 row-span-2",
+                      "col-span-5 row-span-1",
+                      "col-span-5 row-span-1",
+                      "col-span-6 row-span-1",
+                      "col-span-6 row-span-1",
+                    ];
+                    return (
+                      <div 
+                        key={index} 
+                        className={`${gridStyles[index] || 'col-span-4 row-span-1'} rounded-lg overflow-hidden shadow-md group`}
+                      >
+                        <img
+                          src={url}
+                          alt={`Workshop image ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          data-testid={`about-gallery-image-${index}`}
+                        />
+                      </div>
+                    );
+                  })}
+                  {galleryImages.length > 5 && galleryImages.slice(5).map((url, index) => (
+                    <div 
+                      key={index + 5} 
+                      className="col-span-4 row-span-1 rounded-lg overflow-hidden shadow-md group"
+                    >
                       <img
                         src={url}
-                        alt={`Gallery image ${index + 1}`}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                        data-testid={`about-gallery-image-${index}`}
+                        alt={`Workshop image ${index + 6}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        data-testid={`about-gallery-image-${index + 5}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {/* Mobile Lookbook Stack */}
+                <div className="md:hidden space-y-4">
+                  {galleryImages.map((url, index) => (
+                    <div key={index} className="aspect-[4/3] rounded-lg overflow-hidden shadow-md">
+                      <img
+                        src={url}
+                        alt={`Workshop image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        data-testid={`about-gallery-image-mobile-${index}`}
                       />
                     </div>
                   ))}

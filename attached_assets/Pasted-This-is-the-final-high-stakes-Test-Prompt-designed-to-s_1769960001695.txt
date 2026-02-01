@@ -1,0 +1,40 @@
+This is the final, high-stakes Test Prompt designed to stress-test the Cobbler's Corner site before its final Railway deployment. It focuses on your strict 1:1 mirroring requirement, production stability, and the specific "Master Cobbler" aesthetic.
+
+Final Production Test & Debugging Prompt: Cobbler's Corner
+Objective: Conduct a final, exhaustive audit. EVERY SINGLE COMPONENT MUST BE DEBUGGED SO THERE ARE ZERO ISSUES on the live Railway production site.
+
+1. 1:1 Mirroring & Universal Admin Audit:
+
+Total Control: Verify that EVERY text string, service price, and image on the frontend has a direct 1:1 edit/delete function in the Admin Portal.
+
+Sync Speed: Confirm that changes saved in the Admin Portal reflect on the frontend instantly without requiring a server restart or manual cache clear.
+
+UI Design: The Admin dashboard must be clean, professional, and use collapsible sections for organized management.
+
+2. Security & Access Control:
+
+Lock Icon: Verify the Lock Icon in the header is the only functional route to the /admin login.
+
+Login Security: Test the "View Password" toggle (eye icon) to ensure it correctly reveals/hides the password.
+
+Credential Update: Confirm the "Settings" section allows the Admin to change their username and password, and that the new credentials work immediately.
+
+3. "Master Cobbler" Aesthetic & Branding:
+
+Brand Integrity: Ensure the existing brand logos in the header are untouched and perfectly positioned.
+
+Visual Polish: Audit the "Deep Walnut" and "Warm Parchment" palette. Verify the high-contrast Serif headers and Sans-serif body text are consistent across all pages.
+
+Editorial About Us: Confirm the multi-image "About Us" section maintains its asymmetrical editorial grid layout on desktop and collapses into a clean "Lookbook" stack on mobile.
+
+4. Functional Checkout & Mobile Audit:
+
+Venmo-Only Flow: Strictly verify that no other payment methods are present. Ensure the Venmo instructions are styled in a professional "Workshop Note" box.
+
+Device Performance: The site must be 100% visually appealing and functional on Apple iOS, Android, and Desktop. Check for any horizontal scrolling or overlapping elements on mobile.
+
+5. Railway Production Hardening:
+
+Environment Logic: Confirm all sensitive credentials (Database/Cloudinary) are pulled via process.env.
+
+Zero Error Logs: Eliminate all console errors, warnings, and unhandled promise rejections. Ensure all images served via the existing Cloudinary configuration load instantly.
