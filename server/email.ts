@@ -430,3 +430,67 @@ export async function sendOrderStatusUpdate(
     console.log(`[Email] Status update sent for order #${orderId} to ${customerEmail}`);
   }
 }
+
+export async function sendOrderCancellationEmail(
+  customerEmail: string,
+  customerName: string,
+  orderId: number,
+  reason?: string
+): Promise<void> {
+  const fromEmail = getFromEmail();
+  
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #8B4513; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .cancel-box { background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px; text-align: center; margin: 20px 0; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <img src="${getBaseUrl()}${LOGO_PATH}" alt="${BUSINESS_NAME}" style="max-width: 180px; height: auto; margin-bottom: 10px;" />
+          <p style="margin: 0; font-size: 14px;">Order Cancellation</p>
+        </div>
+        <div class="content">
+          <p>Dear ${customerName},</p>
+          
+          <div class="cancel-box">
+            <h2>Order #${orderId} Cancelled</h2>
+            <p style="font-size: 16px;">Your order has been cancelled.</p>
+            ${reason ? `<p><em>${reason}</em></p>` : ''}
+          </div>
+          
+          <p>If you made a payment via Venmo, a refund will be processed to your original payment method.</p>
+          
+          <p>If you have any questions about this cancellation, please reply to this email or contact us at ${fromEmail}.</p>
+          
+          <p>We apologize for any inconvenience and hope to serve you again soon.</p>
+        </div>
+        <div class="footer">
+          <p>&copy; ${new Date().getFullYear()} ${BUSINESS_NAME}. All rights reserved.</p>
+          <p>Cape Cod's Premier Shoe & Leather Repair</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  const result = await sendEmail(
+    customerEmail,
+    `Order #${orderId} Cancelled - ${BUSINESS_NAME}`,
+    htmlBody
+  );
+  
+  if (!result.success) {
+    console.error(`[Email] Cancellation email failed for order #${orderId}:`, result.error);
+  } else {
+    console.log(`[Email] Cancellation email sent for order #${orderId} to ${customerEmail}`);
+  }
+}

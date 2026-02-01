@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2 } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2, XCircle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -217,6 +217,32 @@ export default function Admin() {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
       setSelectedOrder(null);
       toast({ title: "Order deleted successfully" });
+    },
+  });
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/orders/${id}/cancel`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) throw new Error('Failed to cancel order');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'], exact: false });
+      setSelectedOrder(null);
+      toast({ 
+        title: "Order cancelled", 
+        description: "The customer has been notified via email." 
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to cancel order", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -561,6 +587,12 @@ export default function Admin() {
                                 <div className="flex items-center gap-2">
                                   <CheckCircle className="h-3 w-3 text-green-500" />
                                   Fulfilled
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="cancelled">
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="h-3 w-3 text-red-500" />
+                                  Cancelled
                                 </div>
                               </SelectItem>
                             </SelectContent>
@@ -1317,6 +1349,7 @@ export default function Admin() {
                   {selectedOrder.fulfillmentStatus === 'shipped' && <Truck className="h-4 w-4 mr-1 text-blue-500" />}
                   {selectedOrder.fulfillmentStatus === 'delivered' && <CheckCircle className="h-4 w-4 mr-1 text-green-500" />}
                   {selectedOrder.fulfillmentStatus === 'fulfilled' && <CheckCircle className="h-4 w-4 mr-1 text-green-500" />}
+                  {selectedOrder.fulfillmentStatus === 'cancelled' && <XCircle className="h-4 w-4 mr-1 text-red-500" />}
                   {(selectedOrder.fulfillmentStatus === 'unfulfilled' || !selectedOrder.fulfillmentStatus) && <Package className="h-4 w-4 mr-1 text-yellow-500" />}
                   {(selectedOrder.fulfillmentStatus || 'unfulfilled').charAt(0).toUpperCase() + (selectedOrder.fulfillmentStatus || 'unfulfilled').slice(1)}
                 </Badge>
@@ -1448,6 +1481,7 @@ export default function Admin() {
                       <SelectItem value="shipped">Shipped</SelectItem>
                       <SelectItem value="delivered">Delivered</SelectItem>
                       <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1554,6 +1588,21 @@ export default function Admin() {
                     </>
                   )}
                 </Button>
+                {selectedOrder.fulfillmentStatus !== 'cancelled' && (
+                  <Button 
+                    variant="outline"
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to cancel this order? The customer will be notified via email.')) {
+                        cancelOrderMutation.mutate(selectedOrder.id);
+                      }
+                    }}
+                    data-testid="order-detail-cancel"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Cancel Order
+                  </Button>
+                )}
                 <Button 
                   variant="destructive"
                   onClick={() => {

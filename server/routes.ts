@@ -7,7 +7,7 @@ import { z } from "zod";
 import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
 import { isR2Configured, r2StorageService } from "./r2Storage";
 import { isCloudinaryConfigured, cloudinaryService } from "./cloudinaryStorage";
-import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, type OrderDetails } from "./email";
+import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, sendOrderCancellationEmail, type OrderDetails } from "./email";
 import { createHash, randomBytes } from "crypto";
 
 function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
@@ -901,7 +901,7 @@ export async function registerRoutes(
 
   // Validation schemas for order updates
   const paymentStatusSchema = z.enum(["unpaid", "paid"]);
-  const fulfillmentStatusSchema = z.enum(["unfulfilled", "shipped", "delivered", "fulfilled"]);
+  const fulfillmentStatusSchema = z.enum(["unfulfilled", "shipped", "delivered", "fulfilled", "cancelled"]);
 
   // Update order payment status
   app.patch("/api/orders/:id/payment", async (req, res) => {
@@ -933,7 +933,7 @@ export async function registerRoutes(
       const parseResult = fulfillmentStatusSchema.safeParse(req.body.fulfillmentStatus);
       
       if (!parseResult.success) {
-        return res.status(400).json({ error: "Valid fulfillment status required (unfulfilled, shipped, delivered, fulfilled)" });
+        return res.status(400).json({ error: "Valid fulfillment status required (unfulfilled, shipped, delivered, fulfilled, cancelled)" });
       }
 
       const order = await storage.updateOrderFulfillmentStatus(id, parseResult.data);
@@ -988,6 +988,40 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating archive status:", error);
       res.status(500).json({ error: "Failed to update archive status" });
+    }
+  });
+
+  // Cancel order
+  app.patch("/api/orders/:id/cancel", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { reason } = req.body;
+
+      const order = await storage.getOrderById(id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      const updatedOrder = await storage.updateOrderFulfillmentStatus(id, "cancelled");
+      if (!updatedOrder) {
+        return res.status(500).json({ error: "Failed to cancel order" });
+      }
+
+      try {
+        await sendOrderCancellationEmail(
+          order.customerEmail,
+          order.customerName,
+          order.id,
+          reason
+        );
+      } catch (emailError) {
+        console.error("Error sending cancellation email:", emailError);
+      }
+
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      res.status(500).json({ error: "Failed to cancel order" });
     }
   });
 
