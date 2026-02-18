@@ -1,11 +1,12 @@
 import { useState } from "react";
-import type { Product } from "@shared/schema";
+import type { Product, ProductOption } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart, useCompare } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { ImageOff, ShoppingBag, GitCompareArrows, Check, Eye } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 interface ProductCardProps {
   product: Product;
@@ -18,12 +19,26 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
   const inCompare = isInCompare(product.id);
   const { toast } = useToast();
   const [imageError, setImageError] = useState(false);
+  const [, setLocation] = useLocation();
+
+  const { data: options = [] } = useQuery<ProductOption[]>({
+    queryKey: ['/api/products', product.id, 'options'],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/${product.id}/options`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  const hasVariants = options.length > 0;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (onQuickView) {
       onQuickView(product);
+    } else if (hasVariants) {
+      setLocation(`/product/${product.id}`);
     } else {
       addToCart(product);
       toast({

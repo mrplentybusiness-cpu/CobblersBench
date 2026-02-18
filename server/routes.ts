@@ -19,7 +19,8 @@ function generateSessionToken(): string {
 
 function cleanExpiredSessions() {
   const now = Date.now();
-  for (const [token, session] of adminSessions) {
+  const entries = Array.from(adminSessions.entries());
+  for (const [token, session] of entries) {
     if (now - session.createdAt > SESSION_TTL) {
       adminSessions.delete(token);
     }
@@ -437,7 +438,7 @@ export async function registerRoutes(
   // ===== PRODUCT IMAGES =====
 
   // Get product images
-  app.get("/api/products/:id/images", requireAdmin, async (req, res) => {
+  app.get("/api/products/:id/images", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const images = await storage.getProductImages(productId);
@@ -523,7 +524,7 @@ export async function registerRoutes(
   // ===== PRODUCT OPTIONS =====
 
   // Get product options
-  app.get("/api/products/:id/options", requireAdmin, async (req, res) => {
+  app.get("/api/products/:id/options", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const options = await storage.getProductOptions(productId);
@@ -639,7 +640,7 @@ export async function registerRoutes(
   // ===== PRODUCT VARIANTS =====
 
   // Get product variants
-  app.get("/api/products/:id/variants", requireAdmin, async (req, res) => {
+  app.get("/api/products/:id/variants", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const variants = await storage.getProductVariants(productId);

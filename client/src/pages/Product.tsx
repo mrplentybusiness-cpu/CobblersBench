@@ -95,16 +95,8 @@ export default function ProductPage() {
   const hasVariants = options.length > 0 && variants.length > 0;
 
   useEffect(() => {
-    if (options.length > 0 && Object.keys(selectedOptions).length === 0) {
-      const defaultSelections: Record<string, string> = {};
-      options.forEach(option => {
-        if (option.values && option.values.length > 0) {
-          defaultSelections[option.name] = option.values[0];
-        }
-      });
-      setSelectedOptions(defaultSelections);
-    }
-  }, [options, selectedOptions]);
+    setSelectedOptions({});
+  }, [productId]);
 
   const selectedVariant = useMemo(() => {
     if (!hasVariants || Object.keys(selectedOptions).length === 0) return null;
@@ -138,8 +130,19 @@ export default function ProductPage() {
     }));
   };
 
+  const allOptionsSelected = !hasVariants || Object.keys(selectedOptions).length === options.length;
+
   const handleAddToCart = () => {
     if (!product) return;
+
+    if (hasVariants && !selectedVariant) {
+      toast({
+        title: "Please select all options",
+        description: "Choose all options before adding to cart.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const cartItem = {
       ...product,
@@ -310,8 +313,8 @@ export default function ProductPage() {
                       value={selectedOptions[option.name] || ''}
                       onValueChange={(value) => handleOptionChange(option.name, value)}
                     >
-                      <SelectTrigger className="w-full" data-testid={`option-select-${option.name}`}>
-                        <SelectValue placeholder={`Select ${option.name}`} />
+                      <SelectTrigger className={`w-full ${!selectedOptions[option.name] ? 'border-amber-500' : ''}`} data-testid={`option-select-${option.name}`}>
+                        <SelectValue placeholder={`Choose ${option.name} *`} />
                       </SelectTrigger>
                       <SelectContent>
                         {option.values?.map(value => (
@@ -375,12 +378,18 @@ export default function ProductPage() {
                 onClick={handleAddToCart}
                 disabled={Boolean(
                   isOutOfStock ||
-                  (hasVariants && !isVariantAvailable)
+                  (hasVariants && !selectedVariant)
                 )}
                 data-testid="button-add-to-cart"
               >
                 <ShoppingBag className="h-5 w-5 mr-2" />
-                Add to Order - ${(parseFloat(displayPrice) * quantity).toFixed(2)}
+                {isOutOfStock 
+                  ? 'Out of Stock'
+                  : hasVariants && !allOptionsSelected
+                    ? 'Select Options'
+                    : hasVariants && !selectedVariant
+                      ? 'Unavailable Combination'
+                      : `Add to Order - $${(parseFloat(displayPrice) * quantity).toFixed(2)}`}
               </Button>
             </div>
 
