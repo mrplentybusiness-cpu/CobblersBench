@@ -98,29 +98,29 @@ export const orderItems = pgTable("order_items", {
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({
-  id: true,
-  createdAt: true,
-} as const);
+  id: true as never,
+  createdAt: true as never,
+});
 
 export const insertProductImageSchema = createInsertSchema(productImages).omit({
-  id: true,
-} as const);
+  id: true as never,
+});
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  status: true,
-  paymentStatus: true,
-  fulfillmentStatus: true,
-  archived: true,
-  adminNotes: true,
-  trackingNumber: true,
-} as const);
+  id: true as never,
+  createdAt: true as never,
+  updatedAt: true as never,
+  status: true as never,
+  paymentStatus: true as never,
+  fulfillmentStatus: true as never,
+  archived: true as never,
+  adminNotes: true as never,
+  trackingNumber: true as never,
+});
 
 export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
-  id: true,
-} as const);
+  id: true as never,
+});
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
@@ -147,11 +147,11 @@ export const serviceInquiries = pgTable("service_inquiries", {
 });
 
 export const insertServiceInquirySchema = createInsertSchema(serviceInquiries).omit({
-  id: true,
-  createdAt: true,
-  status: true,
-  adminNotes: true,
-} as const);
+  id: true as never,
+  createdAt: true as never,
+  status: true as never,
+  adminNotes: true as never,
+});
 
 export type InsertServiceInquiry = z.infer<typeof insertServiceInquirySchema>;
 export type ServiceInquiry = typeof serviceInquiries.$inferSelect;
@@ -181,13 +181,13 @@ export const productVariants = pgTable("product_variants", {
 });
 
 export const insertProductOptionSchema = createInsertSchema(productOptions).omit({
-  id: true,
-} as const);
+  id: true as never,
+});
 
 export const insertProductVariantSchema = createInsertSchema(productVariants).omit({
-  id: true,
-  createdAt: true,
-} as const);
+  id: true as never,
+  createdAt: true as never,
+});
 
 export type InsertProductOption = z.infer<typeof insertProductOptionSchema>;
 export type ProductOption = typeof productOptions.$inferSelect;
@@ -208,9 +208,9 @@ export const reviews = pgTable("reviews", {
 });
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({
-  id: true,
-  createdAt: true,
-} as const);
+  id: true as never,
+  createdAt: true as never,
+});
 
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
@@ -226,9 +226,9 @@ export const siteContent = pgTable("site_content", {
 });
 
 export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
-  id: true,
-  updatedAt: true,
-} as const);
+  id: true as never,
+  updatedAt: true as never,
+});
 
 export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
 export type SiteContent = typeof siteContent.$inferSelect;
