@@ -1,15 +1,45 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 
-async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
+async function sendViaResend(to: string, subject: string, html: string): Promise<{ success: boolean; method: string; error?: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return { success: false, method: 'Resend HTTP API', error: 'RESEND_API_KEY not set' };
+  }
+
+  try {
+    console.log(`[Email] Trying Resend HTTP API to send to ${to}: "${subject}"`);
+    const resend = new Resend(apiKey);
+    const { data, error } = await resend.emails.send({
+      from: `${BUSINESS_NAME} <onboarding@resend.dev>`,
+      replyTo: FROM_EMAIL,
+      to: [to],
+      subject,
+      html,
+    });
+
+    if (error) {
+      console.error(`[Email] FAILED via Resend HTTP API: ${error.message}`);
+      return { success: false, method: 'Resend HTTP API', error: error.message };
+    }
+
+    console.log(`[Email] SUCCESS via Resend HTTP API to ${to}, id: ${data?.id}`);
+    return { success: true, method: 'Resend HTTP API' };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Email] FAILED via Resend HTTP API: ${errorMsg}`);
+    return { success: false, method: 'Resend HTTP API', error: errorMsg };
+  }
+}
+
+async function sendViaSmtp(to: string, subject: string, html: string): Promise<{ success: boolean; method: string; error?: string }> {
   const appPassword = process.env.GMAIL_APP_PASSWORD;
   if (!appPassword) {
-    const msg = '[Email] GMAIL_APP_PASSWORD not set. Emails will not be sent.';
-    console.error(msg);
-    return { success: false, error: msg };
+    return { success: false, method: 'SMTP', error: 'GMAIL_APP_PASSWORD not set' };
   }
 
   const cleanPassword = appPassword.replace(/\s/g, '');
@@ -21,9 +51,9 @@ async function sendEmail(to: string, subject: string, html: string): Promise<{ s
       port: 465,
       secure: true,
       auth: { user: FROM_EMAIL, pass: cleanPassword },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     },
     {
       name: 'Gmail STARTTLS (port 587)',
@@ -31,17 +61,9 @@ async function sendEmail(to: string, subject: string, html: string): Promise<{ s
       port: 587,
       secure: false,
       auth: { user: FROM_EMAIL, pass: cleanPassword },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-    },
-    {
-      name: 'Gmail service shorthand',
-      service: 'gmail' as const,
-      auth: { user: FROM_EMAIL, pass: cleanPassword },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     },
   ];
 
@@ -61,7 +83,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<{ s
         html,
       });
       console.log(`[Email] SUCCESS via ${configName} to ${to}, messageId: ${info.messageId}`);
-      return { success: true };
+      return { success: true, method: configName };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`[Email] FAILED via ${configName}: ${errorMsg}`);
@@ -69,100 +91,53 @@ async function sendEmail(to: string, subject: string, html: string): Promise<{ s
     }
   }
 
-  const fullError = `All SMTP methods failed: ${errors.join(' | ')}`;
+  return { success: false, method: 'SMTP', error: errors.join(' | ') };
+}
+
+async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
+  const smtpResult = await sendViaSmtp(to, subject, html);
+  if (smtpResult.success) {
+    return { success: true };
+  }
+
+  console.log(`[Email] SMTP failed, trying Resend HTTP API fallback...`);
+  const resendResult = await sendViaResend(to, subject, html);
+  if (resendResult.success) {
+    return { success: true };
+  }
+
+  const fullError = `All methods failed. SMTP: ${smtpResult.error} | Resend: ${resendResult.error}`;
   console.error(`[Email] ${fullError}`);
   return { success: false, error: fullError };
 }
 
 export async function testEmailDelivery(testTo: string): Promise<{ success: boolean; error?: string; method?: string }> {
-  const appPassword = process.env.GMAIL_APP_PASSWORD;
-  if (!appPassword) {
-    return { success: false, error: 'GMAIL_APP_PASSWORD not set in environment' };
+  const testHtml = `
+    <div style="font-family: Arial, sans-serif; padding: 20px;">
+      <h2>Email Delivery Test</h2>
+      <p>This is a test email from ${BUSINESS_NAME}.</p>
+      <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+      <p><strong>Environment:</strong> ${process.env.NODE_ENV || 'unknown'}</p>
+      <p><strong>Platform:</strong> ${process.env.RAILWAY_PUBLIC_DOMAIN ? 'Railway' : process.env.REPLIT_DEPLOYMENT ? 'Replit Deployment' : 'Development'}</p>
+      <p>If you receive this email, email delivery is working correctly.</p>
+    </div>
+  `;
+  const subject = `[TEST] Email Delivery Test - ${BUSINESS_NAME}`;
+
+  const smtpResult = await sendViaSmtp(testTo, subject, testHtml);
+  if (smtpResult.success) {
+    return { success: true, method: smtpResult.method };
   }
 
-  const cleanPassword = appPassword.replace(/\s/g, '');
-
-  const smtpConfigs = [
-    {
-      name: 'Gmail SSL (port 465)',
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user: FROM_EMAIL, pass: cleanPassword },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-    },
-    {
-      name: 'Gmail STARTTLS (port 587)',
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: { user: FROM_EMAIL, pass: cleanPassword },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-    },
-    {
-      name: 'Gmail service shorthand',
-      service: 'gmail' as const,
-      auth: { user: FROM_EMAIL, pass: cleanPassword },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-    },
-  ];
-
-  const results: Array<{ method: string; success: boolean; error?: string }> = [];
-
-  for (const config of smtpConfigs) {
-    const configName = config.name;
-    try {
-      console.log(`[Email Test] Testing ${configName}...`);
-      const { name, ...transportConfig } = config;
-      const transporter = nodemailer.createTransport(transportConfig as any);
-
-      await transporter.verify();
-      console.log(`[Email Test] ${configName} - SMTP connection verified`);
-
-      const info = await transporter.sendMail({
-        from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
-        to: testTo,
-        subject: `[TEST] Email Delivery Test - ${BUSINESS_NAME}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2>Email Delivery Test</h2>
-            <p>This is a test email from ${BUSINESS_NAME}.</p>
-            <p><strong>Method:</strong> ${configName}</p>
-            <p><strong>Time:</strong> ${new Date().toISOString()}</p>
-            <p><strong>Environment:</strong> ${process.env.NODE_ENV || 'unknown'}</p>
-            <p><strong>Platform:</strong> ${process.env.RAILWAY_PUBLIC_DOMAIN ? 'Railway' : process.env.REPLIT_DEPLOYMENT ? 'Replit Deployment' : 'Development'}</p>
-            <p>If you receive this email, email delivery is working correctly via ${configName}.</p>
-          </div>
-        `,
-      });
-      console.log(`[Email Test] ${configName} - SUCCESS, messageId: ${info.messageId}`);
-      results.push({ method: configName, success: true });
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[Email Test] ${configName} - FAILED: ${errorMsg}`);
-      results.push({ method: configName, success: false, error: errorMsg });
-    }
-  }
-
-  const successfulMethod = results.find(r => r.success);
-  if (successfulMethod) {
-    return { success: true, method: successfulMethod.method };
+  const resendResult = await sendViaResend(testTo, subject, testHtml);
+  if (resendResult.success) {
+    return { success: true, method: resendResult.method };
   }
 
   return {
     success: false,
-    error: results.map(r => `${r.method}: ${r.error}`).join(' | '),
+    error: `SMTP: ${smtpResult.error} | Resend: ${resendResult.error}`,
   };
-}
-
-function getFromEmail(): string {
-  return FROM_EMAIL;
 }
 
 function getBaseUrl(): string {
@@ -200,8 +175,6 @@ export interface OrderDetails {
 }
 
 export async function sendCustomerOrderConfirmation(order: OrderDetails): Promise<void> {
-  const fromEmail = getFromEmail();
-  
   const itemsHtml = order.items.map(item => `
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.productName}${item.variantTitle ? ` - ${item.variantTitle}` : ''}</td>
@@ -276,7 +249,7 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
             Include your order number <strong>#${order.orderId}</strong> in the payment note.
           </p>
           
-          <p>If you have any questions, please reply to this email or contact us at ${fromEmail}.</p>
+          <p>If you have any questions, please reply to this email or contact us at ${FROM_EMAIL}.</p>
         </div>
         <div class="footer">
           <p>&copy; ${new Date().getFullYear()} ${BUSINESS_NAME}. All rights reserved.</p>
@@ -394,8 +367,6 @@ export async function sendOrderStatusUpdate(
   status: string,
   trackingNumber?: string
 ): Promise<void> {
-  const fromEmail = getFromEmail();
-  
   let statusMessage = '';
   switch (status) {
     case 'paid':
@@ -445,7 +416,7 @@ export async function sendOrderStatusUpdate(
             <p><strong>Tracking Number:</strong> ${trackingNumber}</p>
           ` : ''}
           
-          <p>If you have any questions, please reply to this email or contact us at ${fromEmail}.</p>
+          <p>If you have any questions, please reply to this email or contact us at ${FROM_EMAIL}.</p>
         </div>
         <div class="footer">
           <p>&copy; ${new Date().getFullYear()} ${BUSINESS_NAME}. All rights reserved.</p>
@@ -475,8 +446,6 @@ export async function sendOrderCancellationEmail(
   orderId: number,
   reason?: string
 ): Promise<void> {
-  const fromEmail = getFromEmail();
-  
   const htmlBody = `
     <!DOCTYPE html>
     <html>
@@ -507,7 +476,7 @@ export async function sendOrderCancellationEmail(
           
           <p>If you made a payment via Venmo, a refund will be processed to your original payment method.</p>
           
-          <p>If you have any questions about this cancellation, please reply to this email or contact us at ${fromEmail}.</p>
+          <p>If you have any questions about this cancellation, please reply to this email or contact us at ${FROM_EMAIL}.</p>
           
           <p>We apologize for any inconvenience and hope to serve you again soon.</p>
         </div>
