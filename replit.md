@@ -155,7 +155,11 @@ Uses Cloudflare R2 for image uploads (works on both Replit and Railway):
 - Fallback to Replit Object Storage when R2 is not configured
 
 ### Authentication
-- Admin dashboard uses simple password-based authentication (stored in environment)
+- Admin dashboard uses session-based authentication with server-side token validation
+- Login via `/api/admin/auth` returns a session token (24h TTL, stored in-memory)
+- All admin API endpoints protected by `requireAdmin` middleware checking Bearer token
+- Frontend stores token in sessionStorage and sends it via `adminFetch` helper
+- Order creation has server-side Zod validation for all fields
 - No user authentication system for customers (manual payment flow)
 
 ## External Dependencies
