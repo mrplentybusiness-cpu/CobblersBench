@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2, XCircle } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2, XCircle, Store } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1436,14 +1436,29 @@ export default function Admin() {
                   </div>
                 </div>
 
-                {/* Shipping Address */}
+                {/* Delivery & Address */}
                 <div>
                   <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                    <MapPin className="h-5 w-5" /> Shipping Address
+                    {selectedOrder.deliveryMethod === 'pickup' ? (
+                      <><Store className="h-5 w-5" /> In-Store Pickup</>
+                    ) : (
+                      <><MapPin className="h-5 w-5" /> Shipping Address</>
+                    )}
                   </h3>
                   <div className="bg-muted/30 rounded-lg p-4" data-testid="order-detail-address">
-                    <p>{selectedOrder.shippingAddress}</p>
-                    <p>{selectedOrder.shippingCity}{selectedOrder.shippingState ? `, ${selectedOrder.shippingState}` : ''} {selectedOrder.shippingZip}</p>
+                    {selectedOrder.deliveryMethod === 'pickup' ? (
+                      <>
+                        <Badge variant="outline" className="mb-2">Pickup</Badge>
+                        <p>1600 Falmouth Rd, Centerville, MA 02632</p>
+                        <p className="text-sm text-muted-foreground mt-1">Mon-Fri 8AM-4PM, Sat 8AM-12PM</p>
+                      </>
+                    ) : (
+                      <>
+                        <Badge variant="outline" className="mb-2">Shipping</Badge>
+                        <p>{selectedOrder.shippingAddress}</p>
+                        <p>{selectedOrder.shippingCity}{selectedOrder.shippingState ? `, ${selectedOrder.shippingState}` : ''} {selectedOrder.shippingZip}</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1486,12 +1501,41 @@ export default function Admin() {
                           </TableCell>
                         </TableRow>
                       ))}
-                      <TableRow className="bg-muted/50">
-                        <TableCell colSpan={3} className="text-right font-bold">Total</TableCell>
-                        <TableCell className="text-right font-bold text-lg" data-testid="order-detail-total">
-                          ${selectedOrder.total}
-                        </TableCell>
-                      </TableRow>
+                      {(() => {
+                        const itemsSubtotal = selectedOrder.items.reduce((sum, item) => 
+                          sum + parseFloat(item.productPrice.toString()) * item.quantity, 0);
+                        const shippingCost = parseFloat(selectedOrder.shipping || "0");
+                        const totalNum = parseFloat(selectedOrder.total);
+                        const taxAmount = Math.max(0, totalNum - itemsSubtotal - shippingCost);
+                        return (
+                          <>
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-right text-muted-foreground">Subtotal</TableCell>
+                              <TableCell className="text-right">${itemsSubtotal.toFixed(2)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-right text-muted-foreground">
+                                {selectedOrder.deliveryMethod === 'pickup' ? 'Pickup' : 'Shipping'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}
+                              </TableCell>
+                            </TableRow>
+                            {taxAmount > 0.01 && (
+                              <TableRow>
+                                <TableCell colSpan={3} className="text-right text-muted-foreground">Tax</TableCell>
+                                <TableCell className="text-right">${taxAmount.toFixed(2)}</TableCell>
+                              </TableRow>
+                            )}
+                            <TableRow className="bg-muted/50">
+                              <TableCell colSpan={3} className="text-right font-bold">Total</TableCell>
+                              <TableCell className="text-right font-bold text-lg" data-testid="order-detail-total">
+                                ${selectedOrder.total}
+                              </TableCell>
+                            </TableRow>
+                          </>
+                        );
+                      })()}
                     </TableBody>
                   </Table>
                 </div>

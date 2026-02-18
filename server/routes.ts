@@ -963,6 +963,17 @@ export async function registerRoutes(
       }
       
       res.json(order);
+
+      // Send email notification when tracking number is added/updated
+      if (order.customerEmail && trackingNumber) {
+        sendOrderStatusUpdate(
+          order.customerEmail,
+          order.customerName,
+          order.id,
+          'shipped',
+          trackingNumber
+        ).catch(err => console.error("Error sending tracking update email:", err));
+      }
     } catch (error) {
       console.error("Error updating tracking number:", error);
       res.status(500).json({ error: "Failed to update tracking number" });
@@ -990,6 +1001,16 @@ export async function registerRoutes(
       }
       
       res.json(order);
+
+      // Send email notification in background
+      if (order.customerEmail) {
+        sendOrderStatusUpdate(
+          order.customerEmail,
+          order.customerName,
+          order.id,
+          parseResult.data
+        ).catch(err => console.error("Error sending payment status email:", err));
+      }
     } catch (error) {
       console.error("Error updating payment status:", error);
       res.status(500).json({ error: "Failed to update payment status" });
@@ -1013,6 +1034,17 @@ export async function registerRoutes(
       }
       
       res.json(order);
+
+      // Send email notification in background (skip unfulfilled - no need to notify)
+      if (order.customerEmail && parseResult.data !== 'unfulfilled') {
+        sendOrderStatusUpdate(
+          order.customerEmail,
+          order.customerName,
+          order.id,
+          parseResult.data,
+          order.trackingNumber || undefined
+        ).catch(err => console.error("Error sending fulfillment status email:", err));
+      }
     } catch (error) {
       console.error("Error updating fulfillment status:", error);
       res.status(500).json({ error: "Failed to update fulfillment status" });
