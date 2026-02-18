@@ -112,6 +112,11 @@ httpServer.listen(
   },
 );
 
+// Log email configuration status at startup
+console.log(`[Email Config] GMAIL_APP_PASSWORD: ${process.env.GMAIL_APP_PASSWORD ? 'SET (length ' + process.env.GMAIL_APP_PASSWORD.length + ')' : 'NOT SET'}`);
+console.log(`[Email Config] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`[Email Config] REPLIT_DEPLOYMENT: ${process.env.REPLIT_DEPLOYMENT || 'not set'}`);
+
 // Then do async setup (database, routes, and in development: Vite)
 (async () => {
   await registerRoutes(httpServer, app);
