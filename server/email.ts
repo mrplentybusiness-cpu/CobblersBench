@@ -4,57 +4,161 @@ const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 
-function createTransporter(): nodemailer.Transporter | null {
+async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
   const appPassword = process.env.GMAIL_APP_PASSWORD;
   if (!appPassword) {
-    console.error('[Email] GMAIL_APP_PASSWORD not set. Emails will not be sent. Available env vars:', Object.keys(process.env).filter(k => k.includes('GMAIL') || k.includes('MAIL') || k.includes('SMTP')).join(', ') || 'none');
-    return null;
+    const msg = '[Email] GMAIL_APP_PASSWORD not set. Emails will not be sent.';
+    console.error(msg);
+    return { success: false, error: msg };
   }
 
   const cleanPassword = appPassword.replace(/\s/g, '');
-  console.log(`[Email] Creating Gmail SMTP transporter for ${FROM_EMAIL} (password length: ${cleanPassword.length})`);
 
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: FROM_EMAIL,
-      pass: cleanPassword,
+  const smtpConfigs = [
+    {
+      name: 'Gmail SSL (port 465)',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user: FROM_EMAIL, pass: cleanPassword },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
     },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-  });
+    {
+      name: 'Gmail STARTTLS (port 587)',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user: FROM_EMAIL, pass: cleanPassword },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+    },
+    {
+      name: 'Gmail service shorthand',
+      service: 'gmail' as const,
+      auth: { user: FROM_EMAIL, pass: cleanPassword },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+    },
+  ];
 
-  return transporter;
+  const errors: string[] = [];
+
+  for (const config of smtpConfigs) {
+    const configName = config.name;
+    try {
+      console.log(`[Email] Trying ${configName} to send to ${to}: "${subject}"`);
+      const { name, ...transportConfig } = config;
+      const transporter = nodemailer.createTransport(transportConfig as any);
+
+      const info = await transporter.sendMail({
+        from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
+        to,
+        subject,
+        html,
+      });
+      console.log(`[Email] SUCCESS via ${configName} to ${to}, messageId: ${info.messageId}`);
+      return { success: true };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[Email] FAILED via ${configName}: ${errorMsg}`);
+      errors.push(`${configName}: ${errorMsg}`);
+    }
+  }
+
+  const fullError = `All SMTP methods failed: ${errors.join(' | ')}`;
+  console.error(`[Email] ${fullError}`);
+  return { success: false, error: fullError };
 }
 
-async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.error(`[Email] Cannot send email to ${to} - no transporter available`);
-    return { success: false, error: 'GMAIL_APP_PASSWORD not configured' };
+export async function testEmailDelivery(testTo: string): Promise<{ success: boolean; error?: string; method?: string }> {
+  const appPassword = process.env.GMAIL_APP_PASSWORD;
+  if (!appPassword) {
+    return { success: false, error: 'GMAIL_APP_PASSWORD not set in environment' };
   }
 
-  try {
-    console.log(`[Email] Attempting to send email to ${to}: "${subject}"`);
-    const info = await transporter.sendMail({
-      from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
-      to,
-      subject,
-      html,
-    });
-    console.log(`[Email] Successfully sent to ${to}, messageId: ${info.messageId}`);
-    return { success: true };
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[Email] Send error to ${to}:`, errorMsg);
-    if (error instanceof Error && error.stack) {
-      console.error('[Email] Stack:', error.stack);
+  const cleanPassword = appPassword.replace(/\s/g, '');
+
+  const smtpConfigs = [
+    {
+      name: 'Gmail SSL (port 465)',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user: FROM_EMAIL, pass: cleanPassword },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+    },
+    {
+      name: 'Gmail STARTTLS (port 587)',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user: FROM_EMAIL, pass: cleanPassword },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+    },
+    {
+      name: 'Gmail service shorthand',
+      service: 'gmail' as const,
+      auth: { user: FROM_EMAIL, pass: cleanPassword },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+    },
+  ];
+
+  const results: Array<{ method: string; success: boolean; error?: string }> = [];
+
+  for (const config of smtpConfigs) {
+    const configName = config.name;
+    try {
+      console.log(`[Email Test] Testing ${configName}...`);
+      const { name, ...transportConfig } = config;
+      const transporter = nodemailer.createTransport(transportConfig as any);
+
+      await transporter.verify();
+      console.log(`[Email Test] ${configName} - SMTP connection verified`);
+
+      const info = await transporter.sendMail({
+        from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
+        to: testTo,
+        subject: `[TEST] Email Delivery Test - ${BUSINESS_NAME}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Email Delivery Test</h2>
+            <p>This is a test email from ${BUSINESS_NAME}.</p>
+            <p><strong>Method:</strong> ${configName}</p>
+            <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+            <p><strong>Environment:</strong> ${process.env.NODE_ENV || 'unknown'}</p>
+            <p><strong>Platform:</strong> ${process.env.RAILWAY_PUBLIC_DOMAIN ? 'Railway' : process.env.REPLIT_DEPLOYMENT ? 'Replit Deployment' : 'Development'}</p>
+            <p>If you receive this email, email delivery is working correctly via ${configName}.</p>
+          </div>
+        `,
+      });
+      console.log(`[Email Test] ${configName} - SUCCESS, messageId: ${info.messageId}`);
+      results.push({ method: configName, success: true });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[Email Test] ${configName} - FAILED: ${errorMsg}`);
+      results.push({ method: configName, success: false, error: errorMsg });
     }
-    return { success: false, error: errorMsg };
   }
+
+  const successfulMethod = results.find(r => r.success);
+  if (successfulMethod) {
+    return { success: true, method: successfulMethod.method };
+  }
+
+  return {
+    success: false,
+    error: results.map(r => `${r.method}: ${r.error}`).join(' | '),
+  };
 }
 
 function getFromEmail(): string {

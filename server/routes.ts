@@ -7,7 +7,7 @@ import { z } from "zod";
 import { isImgBBConfigured, uploadToImgBB } from "./imgbbStorage";
 import { isR2Configured, r2StorageService } from "./r2Storage";
 import { isCloudinaryConfigured, cloudinaryService } from "./cloudinaryStorage";
-import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, sendOrderCancellationEmail, type OrderDetails } from "./email";
+import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, sendOrderCancellationEmail, testEmailDelivery, type OrderDetails } from "./email";
 import { createHash, randomBytes } from "crypto";
 
 const adminSessions = new Map<string, { createdAt: number }>();
@@ -89,6 +89,19 @@ export async function registerRoutes(
   registerObjectStorageRoutes(app);
 
   // ===== ADMIN AUTH =====
+  app.post("/api/admin/test-email", requireAdmin, async (req, res) => {
+    try {
+      const { email } = req.body;
+      const testEmail = email || 'cobblersbenchcapecod@gmail.com';
+      console.log(`[Admin] Testing email delivery to ${testEmail}`);
+      const result = await testEmailDelivery(testEmail);
+      res.json(result);
+    } catch (error) {
+      console.error("Error testing email:", error);
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   app.post("/api/admin/auth", async (req, res) => {
     try {
       const { password } = req.body;

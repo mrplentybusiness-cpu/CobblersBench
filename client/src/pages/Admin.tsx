@@ -4079,6 +4079,34 @@ function SettingsManagement({ toast }: { toast: (props: { title: string; descrip
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; method?: string; error?: string } | null>(null);
+
+  const handleTestEmail = async () => {
+    setIsTestingEmail(true);
+    setEmailTestResult(null);
+    try {
+      const response = await adminFetch("/api/admin/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: testEmailAddress || undefined }),
+      });
+      const data = await response.json();
+      setEmailTestResult(data);
+      if (data.success) {
+        toast({ title: "Test email sent successfully", description: `Sent via ${data.method}. Check your inbox.` });
+      } else {
+        toast({ title: "Email test failed", description: data.error || "Unknown error", variant: "destructive" });
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
+      setEmailTestResult({ success: false, error: msg });
+      toast({ title: "Email test failed", description: msg, variant: "destructive" });
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -4235,6 +4263,49 @@ function SettingsManagement({ toast }: { toast: (props: { title: string; descrip
           <strong>Note:</strong> After changing your password, you will need to use the new password to log in. Make sure to remember it!
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Email Delivery Test
+          </CardTitle>
+          <CardDescription>
+            Send a test email to verify that email notifications are working correctly on this server.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 max-w-md">
+            <div>
+              <Label htmlFor="testEmail">Send test to (optional)</Label>
+              <Input
+                id="testEmail"
+                type="email"
+                value={testEmailAddress}
+                onChange={(e) => setTestEmailAddress(e.target.value)}
+                placeholder="Leave blank to send to admin email"
+                data-testid="input-test-email"
+              />
+            </div>
+            <Button
+              onClick={handleTestEmail}
+              disabled={isTestingEmail}
+              data-testid="button-test-email"
+            >
+              {isTestingEmail ? "Sending test..." : "Send Test Email"}
+            </Button>
+            {emailTestResult && (
+              <div className={`p-3 rounded-lg text-sm ${emailTestResult.success ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
+                {emailTestResult.success ? (
+                  <p><strong>Success!</strong> Email sent via {emailTestResult.method}. Check your inbox.</p>
+                ) : (
+                  <p><strong>Failed:</strong> {emailTestResult.error}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
