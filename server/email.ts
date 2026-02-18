@@ -16,7 +16,6 @@ function getTransporter(): nodemailer.Transporter | null {
   }
 
   const cleanPassword = appPassword.replace(/\s/g, '');
-  console.log(`[Email] Gmail SMTP configuring for ${FROM_EMAIL}, password length: ${cleanPassword.length}`);
 
   cachedTransporter = nodemailer.createTransport({
     service: 'gmail',
