@@ -27,6 +27,13 @@ async function sendViaGmailApi(to: string, subject: string, html: string): Promi
       }),
     });
 
+    if (!tokenResponse.ok) {
+      const errorBody = await tokenResponse.text();
+      const errMsg = `Token request failed (HTTP ${tokenResponse.status}): ${errorBody}`;
+      console.error(`[Email] Gmail API token error: ${errMsg}`);
+      return { success: false, method: 'Gmail API (HTTPS)', error: errMsg };
+    }
+
     const tokenData = await tokenResponse.json() as any;
     if (!tokenData.access_token) {
       const errMsg = tokenData.error_description || tokenData.error || 'Failed to get access token';
