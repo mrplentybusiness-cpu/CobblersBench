@@ -1,130 +1,54 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
-const DEFAULT_FROM_EMAIL = 'onboarding@resend.dev';
+const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 
-type EmailProvider = 'brevo_api' | 'resend' | null;
-let cachedProvider: EmailProvider = null;
-let cachedBrevoApiKey: string | null = null;
-let cachedResendClient: Resend | null = null;
-let cachedFromEmail: string | null = null;
+let cachedTransporter: nodemailer.Transporter | null = null;
 
-async function initEmailProvider(): Promise<EmailProvider> {
-  if (cachedProvider !== null) {
-    return cachedProvider;
+function getTransporter(): nodemailer.Transporter | null {
+  if (cachedTransporter) return cachedTransporter;
+
+  const appPassword = process.env.GMAIL_APP_PASSWORD;
+  if (!appPassword) {
+    console.warn('[Email] GMAIL_APP_PASSWORD not set. Emails will not be sent.');
+    return null;
   }
 
-  // Primary: Brevo HTTP API (works on Railway - uses port 443, not blocked)
-  if (process.env.BREVO_API_KEY) {
-    console.log('[Email] Using Brevo HTTP API');
-    cachedFromEmail = process.env.EMAIL_FROM || 'cobblersbenchcapecod@gmail.com';
-    cachedBrevoApiKey = process.env.BREVO_API_KEY;
-    cachedProvider = 'brevo_api';
-    return 'brevo_api';
-  }
+  cachedTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: FROM_EMAIL,
+      pass: appPassword,
+    },
+  });
 
-  // Fallback: Resend API
-  if (process.env.RESEND_API_KEY) {
-    console.log('[Email] Using Resend API');
-    cachedFromEmail = process.env.RESEND_FROM_EMAIL || DEFAULT_FROM_EMAIL;
-    cachedResendClient = new Resend(process.env.RESEND_API_KEY);
-    cachedProvider = 'resend';
-    return 'resend';
-  }
-
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (hostname && xReplitToken) {
-    try {
-      const connectionSettings = await fetch(
-        'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-        {
-          headers: {
-            'Accept': 'application/json',
-            'X_REPLIT_TOKEN': xReplitToken
-          }
-        }
-      ).then(res => res.json()).then(data => data.items?.[0]);
-
-      if (connectionSettings?.settings?.api_key) {
-        console.log('[Email] Using Resend via Replit connector');
-        cachedFromEmail = connectionSettings.settings.from_email || DEFAULT_FROM_EMAIL;
-        cachedResendClient = new Resend(connectionSettings.settings.api_key);
-        cachedProvider = 'resend';
-        return 'resend';
-      }
-    } catch (error) {
-      console.warn('[Email] Failed to fetch Replit connector:', error);
-    }
-  }
-
-  console.warn('[Email] No email provider configured. Set BREVO_SMTP_KEY or RESEND_API_KEY');
-  cachedProvider = null;
-  return null;
+  console.log('[Email] Gmail SMTP configured');
+  return cachedTransporter;
 }
 
 async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
-  const provider = await initEmailProvider();
-  
-  if (!provider || !cachedFromEmail) {
-    return { success: false, error: 'No email provider configured' };
+  const transporter = getTransporter();
+  if (!transporter) {
+    return { success: false, error: 'GMAIL_APP_PASSWORD not configured' };
   }
 
   try {
-    // Brevo HTTP API (works on Railway - port 443)
-    if (provider === 'brevo_api' && cachedBrevoApiKey) {
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'api-key': cachedBrevoApiKey,
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          sender: { name: BUSINESS_NAME, email: cachedFromEmail },
-          to: [{ email: to }],
-          subject: subject,
-          htmlContent: html
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[Email] Brevo API error:', response.status, errorText);
-        return { success: false, error: `Brevo API error: ${response.status} - ${errorText}` };
-      }
-
-      return { success: true };
-    }
-
-    // Resend API
-    if (provider === 'resend' && cachedResendClient) {
-      const result = await cachedResendClient.emails.send({
-        from: `${BUSINESS_NAME} <${cachedFromEmail}>`,
-        to,
-        subject,
-        html
-      });
-      if (result.error) {
-        return { success: false, error: result.error.message };
-      }
-      return { success: true };
-    }
-
-    return { success: false, error: 'Provider not initialized' };
+    await transporter.sendMail({
+      from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
+      to,
+      subject,
+      html,
+    });
+    return { success: true };
   } catch (error) {
+    console.error('[Email] Send error:', error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
 function getFromEmail(): string {
-  return cachedFromEmail || 'cobblersbenchcapecod@gmail.com';
+  return FROM_EMAIL;
 }
 
 function getBaseUrl(): string {
