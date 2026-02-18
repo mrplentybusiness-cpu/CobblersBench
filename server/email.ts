@@ -4,48 +4,56 @@ const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 
-let cachedTransporter: nodemailer.Transporter | null = null;
-
-function getTransporter(): nodemailer.Transporter | null {
-  if (cachedTransporter) return cachedTransporter;
-
+function createTransporter(): nodemailer.Transporter | null {
   const appPassword = process.env.GMAIL_APP_PASSWORD;
   if (!appPassword) {
-    console.warn('[Email] GMAIL_APP_PASSWORD not set. Emails will not be sent.');
+    console.error('[Email] GMAIL_APP_PASSWORD not set. Emails will not be sent. Available env vars:', Object.keys(process.env).filter(k => k.includes('GMAIL') || k.includes('MAIL') || k.includes('SMTP')).join(', ') || 'none');
     return null;
   }
 
   const cleanPassword = appPassword.replace(/\s/g, '');
+  console.log(`[Email] Creating Gmail SMTP transporter for ${FROM_EMAIL} (password length: ${cleanPassword.length})`);
 
-  cachedTransporter = nodemailer.createTransport({
-    service: 'gmail',
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
       user: FROM_EMAIL,
       pass: cleanPassword,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
-  console.log('[Email] Gmail SMTP configured');
-  return cachedTransporter;
+  return transporter;
 }
 
 async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
-  const transporter = getTransporter();
+  const transporter = createTransporter();
   if (!transporter) {
+    console.error(`[Email] Cannot send email to ${to} - no transporter available`);
     return { success: false, error: 'GMAIL_APP_PASSWORD not configured' };
   }
 
   try {
-    await transporter.sendMail({
+    console.log(`[Email] Attempting to send email to ${to}: "${subject}"`);
+    const info = await transporter.sendMail({
       from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
       to,
       subject,
       html,
     });
+    console.log(`[Email] Successfully sent to ${to}, messageId: ${info.messageId}`);
     return { success: true };
   } catch (error) {
-    console.error('[Email] Send error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Email] Send error to ${to}:`, errorMsg);
+    if (error instanceof Error && error.stack) {
+      console.error('[Email] Stack:', error.stack);
+    }
+    return { success: false, error: errorMsg };
   }
 }
 

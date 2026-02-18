@@ -55,4 +55,3 @@ CLOUDINARY_CLOUD_NAME = "dicm5snxa"
 CLOUDINARY_API_KEY = "384915293832891"
 
 [userenv.production]
-GMAIL_APP_PASSWORD = "aqmsmhrtllberikz"
