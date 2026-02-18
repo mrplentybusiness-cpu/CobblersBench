@@ -24,8 +24,38 @@ import { ImageUploader } from "@/components/ImageUploader";
 import CloudinaryUpload from "@/components/CloudinaryUpload";
 import MultiImageUpload from "@/components/MultiImageUpload";
 
+function getAdminToken(): string | null {
+  return sessionStorage.getItem("admin_token");
+}
+
+function setAdminToken(token: string) {
+  sessionStorage.setItem("admin_token", token);
+}
+
+function clearAdminToken() {
+  sessionStorage.removeItem("admin_token");
+}
+
+async function adminFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAdminToken();
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string> || {}),
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (!headers["Content-Type"] && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    clearAdminToken();
+  }
+  return response;
+}
+
 export default function Admin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getAdminToken());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews' | 'content' | 'settings'>('orders');
@@ -58,6 +88,10 @@ export default function Admin() {
       });
       
       if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          setAdminToken(data.token);
+        }
         setIsAuthenticated(true);
       } else {
         alert("Invalid password");
@@ -71,7 +105,7 @@ export default function Admin() {
     queryKey: ['/api/orders', orderFilter],
     queryFn: async () => {
       const includeArchived = orderFilter === 'archived' || orderFilter === 'all';
-      const response = await fetch(`/api/orders?includeArchived=${includeArchived}`);
+      const response = await adminFetch(`/api/orders?includeArchived=${includeArchived}`);
       if (!response.ok) throw new Error('Failed to fetch orders');
       const allOrders = await response.json();
       if (orderFilter === 'archived') {
@@ -85,7 +119,7 @@ export default function Admin() {
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ['/api/products'],
     queryFn: async () => {
-      const response = await fetch('/api/products');
+      const response = await adminFetch('/api/products');
       if (!response.ok) throw new Error('Failed to fetch products');
       return response.json();
     },
@@ -95,7 +129,7 @@ export default function Admin() {
   const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<ServiceInquiry[]>({
     queryKey: ['/api/service-inquiries'],
     queryFn: async () => {
-      const response = await fetch('/api/service-inquiries');
+      const response = await adminFetch('/api/service-inquiries');
       if (!response.ok) throw new Error('Failed to fetch inquiries');
       return response.json();
     },
@@ -105,7 +139,7 @@ export default function Admin() {
   const { data: reviews = [], isLoading: reviewsLoading } = useQuery<Review[]>({
     queryKey: ['/api/reviews'],
     queryFn: async () => {
-      const response = await fetch('/api/reviews');
+      const response = await adminFetch('/api/reviews');
       if (!response.ok) throw new Error('Failed to fetch reviews');
       return response.json();
     },
@@ -114,7 +148,7 @@ export default function Admin() {
 
   const updateInquiryStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await fetch(`/api/service-inquiries/${id}/status`, {
+      const response = await adminFetch(`/api/service-inquiries/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -133,7 +167,7 @@ export default function Admin() {
 
   const updateInquiryNotesMutation = useMutation({
     mutationFn: async ({ id, adminNotes }: { id: number; adminNotes: string }) => {
-      const response = await fetch(`/api/service-inquiries/${id}/notes`, {
+      const response = await adminFetch(`/api/service-inquiries/${id}/notes`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminNotes }),
@@ -154,7 +188,7 @@ export default function Admin() {
 
   const deleteInquiryMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/service-inquiries/${id}`, {
+      const response = await adminFetch(`/api/service-inquiries/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete inquiry');
@@ -168,7 +202,7 @@ export default function Admin() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await fetch(`/api/orders/${id}/status`, {
+      const response = await adminFetch(`/api/orders/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -187,7 +221,7 @@ export default function Admin() {
 
   const updateTrackingMutation = useMutation({
     mutationFn: async ({ id, trackingNumber }: { id: number; trackingNumber: string }) => {
-      const response = await fetch(`/api/orders/${id}/tracking`, {
+      const response = await adminFetch(`/api/orders/${id}/tracking`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trackingNumber: trackingNumber || "" }),
@@ -208,7 +242,7 @@ export default function Admin() {
 
   const deleteOrderMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/orders/${id}`, {
+      const response = await adminFetch(`/api/orders/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete order');
@@ -222,7 +256,7 @@ export default function Admin() {
 
   const cancelOrderMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/orders/${id}/cancel`, {
+      const response = await adminFetch(`/api/orders/${id}/cancel`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -248,7 +282,7 @@ export default function Admin() {
 
   const updatePaymentStatusMutation = useMutation({
     mutationFn: async ({ id, paymentStatus }: { id: number; paymentStatus: string }) => {
-      const response = await fetch(`/api/orders/${id}/payment`, {
+      const response = await adminFetch(`/api/orders/${id}/payment`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentStatus }),
@@ -267,7 +301,7 @@ export default function Admin() {
 
   const updateFulfillmentStatusMutation = useMutation({
     mutationFn: async ({ id, fulfillmentStatus }: { id: number; fulfillmentStatus: string }) => {
-      const response = await fetch(`/api/orders/${id}/fulfillment`, {
+      const response = await adminFetch(`/api/orders/${id}/fulfillment`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fulfillmentStatus }),
@@ -286,7 +320,7 @@ export default function Admin() {
 
   const archiveOrderMutation = useMutation({
     mutationFn: async ({ id, archived }: { id: number; archived: boolean }) => {
-      const response = await fetch(`/api/orders/${id}/archive`, {
+      const response = await adminFetch(`/api/orders/${id}/archive`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ archived }),
@@ -305,7 +339,7 @@ export default function Admin() {
 
   const updateNotesMutation = useMutation({
     mutationFn: async ({ id, adminNotes }: { id: number; adminNotes: string }) => {
-      const response = await fetch(`/api/orders/${id}/notes`, {
+      const response = await adminFetch(`/api/orders/${id}/notes`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminNotes }),
@@ -326,7 +360,7 @@ export default function Admin() {
 
   const deleteProductMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/products/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete product');
     },
     onSuccess: () => {
@@ -1688,7 +1722,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   
   useEffect(() => {
     if (product?.id) {
-      fetch(`/api/products/${product.id}/options`)
+      adminFetch(`/api/products/${product.id}/options`)
         .then(res => res.json())
         .then(data => {
           if (data && Array.isArray(data) && data.length > 0) {
@@ -1697,7 +1731,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
         })
         .catch(console.error);
       
-      fetch(`/api/products/${product.id}/variants`)
+      adminFetch(`/api/products/${product.id}/variants`)
         .then(res => res.json())
         .then(data => {
           if (data && Array.isArray(data) && data.length > 0) {
@@ -1718,7 +1752,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
         })
         .catch(console.error);
       
-      fetch(`/api/products/${product.id}/images`)
+      adminFetch(`/api/products/${product.id}/images`)
         .then(res => res.json())
         .then(data => {
           if (data && Array.isArray(data)) {
@@ -1731,7 +1765,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
 
   const createProductMutation = useMutation({
     mutationFn: async (productData: Record<string, any>) => {
-      const response = await fetch('/api/products', {
+      const response = await adminFetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productData),
@@ -1759,7 +1793,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
 
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, ...productData }: { id: number } & Record<string, any>) => {
-      const response = await fetch(`/api/products/${id}`, {
+      const response = await adminFetch(`/api/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productData),
@@ -1914,13 +1948,13 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   const saveVariantsToServer = async (productId: number) => {
     const validOptions = productOptions.filter(o => o.name && o.values.length > 0);
     
-    await fetch(`/api/products/${productId}/options`, {
+    await adminFetch(`/api/products/${productId}/options`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ options: validOptions }),
     });
     
-    await fetch(`/api/products/${productId}/variants`, {
+    await adminFetch(`/api/products/${productId}/variants`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1936,7 +1970,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   const saveImagesToServer = async (productId: number) => {
     for (const img of additionalImages) {
       if (!img.id && img.url) {
-        await fetch(`/api/products/${productId}/images`, {
+        await adminFetch(`/api/products/${productId}/images`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: img.url, altText: img.altText }),
@@ -1960,7 +1994,7 @@ function ProductForm({ product, onSuccess, existingCategories = [] }: { product?
   const removeAdditionalImage = async (index: number) => {
     const img = additionalImages[index];
     if (img.id && product?.id) {
-      await fetch(`/api/product-images/${img.id}`, { method: 'DELETE' });
+      await adminFetch(`/api/product-images/${img.id}`, { method: 'DELETE' });
     }
     setAdditionalImages(additionalImages.filter((_, i) => i !== index));
   };
@@ -2557,7 +2591,7 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
 
   const createReviewMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const response = await fetch('/api/reviews', {
+      const response = await adminFetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2579,7 +2613,7 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
 
   const updateReviewMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<typeof formData> }) => {
-      const response = await fetch(`/api/reviews/${id}`, {
+      const response = await adminFetch(`/api/reviews/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2601,7 +2635,7 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
 
   const deleteReviewMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
+      const response = await adminFetch(`/api/reviews/${id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete review');
     },
     onSuccess: () => {
@@ -2613,7 +2647,7 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
 
   const toggleFeaturedMutation = useMutation({
     mutationFn: async ({ id, featured }: { id: number; featured: boolean }) => {
-      const response = await fetch(`/api/reviews/${id}`, {
+      const response = await adminFetch(`/api/reviews/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ featured }),
@@ -2630,7 +2664,7 @@ function ReviewsManagement({ reviews, isLoading, queryClient, toast }: {
 
   const togglePublishedMutation = useMutation({
     mutationFn: async ({ id, published }: { id: number; published: boolean }) => {
-      const response = await fetch(`/api/reviews/${id}`, {
+      const response = await adminFetch(`/api/reviews/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ published }),
@@ -2976,7 +3010,7 @@ function SiteContentManagement({ queryClient, toast }: {
   const { data: siteContent = [], isLoading } = useQuery<SiteContent[]>({
     queryKey: ['/api/site-content'],
     queryFn: async () => {
-      const response = await fetch('/api/site-content');
+      const response = await adminFetch('/api/site-content');
       if (!response.ok) throw new Error('Failed to fetch site content');
       return response.json();
     },
@@ -3054,7 +3088,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveAboutUsMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/about-us', {
+      const response = await adminFetch('/api/site-content/about-us', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3087,7 +3121,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveHeroMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/hero', {
+      const response = await adminFetch('/api/site-content/hero', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3119,7 +3153,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveBusinessInfoMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/business-info', {
+      const response = await adminFetch('/api/site-content/business-info', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3152,7 +3186,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveGalleryMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/gallery', {
+      const response = await adminFetch('/api/site-content/gallery', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3183,7 +3217,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveServicesMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/services', {
+      const response = await adminFetch('/api/site-content/services', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3215,7 +3249,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveValuePropsMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/value-props', {
+      const response = await adminFetch('/api/site-content/value-props', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3247,7 +3281,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveCtaMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/homepage-cta', {
+      const response = await adminFetch('/api/site-content/homepage-cta', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3278,7 +3312,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveLayoutMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/layout', {
+      const response = await adminFetch('/api/site-content/layout', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3309,7 +3343,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveShopCtaMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/shop-cta', {
+      const response = await adminFetch('/api/site-content/shop-cta', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3340,7 +3374,7 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const saveBrandingMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/site-content/branding', {
+      const response = await adminFetch('/api/site-content/branding', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3962,7 +3996,7 @@ function SiteContentManagement({ queryClient, toast }: {
               <Button 
                 variant="outline"
                 onClick={async () => {
-                  const response = await fetch('/api/site-content/branding', {
+                  const response = await adminFetch('/api/site-content/branding', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ imageUrl: '' }),
@@ -4027,7 +4061,7 @@ function SettingsManagement({ toast }: { toast: (props: { title: string; descrip
     
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/change-password", {
+      const response = await adminFetch("/api/admin/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword, newPassword }),

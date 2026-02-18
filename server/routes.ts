@@ -1,4 +1,4 @@
-import type { Express, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -9,6 +9,39 @@ import { isR2Configured, r2StorageService } from "./r2Storage";
 import { isCloudinaryConfigured, cloudinaryService } from "./cloudinaryStorage";
 import { sendCustomerOrderConfirmation, sendAdminOrderNotification, sendOrderStatusUpdate, sendOrderCancellationEmail, type OrderDetails } from "./email";
 import { createHash, randomBytes } from "crypto";
+
+const adminSessions = new Map<string, { createdAt: number }>();
+const SESSION_TTL = 24 * 60 * 60 * 1000;
+
+function generateSessionToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+function cleanExpiredSessions() {
+  const now = Date.now();
+  for (const [token, session] of adminSessions) {
+    if (now - session.createdAt > SESSION_TTL) {
+      adminSessions.delete(token);
+    }
+  }
+}
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  const token = authHeader.slice(7);
+  const session = adminSessions.get(token);
+  if (!session) {
+    return res.status(401).json({ error: "Invalid or expired session" });
+  }
+  if (Date.now() - session.createdAt > SESSION_TTL) {
+    adminSessions.delete(token);
+    return res.status(401).json({ error: "Session expired" });
+  }
+  next();
+}
 
 function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
   const useSalt = salt || randomBytes(16).toString("hex");
@@ -72,7 +105,10 @@ export async function registerRoutes(
       }
       
       if (trimmedPassword === adminPassword) {
-        return res.json({ success: true });
+        cleanExpiredSessions();
+        const token = generateSessionToken();
+        adminSessions.set(token, { createdAt: Date.now() });
+        return res.json({ success: true, token });
       }
       
       console.log("[Auth] Password mismatch");
@@ -84,7 +120,7 @@ export async function registerRoutes(
   });
 
   // Change admin password
-  app.post("/api/admin/change-password", async (req, res) => {
+  app.post("/api/admin/change-password", requireAdmin, async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
       
@@ -140,7 +176,7 @@ export async function registerRoutes(
   });
 
   // Get Cloudinary upload signature
-  app.post("/api/uploads/cloudinary-signature", async (req, res) => {
+  app.post("/api/uploads/cloudinary-signature", requireAdmin, async (req, res) => {
     try {
       if (!isCloudinaryConfigured()) {
         return res.status(400).json({ error: "Cloudinary not configured" });
@@ -156,7 +192,7 @@ export async function registerRoutes(
   });
 
   // Upload image to Cloudinary from base64
-  app.post("/api/uploads/cloudinary", async (req, res) => {
+  app.post("/api/uploads/cloudinary", requireAdmin, async (req, res) => {
     try {
       if (!isCloudinaryConfigured()) {
         return res.status(400).json({ error: "Cloudinary not configured" });
@@ -177,7 +213,7 @@ export async function registerRoutes(
   });
 
   // Upload image to Cloudinary from URL
-  app.post("/api/uploads/cloudinary-url", async (req, res) => {
+  app.post("/api/uploads/cloudinary-url", requireAdmin, async (req, res) => {
     try {
       if (!isCloudinaryConfigured()) {
         return res.status(400).json({ error: "Cloudinary not configured" });
@@ -198,7 +234,7 @@ export async function registerRoutes(
   });
 
   // Delete image from Cloudinary
-  app.delete("/api/uploads/cloudinary", async (req, res) => {
+  app.delete("/api/uploads/cloudinary", requireAdmin, async (req, res) => {
     try {
       if (!isCloudinaryConfigured()) {
         return res.status(400).json({ error: "Cloudinary not configured" });
@@ -219,7 +255,7 @@ export async function registerRoutes(
   });
 
   // Get presigned URL for R2 upload
-  app.post("/api/uploads/r2-presign", async (req, res) => {
+  app.post("/api/uploads/r2-presign", requireAdmin, async (req, res) => {
     try {
       if (!isR2Configured()) {
         return res.status(400).json({ error: "R2 not configured" });
@@ -238,7 +274,7 @@ export async function registerRoutes(
   });
 
   // Upload image via ImgBB (base64)
-  app.post("/api/uploads/imgbb", async (req, res) => {
+  app.post("/api/uploads/imgbb", requireAdmin, async (req, res) => {
     try {
       if (!isImgBBConfigured()) {
         return res.status(400).json({ error: "ImgBB not configured. Please set IMGBB_API_KEY or use a direct image URL." });
@@ -261,7 +297,7 @@ export async function registerRoutes(
   // ===== PRODUCTS =====
   
   // Get all products (admin - includes all statuses)
-  app.get("/api/products", async (req, res) => {
+  app.get("/api/products", requireAdmin, async (req, res) => {
     try {
       const products = await storage.getAllProducts();
       res.json(products);
@@ -311,7 +347,7 @@ export async function registerRoutes(
   });
 
   // Create product
-  app.post("/api/products", async (req, res) => {
+  app.post("/api/products", requireAdmin, async (req, res) => {
     try {
       const productData = {
         name: req.body.name,
@@ -346,7 +382,7 @@ export async function registerRoutes(
   });
 
   // Update product
-  app.patch("/api/products/:id", async (req, res) => {
+  app.patch("/api/products/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const productData: Record<string, any> = {};
@@ -382,7 +418,7 @@ export async function registerRoutes(
   });
 
   // Delete product
-  app.delete("/api/products/:id", async (req, res) => {
+  app.delete("/api/products/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteProduct(id);
@@ -401,7 +437,7 @@ export async function registerRoutes(
   // ===== PRODUCT IMAGES =====
 
   // Get product images
-  app.get("/api/products/:id/images", async (req, res) => {
+  app.get("/api/products/:id/images", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const images = await storage.getProductImages(productId);
@@ -413,7 +449,7 @@ export async function registerRoutes(
   });
 
   // Add product image
-  app.post("/api/products/:id/images", async (req, res) => {
+  app.post("/api/products/:id/images", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const { url, altText, sortOrder } = req.body;
@@ -431,7 +467,7 @@ export async function registerRoutes(
   });
 
   // Update product image
-  app.patch("/api/product-images/:id", async (req, res) => {
+  app.patch("/api/product-images/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { url, altText, sortOrder } = req.body;
@@ -450,7 +486,7 @@ export async function registerRoutes(
   });
 
   // Delete product image
-  app.delete("/api/product-images/:id", async (req, res) => {
+  app.delete("/api/product-images/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteProductImage(id);
@@ -467,7 +503,7 @@ export async function registerRoutes(
   });
 
   // Reorder product images
-  app.post("/api/products/:id/images/reorder", async (req, res) => {
+  app.post("/api/products/:id/images/reorder", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const { imageIds } = req.body;
@@ -487,7 +523,7 @@ export async function registerRoutes(
   // ===== PRODUCT OPTIONS =====
 
   // Get product options
-  app.get("/api/products/:id/options", async (req, res) => {
+  app.get("/api/products/:id/options", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const options = await storage.getProductOptions(productId);
@@ -499,7 +535,7 @@ export async function registerRoutes(
   });
 
   // Create product option
-  app.post("/api/products/:id/options", async (req, res) => {
+  app.post("/api/products/:id/options", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const parseResult = productOptionSchema.safeParse(req.body);
@@ -523,7 +559,7 @@ export async function registerRoutes(
   });
 
   // Update product option
-  app.patch("/api/product-options/:id", async (req, res) => {
+  app.patch("/api/product-options/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const partialOptionSchema = productOptionSchema.partial();
@@ -547,7 +583,7 @@ export async function registerRoutes(
   });
 
   // Delete product option
-  app.delete("/api/product-options/:id", async (req, res) => {
+  app.delete("/api/product-options/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteProductOption(id);
@@ -564,7 +600,7 @@ export async function registerRoutes(
   });
 
   // Bulk update product options (replace all)
-  app.put("/api/products/:id/options", async (req, res) => {
+  app.put("/api/products/:id/options", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const { options } = req.body;
@@ -603,7 +639,7 @@ export async function registerRoutes(
   // ===== PRODUCT VARIANTS =====
 
   // Get product variants
-  app.get("/api/products/:id/variants", async (req, res) => {
+  app.get("/api/products/:id/variants", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const variants = await storage.getProductVariants(productId);
@@ -615,7 +651,7 @@ export async function registerRoutes(
   });
 
   // Create product variant
-  app.post("/api/products/:id/variants", async (req, res) => {
+  app.post("/api/products/:id/variants", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const parseResult = productVariantSchema.safeParse(req.body);
@@ -646,7 +682,7 @@ export async function registerRoutes(
   });
 
   // Update product variant
-  app.patch("/api/product-variants/:id", async (req, res) => {
+  app.patch("/api/product-variants/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const partialVariantSchema = productVariantSchema.partial();
@@ -683,7 +719,7 @@ export async function registerRoutes(
   });
 
   // Delete product variant
-  app.delete("/api/product-variants/:id", async (req, res) => {
+  app.delete("/api/product-variants/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteProductVariant(id);
@@ -700,7 +736,7 @@ export async function registerRoutes(
   });
 
   // Bulk update product variants (replace all)
-  app.put("/api/products/:id/variants", async (req, res) => {
+  app.put("/api/products/:id/variants", requireAdmin, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       const { variants } = req.body;
@@ -757,7 +793,7 @@ export async function registerRoutes(
   // ===== ORDERS =====
   
   // Get all orders (with optional archive filter)
-  app.get("/api/orders", async (req, res) => {
+  app.get("/api/orders", requireAdmin, async (req, res) => {
     try {
       const includeArchived = req.query.includeArchived === "true";
       const orders = await storage.getAllOrders(includeArchived);
@@ -786,6 +822,29 @@ export async function registerRoutes(
   });
 
   // Create order (checkout)
+  const orderSchema = z.object({
+    customerName: z.string().min(1, "Customer name is required"),
+    customerEmail: z.string().email("Valid email is required"),
+    customerPhone: z.string().optional().default(""),
+    shippingAddress: z.string().optional().default(""),
+    shippingCity: z.string().optional().default(""),
+    shippingState: z.string().optional().default(""),
+    shippingZip: z.string().optional().default(""),
+    total: z.string().min(1, "Total is required"),
+    shipping: z.string().optional().default("0"),
+    deliveryMethod: z.enum(["shipping", "pickup"]).optional().default("shipping"),
+    repairDescription: z.string().optional().nullable(),
+  });
+
+  const orderItemSchema = z.object({
+    productId: z.number().int().positive("Product ID must be a positive integer"),
+    productName: z.string().min(1, "Product name is required"),
+    productPrice: z.string().min(1, "Product price is required"),
+    quantity: z.number().int().positive("Quantity must be at least 1"),
+    variantId: z.number().int().positive().optional().nullable(),
+    variantTitle: z.string().optional().nullable(),
+  });
+
   app.post("/api/orders", async (req, res) => {
     try {
       const { order, items } = req.body;
@@ -794,7 +853,17 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Order must contain at least one item" });
       }
 
-      const createdOrder = await storage.createOrder(order, items);
+      const parsedOrder = orderSchema.safeParse(order);
+      if (!parsedOrder.success) {
+        return res.status(400).json({ error: "Invalid order data", details: parsedOrder.error.flatten().fieldErrors });
+      }
+
+      const parsedItems = z.array(orderItemSchema).safeParse(items);
+      if (!parsedItems.success) {
+        return res.status(400).json({ error: "Invalid order items", details: parsedItems.error.flatten().fieldErrors });
+      }
+
+      const createdOrder = await storage.createOrder(parsedOrder.data, parsedItems.data);
       
       // Decrement inventory for each item
       for (const item of items) {
@@ -858,7 +927,7 @@ export async function registerRoutes(
   });
 
   // Update order status
-  app.patch("/api/orders/:id/status", async (req, res) => {
+  app.patch("/api/orders/:id/status", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { status } = req.body;
@@ -881,7 +950,7 @@ export async function registerRoutes(
   });
 
   // Update order tracking number
-  app.patch("/api/orders/:id/tracking", async (req, res) => {
+  app.patch("/api/orders/:id/tracking", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { trackingNumber } = req.body;
@@ -904,7 +973,7 @@ export async function registerRoutes(
   const fulfillmentStatusSchema = z.enum(["unfulfilled", "shipped", "delivered", "fulfilled", "cancelled"]);
 
   // Update order payment status
-  app.patch("/api/orders/:id/payment", async (req, res) => {
+  app.patch("/api/orders/:id/payment", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const parseResult = paymentStatusSchema.safeParse(req.body.paymentStatus);
@@ -927,7 +996,7 @@ export async function registerRoutes(
   });
 
   // Update order fulfillment status
-  app.patch("/api/orders/:id/fulfillment", async (req, res) => {
+  app.patch("/api/orders/:id/fulfillment", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const parseResult = fulfillmentStatusSchema.safeParse(req.body.fulfillmentStatus);
@@ -950,7 +1019,7 @@ export async function registerRoutes(
   });
 
   // Update order admin notes
-  app.patch("/api/orders/:id/notes", async (req, res) => {
+  app.patch("/api/orders/:id/notes", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { adminNotes } = req.body;
@@ -969,7 +1038,7 @@ export async function registerRoutes(
   });
 
   // Archive/unarchive order
-  app.patch("/api/orders/:id/archive", async (req, res) => {
+  app.patch("/api/orders/:id/archive", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const archivedResult = z.boolean().safeParse(req.body.archived);
@@ -992,7 +1061,7 @@ export async function registerRoutes(
   });
 
   // Cancel order
-  app.patch("/api/orders/:id/cancel", async (req, res) => {
+  app.patch("/api/orders/:id/cancel", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { reason } = req.body;
@@ -1026,7 +1095,7 @@ export async function registerRoutes(
   });
 
   // Delete order
-  app.delete("/api/orders/:id", async (req, res) => {
+  app.delete("/api/orders/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteOrder(id);
@@ -1045,7 +1114,7 @@ export async function registerRoutes(
   // ===== SERVICE INQUIRIES =====
 
   // Get all service inquiries (admin)
-  app.get("/api/service-inquiries", async (req, res) => {
+  app.get("/api/service-inquiries", requireAdmin, async (req, res) => {
     try {
       const inquiries = await storage.getAllServiceInquiries();
       res.json(inquiries);
@@ -1056,7 +1125,7 @@ export async function registerRoutes(
   });
 
   // Get service inquiry by ID
-  app.get("/api/service-inquiries/:id", async (req, res) => {
+  app.get("/api/service-inquiries/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const inquiry = await storage.getServiceInquiryById(id);
@@ -1092,7 +1161,7 @@ export async function registerRoutes(
   // Update inquiry status (admin)
   const inquiryStatusSchema = z.enum(["new", "in-progress", "closed"]);
 
-  app.patch("/api/service-inquiries/:id/status", async (req, res) => {
+  app.patch("/api/service-inquiries/:id/status", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const parseResult = inquiryStatusSchema.safeParse(req.body.status);
@@ -1115,7 +1184,7 @@ export async function registerRoutes(
   });
 
   // Update inquiry notes (admin)
-  app.patch("/api/service-inquiries/:id/notes", async (req, res) => {
+  app.patch("/api/service-inquiries/:id/notes", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { adminNotes } = req.body;
@@ -1134,7 +1203,7 @@ export async function registerRoutes(
   });
 
   // Delete service inquiry (admin)
-  app.delete("/api/service-inquiries/:id", async (req, res) => {
+  app.delete("/api/service-inquiries/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteServiceInquiry(id);
@@ -1175,7 +1244,7 @@ export async function registerRoutes(
   });
 
   // Get all reviews (admin)
-  app.get("/api/reviews", async (req, res) => {
+  app.get("/api/reviews", requireAdmin, async (req, res) => {
     try {
       const reviews = await storage.getAllReviews();
       res.json(reviews);
@@ -1186,7 +1255,7 @@ export async function registerRoutes(
   });
 
   // Get single review
-  app.get("/api/reviews/:id", async (req, res) => {
+  app.get("/api/reviews/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const review = await storage.getReviewById(id);
@@ -1243,7 +1312,7 @@ export async function registerRoutes(
   });
 
   // Create review (admin)
-  app.post("/api/reviews", async (req, res) => {
+  app.post("/api/reviews", requireAdmin, async (req, res) => {
     try {
       const parseResult = reviewSchema.safeParse(req.body);
       
@@ -1260,7 +1329,7 @@ export async function registerRoutes(
   });
 
   // Update review (admin)
-  app.patch("/api/reviews/:id", async (req, res) => {
+  app.patch("/api/reviews/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const review = await storage.updateReview(id, req.body);
@@ -1277,7 +1346,7 @@ export async function registerRoutes(
   });
 
   // Delete review (admin)
-  app.delete("/api/reviews/:id", async (req, res) => {
+  app.delete("/api/reviews/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteReview(id);
@@ -1296,7 +1365,7 @@ export async function registerRoutes(
   // ===== SITE CONTENT =====
 
   // Get all site content (admin)
-  app.get("/api/site-content", async (_req, res) => {
+  app.get("/api/site-content", requireAdmin, async (_req, res) => {
     try {
       const content = await storage.getAllSiteContent();
       res.json(content);
@@ -1321,7 +1390,7 @@ export async function registerRoutes(
   });
 
   // Create/Update site content (admin)
-  app.put("/api/site-content/:key", async (req, res) => {
+  app.put("/api/site-content/:key", requireAdmin, async (req, res) => {
     try {
       const { title, content, imageUrl, imageUrls } = req.body;
       const result = await storage.upsertSiteContent({
