@@ -1,38 +1,74 @@
 import nodemailer from 'nodemailer';
-import { Resend } from 'resend';
 
 const BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 
-async function sendViaResend(to: string, subject: string, html: string): Promise<{ success: boolean; method: string; error?: string }> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    return { success: false, method: 'Resend HTTP API', error: 'RESEND_API_KEY not set' };
+async function sendViaGmailApi(to: string, subject: string, html: string): Promise<{ success: boolean; method: string; error?: string }> {
+  const clientId = process.env.GMAIL_CLIENT_ID;
+  const clientSecret = process.env.GMAIL_CLIENT_SECRET;
+  const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    return { success: false, method: 'Gmail API (HTTPS)', error: 'Gmail API credentials not configured (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN)' };
   }
 
   try {
-    console.log(`[Email] Trying Resend HTTP API to send to ${to}: "${subject}"`);
-    const resend = new Resend(apiKey);
-    const { data, error } = await resend.emails.send({
-      from: `${BUSINESS_NAME} <onboarding@resend.dev>`,
-      replyTo: FROM_EMAIL,
-      to: [to],
-      subject,
-      html,
+    console.log(`[Email] Trying Gmail API (HTTPS) to send to ${to}: "${subject}"`);
+
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
     });
 
-    if (error) {
-      console.error(`[Email] FAILED via Resend HTTP API: ${error.message}`);
-      return { success: false, method: 'Resend HTTP API', error: error.message };
+    const tokenData = await tokenResponse.json() as any;
+    if (!tokenData.access_token) {
+      const errMsg = tokenData.error_description || tokenData.error || 'Failed to get access token';
+      console.error(`[Email] Gmail API token error: ${errMsg}`);
+      return { success: false, method: 'Gmail API (HTTPS)', error: errMsg };
     }
 
-    console.log(`[Email] SUCCESS via Resend HTTP API to ${to}, id: ${data?.id}`);
-    return { success: true, method: 'Resend HTTP API' };
+    const mimeMessage = [
+      `From: ${BUSINESS_NAME} <${FROM_EMAIL}>`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      '',
+      html,
+    ].join('\r\n');
+
+    const encodedMessage = Buffer.from(mimeMessage).toString('base64url');
+
+    const sendResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ raw: encodedMessage }),
+    });
+
+    if (!sendResponse.ok) {
+      const errorData = await sendResponse.json() as any;
+      const errMsg = errorData.error?.message || `HTTP ${sendResponse.status}`;
+      console.error(`[Email] Gmail API send error: ${errMsg}`);
+      return { success: false, method: 'Gmail API (HTTPS)', error: errMsg };
+    }
+
+    const sendData = await sendResponse.json() as any;
+    console.log(`[Email] SUCCESS via Gmail API (HTTPS) to ${to}, id: ${sendData.id}`);
+    return { success: true, method: 'Gmail API (HTTPS)' };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[Email] FAILED via Resend HTTP API: ${errorMsg}`);
-    return { success: false, method: 'Resend HTTP API', error: errorMsg };
+    console.error(`[Email] FAILED via Gmail API (HTTPS): ${errorMsg}`);
+    return { success: false, method: 'Gmail API (HTTPS)', error: errorMsg };
   }
 }
 
@@ -100,13 +136,13 @@ async function sendEmail(to: string, subject: string, html: string): Promise<{ s
     return { success: true };
   }
 
-  console.log(`[Email] SMTP failed, trying Resend HTTP API fallback...`);
-  const resendResult = await sendViaResend(to, subject, html);
-  if (resendResult.success) {
+  console.log(`[Email] SMTP failed, trying Gmail API (HTTPS) fallback...`);
+  const gmailApiResult = await sendViaGmailApi(to, subject, html);
+  if (gmailApiResult.success) {
     return { success: true };
   }
 
-  const fullError = `All methods failed. SMTP: ${smtpResult.error} | Resend: ${resendResult.error}`;
+  const fullError = `All methods failed. SMTP: ${smtpResult.error} | Gmail API: ${gmailApiResult.error}`;
   console.error(`[Email] ${fullError}`);
   return { success: false, error: fullError };
 }
@@ -129,14 +165,14 @@ export async function testEmailDelivery(testTo: string): Promise<{ success: bool
     return { success: true, method: smtpResult.method };
   }
 
-  const resendResult = await sendViaResend(testTo, subject, testHtml);
-  if (resendResult.success) {
-    return { success: true, method: resendResult.method };
+  const gmailApiResult = await sendViaGmailApi(testTo, subject, testHtml);
+  if (gmailApiResult.success) {
+    return { success: true, method: gmailApiResult.method };
   }
 
   return {
     success: false,
-    error: `SMTP: ${smtpResult.error} | Resend: ${resendResult.error}`,
+    error: `SMTP: ${smtpResult.error} | Gmail API: ${gmailApiResult.error}`,
   };
 }
 
