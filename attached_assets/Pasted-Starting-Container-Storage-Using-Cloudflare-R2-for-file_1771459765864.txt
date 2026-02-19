@@ -1,0 +1,59 @@
+Starting Container
+[Storage] Using Cloudflare R2 for file uploads
+12:07:36 AM [express] Server initialization complete
+(node:1) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[Email Config] GMAIL_APP_PASSWORD: SET (length 16)
+[Email Config] NODE_ENV: production
+12:07:36 AM [express] serving on port 8080
+[Email Config] REPLIT_DEPLOYMENT: not set
+12:08:06 AM [express] POST /api/admin/auth 200 in 1ms
+[DB] Migrations completed successfully
+12:08:04 AM [express] GET /api/orders 401 in 1ms
+12:08:06 AM [express] GET /api/orders 200 in 12ms
+[DB] Connecting to database, URL starts with: postgresql://postgres:AEShbwAA...
+12:08:01 AM [express] GET /api/site-content/layout 404 in 126ms
+[DB] Running automatic migrations...
+12:08:01 AM [express] GET /api/site-content/business-info 404 in 115ms
+12:08:01 AM [express] GET /api/site-content/branding 404 in 114ms
+12:08:01 AM [express] GET /api/orders/14 200 in 121ms
+[Email] Trying Gmail SSL (port 465) to send to plentysneakers@gmail.com: "Order #14 Cancelled - Cobbler's Bench"
+[Email] FAILED via Gmail SSL (port 465): Connection timeout
+[Email] Trying Gmail STARTTLS (port 587) to send to plentysneakers@gmail.com: "Order #14 Cancelled - Cobbler's Bench"
+[Email] Trying Gmail SSL (port 465) to send to plentysneakers@gmail.com: "Order #14 Cancelled - Cobbler's Bench"
+[Email] FAILED via Gmail SSL (port 465): Connection timeout
+[Email] Trying Gmail STARTTLS (port 587) to send to plentysneakers@gmail.com: "Order #14 Cancelled - Cobbler's Bench"
+[Email] FAILED via Gmail STARTTLS (port 587): Connection timeout
+[Email] SMTP failed, trying Gmail API (HTTPS) fallback...
+[Email] Trying Gmail API (HTTPS) to send to plentysneakers@gmail.com: "Order #14 Cancelled - Cobbler's Bench"
+[Email] Gmail API token error: Token request failed (HTTP 401): {
+  "error": "invalid_client",
+  "error_description": "The OAuth client was not found."
+}
+[Email] All methods failed. SMTP: Gmail SSL (port 465): Connection timeout | Gmail STARTTLS (port 587): Connection timeout | Gmail API: Token request failed (HTTP 401): {
+  "error": "invalid_client",
+  "error_description": "The OAuth client was not found."
+}
+[Email] Cancellation email failed for order #14: All methods failed. SMTP: Gmail SSL (port 465): Connection timeout | Gmail STARTTLS (port 587): Connection timeout | Gmail API: Token request failed (HTTP 401): {
+  "error": "invalid_client",
+  "error_description": "The OAuth client was not found."
+}
+12:08:36 AM [express] PATCH /api/orders/14/cancel 200 in 21013ms
+12:08:36 AM [express] GET /api/orders 200 in 124ms
+[Email] FAILED via Gmail STARTTLS (port 587): Connection timeout
+[Email] SMTP failed, trying Gmail API (HTTPS) fallback...
+[Email] Trying Gmail API (HTTPS) to send to plentysneakers@gmail.com: "Order #14 Cancelled - Cobbler's Bench"
+[Email] Gmail API token error: Token request failed (HTTP 401): {
+  "error": "invalid_client",
+  "error_description": "The OAuth client was not found."
+}
+[Email] All methods failed. SMTP: Gmail SSL (port 465): Connection timeout | Gmail STARTTLS (port 587): Connection timeout | Gmail API: Token request failed (HTTP 401): {
+  "error": "invalid_client",
+  "error_description": "The OAuth client was not found."
+}
+[Email] Cancellation email failed for order #14: All methods failed. SMTP: Gmail SSL (port 465): Connection timeout | Gmail STARTTLS (port 587): Connection timeout | Gmail API: Token request failed (HTTP 401): {
+  "error": "invalid_client",
+  "error_description": "The OAuth client was not found."
+}
+12:08:46 AM [express] PATCH /api/orders/14/cancel 200 in 20150ms
+12:08:46 AM [express] GET /api/orders 304 in 16ms
