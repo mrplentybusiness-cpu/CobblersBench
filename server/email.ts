@@ -5,9 +5,9 @@ const LOGO_PATH = '/images/email-logo.png';
 const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
 
 async function sendViaGmailApi(to: string, subject: string, html: string): Promise<{ success: boolean; method: string; error?: string }> {
-  const clientId = process.env.GMAIL_CLIENT_ID;
-  const clientSecret = process.env.GMAIL_CLIENT_SECRET;
-  const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
+  const clientId = process.env.GMAIL_CLIENT_ID?.trim();
+  const clientSecret = process.env.GMAIL_CLIENT_SECRET?.trim();
+  const refreshToken = process.env.GMAIL_REFRESH_TOKEN?.trim();
 
   if (!clientId || !clientSecret || !refreshToken) {
     return { success: false, method: 'Gmail API (HTTPS)', error: 'Gmail API credentials not configured (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN)' };

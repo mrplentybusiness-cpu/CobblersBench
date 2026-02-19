@@ -116,6 +116,12 @@ httpServer.listen(
 console.log(`[Email Config] GMAIL_APP_PASSWORD: ${process.env.GMAIL_APP_PASSWORD ? 'SET (length ' + process.env.GMAIL_APP_PASSWORD.length + ')' : 'NOT SET'}`);
 console.log(`[Email Config] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`[Email Config] REPLIT_DEPLOYMENT: ${process.env.REPLIT_DEPLOYMENT || 'not set'}`);
+const _cid = process.env.GMAIL_CLIENT_ID?.trim();
+const _csec = process.env.GMAIL_CLIENT_SECRET?.trim();
+const _rtok = process.env.GMAIL_REFRESH_TOKEN?.trim();
+console.log(`[Email Config] GMAIL_CLIENT_ID: ${_cid ? 'SET (length ' + _cid.length + ', starts: ' + _cid.substring(0, 10) + '...)' : 'NOT SET'}`);
+console.log(`[Email Config] GMAIL_CLIENT_SECRET: ${_csec ? 'SET (length ' + _csec.length + ')' : 'NOT SET'}`);
+console.log(`[Email Config] GMAIL_REFRESH_TOKEN: ${_rtok ? 'SET (length ' + _rtok.length + ')' : 'NOT SET'}`);
 
 // Then do async setup (database, routes, and in development: Vite)
 (async () => {
