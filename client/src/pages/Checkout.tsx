@@ -15,6 +15,8 @@ import { useState, useMemo } from "react";
 import { AlertCircle, Wrench, Truck, Store, MapPin, Clock, ExternalLink } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import type { SiteContent } from "@shared/schema";
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Name is required"),
@@ -58,6 +60,31 @@ export default function Checkout() {
   const currentTax = tax();
   const currentTotal = total();
 
+  const { data: paymentInfo } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/payment-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/payment-info");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: businessInfo } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/business-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/business-info");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const venmoHandle = paymentInfo?.title || "@Victor-Hadawar";
+  const paymentInstructionText = paymentInfo?.content || "No payment is taken now - you'll receive the exact amount and instructions after placing your order.";
+  const storeAddress = businessInfo?.title || "1600 Falmouth Rd";
+  const storeCityStateZip = businessInfo?.content || "Centerville, MA 02632";
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -94,9 +121,9 @@ export default function Checkout() {
           customerPhone: values.phone,
           deliveryMethod: values.deliveryMethod,
           shippingAddress: isPickup ? "In-Store Pickup" : values.address,
-          shippingCity: isPickup ? "Centerville" : values.city,
-          shippingState: isPickup ? "MA" : values.state,
-          shippingZip: isPickup ? "02632" : values.zipCode,
+          shippingCity: isPickup ? (storeCityStateZip.split(',')[0]?.trim() || "Centerville") : values.city,
+          shippingState: isPickup ? (storeCityStateZip.split(',')[1]?.trim().split(' ')[0] || "MA") : values.state,
+          shippingZip: isPickup ? (storeCityStateZip.split(',')[1]?.trim().split(' ')[1] || "02632") : values.zipCode,
           repairDescription: hasRepairItems ? values.repairDescription : null,
           total: currentTotal.toFixed(2),
           shipping: currentShipping.toFixed(2),
@@ -251,7 +278,7 @@ export default function Checkout() {
                                 <div className="text-sm text-muted-foreground mt-1 space-y-1">
                                   <div className="flex items-center gap-1">
                                     <MapPin className="h-3 w-3" />
-                                    <span>1600 Falmouth Rd, Centerville, MA 02632</span>
+                                    <span>{storeAddress}, {storeCityStateZip}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
@@ -467,7 +494,7 @@ export default function Checkout() {
               <div className="bg-background p-4 rounded-md border">
                 <h3 className="font-bold mb-2">Venmo Payment</h3>
                 <p className="text-sm text-muted-foreground">
-                  Pay via Venmo to <strong>@Victor-Hadawar</strong>. No payment is taken now - you'll receive the exact amount and instructions after placing your order.
+                  Pay via Venmo to <strong>{venmoHandle}</strong>. {paymentInstructionText}
                 </p>
               </div>
             </div>
@@ -483,8 +510,8 @@ export default function Checkout() {
                 </p>
                 <address className="text-sm not-italic bg-background p-3 rounded border">
                   <strong>Cobbler's Bench</strong><br />
-                  1600 Falmouth Rd (Route 28)<br />
-                  Centerville, MA 02632
+                  {storeAddress}<br />
+                  {storeCityStateZip}
                 </address>
                 <p className="text-xs text-muted-foreground mt-3">
                   Include a copy of your order confirmation with your package.

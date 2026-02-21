@@ -15,73 +15,6 @@ import vuittonBefore from "@assets/vuitton-handbag01_1767055020889.jpg";
 import vuittonAfter from "@assets/vuitton-handbag02_1767055020889.jpg";
 import louboutinRepair from "@assets/Christian-Louboutin-Repair-cape-cod-cobbler_1767055020890.jpg";
 
-const shoeRepairServices = [
-  "New Balance shoes — Fitted to you and accommodates all widths",
-  "Heel repair",
-  "Resoling shoes",
-  "Shoe stretching",
-  "Shoe shining",
-  "Shoe dyeing for special occasions",
-  "Heel cutting",
-  "Re-heeling shoes",
-  "Work boot repair",
-  "Cowboy boot repair",
-  "UGG boot cleaning",
-];
-
-const leatherBagServices = [
-  "Custom leather work",
-  "Zipper repair and replacement",
-  "Sports equipment repairs",
-  "Leather jacket alterations",
-  "Gun holster repairs",
-  "Belt repairs",
-  "Knife cases",
-  "Golf bag, luggage and handbag repairs",
-  "Motorcycle bags",
-  "Upholstery",
-  "Saddles and tack",
-  "Motorcycle seat repair",
-];
-
-const orthopedicServices = [
-  "Custom made orthotics (shoes)",
-  "Accommodate all widths",
-  "Orthopedic build-ups and modifications",
-  "Orthotic refurbishing",
-  "Shoe elevations",
-  "Sole and heel lifts",
-  "Inside lifts",
-  "Velcro straps",
-  "Metatarsal bars",
-  "Plantar fasciitis treatment",
-  "Heel pain solutions",
-];
-
-const canvasCoverTypes = [
-  "Bimini Tops",
-  "Mooring Covers",
-  "Cockpit Covers",
-  "Boat T-Tops",
-  "Console Covers",
-  "Full Boat Covers",
-  "Sail Covers",
-  "Fender Covers",
-  "Outboard Motor Covers",
-  "Custom Canvas Covers",
-];
-
-const serviceTypes = [
-  "Shoe Repair",
-  "Boot Repair",
-  "Leather & Bag Repair",
-  "Designer Shoe Repair",
-  "Orthotics & Orthopedics",
-  "Boat Canvas & Sail Repair",
-  "Custom Leather Work",
-  "Other",
-];
-
 export default function Services() {
   const { data: servicesContent } = useQuery<SiteContent | null>({
     queryKey: ['/api/site-content/services'],
@@ -92,6 +25,109 @@ export default function Services() {
       return response.json();
     },
   });
+
+  const { data: servicesListsContent } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/services-lists'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/services-lists');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch');
+      return response.json();
+    },
+  });
+
+  const listsData: Record<string, any> = servicesListsContent?.content ? (() => {
+    try { return JSON.parse(servicesListsContent.content); } catch { return {}; }
+  })() : {};
+
+  const shoeRepairServices: string[] = listsData.shoeRepair || [
+    "New Balance shoes — Fitted to you and accommodates all widths",
+    "Heel repair",
+    "Resoling shoes",
+    "Shoe stretching",
+    "Shoe shining",
+    "Shoe dyeing for special occasions",
+    "Heel cutting",
+    "Re-heeling shoes",
+    "Work boot repair",
+    "Cowboy boot repair",
+    "UGG boot cleaning",
+  ];
+
+  const leatherBagServices: string[] = listsData.leather || [
+    "Custom leather work",
+    "Zipper repair and replacement",
+    "Sports equipment repairs",
+    "Leather jacket alterations",
+    "Gun holster repairs",
+    "Belt repairs",
+    "Knife cases",
+    "Golf bag, luggage and handbag repairs",
+    "Motorcycle bags",
+    "Upholstery",
+    "Saddles and tack",
+    "Motorcycle seat repair",
+  ];
+
+  const orthopedicServices: string[] = listsData.orthopedic || [
+    "Custom made orthotics (shoes)",
+    "Accommodate all widths",
+    "Orthopedic build-ups and modifications",
+    "Orthotic refurbishing",
+    "Shoe elevations",
+    "Sole and heel lifts",
+    "Inside lifts",
+    "Velcro straps",
+    "Metatarsal bars",
+    "Plantar fasciitis treatment",
+    "Heel pain solutions",
+  ];
+
+  const canvasCoverTypes: string[] = listsData.canvas || [
+    "Bimini Tops",
+    "Mooring Covers",
+    "Cockpit Covers",
+    "Boat T-Tops",
+    "Console Covers",
+    "Full Boat Covers",
+    "Sail Covers",
+    "Fender Covers",
+    "Outboard Motor Covers",
+    "Custom Canvas Covers",
+  ];
+
+  const serviceTypes: string[] = listsData.serviceTypes || [
+    "Shoe Repair",
+    "Boot Repair",
+    "Leather & Bag Repair",
+    "Designer Shoe Repair",
+    "Orthotics & Orthopedics",
+    "Boat Canvas & Sail Repair",
+    "Custom Leather Work",
+    "Other",
+  ];
+
+  const shoeRepairHeading = listsData.shoeRepairHeading || "Shoe Repair Services";
+  const shoeRepairDesc = listsData.shoeRepairDesc || "From everyday wear to your most treasured pairs, we bring expert care to every shoe that comes through our doors.";
+  const leatherHeading = listsData.leatherHeading || "Leather & Bag Repair";
+  const leatherDesc = listsData.leatherDesc || "We expertly restore handbags, luggage, motorcycle gear, and all types of leather goods to their former glory.";
+  const designerHeading = listsData.designerHeading || "Designer Shoe Repair";
+  const designerDesc = listsData.designerDesc || "Cobbler's Bench in Centerville, Mass restores and repairs designer shoes and accessories, including Gucci, Chanel, Coach, Louis Vuitton, Christian Louboutin and many others.";
+  const louboutinDesc = listsData.louboutinDesc || "We specialize in restoring the iconic red soles and keeping your designer shoes looking like new.";
+  const orthopedicHeading = listsData.orthopedicHeading || "Orthotics & Orthopedics";
+  const orthopedicDesc = listsData.orthopedicDesc || "For over 3 generations, we've been committed to providing the best orthopedic services and referral sources in the Cape Cod area.";
+  const fittingTitle = listsData.fittingTitle || "Personalized Fitting Services";
+  const fittingDesc = listsData.fittingDesc || "Let our friendly and experienced staff provide you with the shoe sizes and widths personalized to your needs. We understand that proper shoes are an important factor when trying to alleviate pain.";
+  const fittingNote = listsData.fittingNote || "Over the course of a lifetime most people experience some type of foot problem. The majority of foot problems are relatively correctable with personal attention from our experts.";
+  const canvasHeading = listsData.canvasHeading || "Boat Canvas & Sail Repair";
+  const canvasDesc = listsData.canvasDesc || "At Cape Cod Shoe Repair aka Cobbler's Bench, we also repair and maintain canvas boat covers and sails. Our expert team is well-versed in the challenges facing boat owners in the Cape Cod climate, from nor'easters to sunny summer days.";
+  const canvasSubhead = listsData.canvasSubhead || "Canvas Boat Covers We Service:";
+  const canvasNote = listsData.canvasNote || "We tailor our services to ensure your covers and sails remain in pristine condition, protecting your investment and enhancing your boating experience.";
+  const dogTitle = listsData.dogTitle || "Do you have a Shoe-Eating Dog?";
+  const dogDesc = listsData.dogDesc || "Training a puppy is not always easy, especially if your shoes are part of the learning curve. Bring us your chewed shoes — we've seen it all and can restore most damage!";
+  const customTitle = listsData.customTitle || "Need Something Custom?";
+  const customDesc = listsData.customDesc || "We specialize in custom leather work and specialty repairs. Contact us to discuss your unique project.";
+  const phoneNumber = listsData.phoneNumber || "(508) 775-6221";
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -151,10 +187,10 @@ export default function Services() {
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <Footprints className="h-5 w-5" />
                 </div>
-                <h2 className="font-serif text-3xl font-bold text-foreground">Shoe Repair Services</h2>
+                <h2 className="font-serif text-3xl font-bold text-foreground">{shoeRepairHeading}</h2>
               </div>
               <p className="text-muted-foreground mb-6">
-                From everyday wear to your most treasured pairs, we bring expert care to every shoe that comes through our doors.
+                {shoeRepairDesc}
               </p>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {shoeRepairServices.map((service, index) => (
@@ -177,11 +213,10 @@ export default function Services() {
               <div className="bg-muted rounded-xl p-6">
                 <h3 className="font-serif text-xl font-bold text-foreground mb-2 flex items-center gap-2">
                   <Heart className="h-5 w-5 text-red-500" />
-                  Do you have a Shoe-Eating Dog?
+                  {dogTitle}
                 </h3>
                 <p className="text-muted-foreground">
-                  Training a puppy is not always easy, especially if your shoes are part of the learning curve. 
-                  Bring us your chewed shoes — we've seen it all and can restore most damage!
+                  {dogDesc}
                 </p>
               </div>
             </div>
@@ -215,10 +250,10 @@ export default function Services() {
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <Briefcase className="h-5 w-5" />
                 </div>
-                <h2 className="font-serif text-3xl font-bold text-foreground">Leather & Bag Repair</h2>
+                <h2 className="font-serif text-3xl font-bold text-foreground">{leatherHeading}</h2>
               </div>
               <p className="text-muted-foreground mb-6">
-                We expertly restore handbags, luggage, motorcycle gear, and all types of leather goods to their former glory.
+                {leatherDesc}
               </p>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {leatherBagServices.map((service, index) => (
@@ -241,16 +276,15 @@ export default function Services() {
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <Sparkles className="h-5 w-5" />
                 </div>
-                <h2 className="font-serif text-3xl font-bold text-foreground">Designer Shoe Repair</h2>
+                <h2 className="font-serif text-3xl font-bold text-foreground">{designerHeading}</h2>
               </div>
               <p className="text-muted-foreground mb-6">
-                Cobbler's Bench in Centerville, Mass restores and repairs designer shoes and accessories, 
-                including Gucci, Chanel, Coach, Louis Vuitton, Christian Louboutin and many others.
+                {designerDesc}
               </p>
               <div className="bg-accent/10 rounded-xl p-6 mb-6">
                 <h3 className="font-serif text-xl font-bold text-foreground mb-2">Christian Louboutin Repair</h3>
                 <p className="text-muted-foreground">
-                  We specialize in restoring the iconic red soles and keeping your designer shoes looking like new.
+                  {louboutinDesc}
                 </p>
               </div>
               </div>
@@ -272,16 +306,13 @@ export default function Services() {
             <div className="order-2 lg:order-1 flex justify-center">
               <div className="bg-secondary/30 rounded-xl p-8 max-w-md">
                 <h3 className="font-serif text-xl font-bold text-foreground mb-4 text-center">
-                  Personalized Fitting Services
+                  {fittingTitle}
                 </h3>
                 <p className="text-muted-foreground text-center mb-4">
-                  Let our friendly and experienced staff provide you with the shoe sizes and widths 
-                  personalized to your needs. We understand that proper shoes are an important factor 
-                  when trying to alleviate pain.
+                  {fittingDesc}
                 </p>
                 <p className="text-sm text-muted-foreground text-center italic">
-                  Over the course of a lifetime most people experience some type of foot problem. 
-                  The majority of foot problems are relatively correctable with personal attention from our experts.
+                  {fittingNote}
                 </p>
               </div>
             </div>
@@ -290,11 +321,10 @@ export default function Services() {
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <Accessibility className="h-5 w-5" />
                 </div>
-                <h2 className="font-serif text-3xl font-bold text-foreground">Orthotics & Orthopedics</h2>
+                <h2 className="font-serif text-3xl font-bold text-foreground">{orthopedicHeading}</h2>
               </div>
               <p className="text-muted-foreground mb-6">
-                For over 3 generations, we've been committed to providing the best orthopedic services 
-                and referral sources in the Cape Cod area.
+                {orthopedicDesc}
               </p>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
                 {orthopedicServices.map((service, index) => (
@@ -323,14 +353,12 @@ export default function Services() {
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   <Ship className="h-5 w-5" />
                 </div>
-                <h2 className="font-serif text-3xl font-bold text-foreground">Boat Canvas & Sail Repair</h2>
+                <h2 className="font-serif text-3xl font-bold text-foreground">{canvasHeading}</h2>
               </div>
               <p className="text-muted-foreground mb-6">
-                At Cape Cod Shoe Repair aka Cobbler's Bench, we also repair and maintain canvas boat covers and sails. 
-                Our expert team is well-versed in the challenges facing boat owners in the Cape Cod climate, 
-                from nor'easters to sunny summer days.
+                {canvasDesc}
               </p>
-              <h3 className="font-medium text-foreground mb-3">Canvas Boat Covers We Service:</h3>
+              <h3 className="font-medium text-foreground mb-3">{canvasSubhead}</h3>
               <ul className="grid grid-cols-2 gap-2 mb-6">
                 {canvasCoverTypes.map((type, index) => (
                   <li key={index} className="flex items-start gap-2 text-foreground" data-testid={`service-canvas-${index}`}>
@@ -340,8 +368,7 @@ export default function Services() {
                 ))}
               </ul>
               <p className="text-sm text-muted-foreground italic">
-                We tailor our services to ensure your covers and sails remain in pristine condition, 
-                protecting your investment and enhancing your boating experience.
+                {canvasNote}
               </p>
             </div>
             <div className="rounded-xl overflow-hidden shadow-lg">
@@ -360,10 +387,10 @@ export default function Services() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Need Something Custom?
+              {customTitle}
             </h2>
             <p className="text-muted-foreground text-lg mb-6">
-              We specialize in custom leather work and specialty repairs. Contact us to discuss your unique project.
+              {customDesc}
             </p>
             <Button size="lg" asChild>
               <a href="#request-quote" data-testid="link-custom-quote">
@@ -505,8 +532,8 @@ export default function Services() {
             <div className="mt-8 text-center">
               <p className="text-muted-foreground mb-2">Prefer to call?</p>
               <Button variant="outline" size="lg" asChild>
-                <a href="tel:+15087756221" data-testid="link-call-us">
-                  Call Us: (508) 775-6221
+                <a href={`tel:${phoneNumber.replace(/[^0-9+]/g, '')}`} data-testid="link-call-us">
+                  Call Us: {phoneNumber}
                 </a>
               </Button>
             </div>

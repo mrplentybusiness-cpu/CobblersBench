@@ -1,10 +1,38 @@
 import nodemailer from 'nodemailer';
+import { storage } from './storage';
 
-const BUSINESS_NAME = "Cobbler's Bench";
+const DEFAULT_BUSINESS_NAME = "Cobbler's Bench";
 const LOGO_PATH = '/images/email-logo.png';
-const FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
+const DEFAULT_FROM_EMAIL = 'cobblersbenchcapecod@gmail.com';
+const DEFAULT_VENMO = '@Victor-Hadawar';
 
-async function sendViaGmailApi(to: string, subject: string, html: string): Promise<{ success: boolean; method: string; error?: string }> {
+async function getEmailSettings() {
+  try {
+    const paymentInfo = await storage.getSiteContentByKey('payment-info');
+    const businessInfo = await storage.getSiteContentByKey('business-info');
+    return {
+      businessName: DEFAULT_BUSINESS_NAME,
+      fromEmail: DEFAULT_FROM_EMAIL,
+      venmoHandle: paymentInfo?.title || DEFAULT_VENMO,
+      paymentInstructions: paymentInfo?.content || '',
+      storeAddress: businessInfo?.title || '1600 Falmouth Rd',
+      storeCityStateZip: businessInfo?.content || 'Centerville, MA 02632',
+      storePhone: businessInfo?.imageUrl || '(508) 775-6221',
+    };
+  } catch {
+    return {
+      businessName: DEFAULT_BUSINESS_NAME,
+      fromEmail: DEFAULT_FROM_EMAIL,
+      venmoHandle: DEFAULT_VENMO,
+      paymentInstructions: '',
+      storeAddress: '1600 Falmouth Rd',
+      storeCityStateZip: 'Centerville, MA 02632',
+      storePhone: '(508) 775-6221',
+    };
+  }
+}
+
+async function sendViaGmailApi(to: string, subject: string, html: string, businessName = DEFAULT_BUSINESS_NAME, fromEmail = DEFAULT_FROM_EMAIL): Promise<{ success: boolean; method: string; error?: string }> {
   const clientId = process.env.GMAIL_CLIENT_ID?.trim();
   const clientSecret = process.env.GMAIL_CLIENT_SECRET?.trim();
   const refreshToken = process.env.GMAIL_REFRESH_TOKEN?.trim();
@@ -42,7 +70,7 @@ async function sendViaGmailApi(to: string, subject: string, html: string): Promi
     }
 
     const mimeMessage = [
-      `From: ${BUSINESS_NAME} <${FROM_EMAIL}>`,
+      `From: ${businessName} <${fromEmail}>`,
       `To: ${to}`,
       `Subject: ${subject}`,
       'MIME-Version: 1.0',
@@ -79,7 +107,7 @@ async function sendViaGmailApi(to: string, subject: string, html: string): Promi
   }
 }
 
-async function sendViaSmtp(to: string, subject: string, html: string): Promise<{ success: boolean; method: string; error?: string }> {
+async function sendViaSmtp(to: string, subject: string, html: string, businessName = DEFAULT_BUSINESS_NAME, fromEmail = DEFAULT_FROM_EMAIL): Promise<{ success: boolean; method: string; error?: string }> {
   const appPassword = process.env.GMAIL_APP_PASSWORD;
   if (!appPassword) {
     return { success: false, method: 'SMTP', error: 'GMAIL_APP_PASSWORD not set' };
@@ -93,7 +121,7 @@ async function sendViaSmtp(to: string, subject: string, html: string): Promise<{
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
-      auth: { user: FROM_EMAIL, pass: cleanPassword },
+      auth: { user: fromEmail, pass: cleanPassword },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
@@ -103,7 +131,7 @@ async function sendViaSmtp(to: string, subject: string, html: string): Promise<{
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
-      auth: { user: FROM_EMAIL, pass: cleanPassword },
+      auth: { user: fromEmail, pass: cleanPassword },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
@@ -120,7 +148,7 @@ async function sendViaSmtp(to: string, subject: string, html: string): Promise<{
       const transporter = nodemailer.createTransport(transportConfig as any);
 
       const info = await transporter.sendMail({
-        from: `${BUSINESS_NAME} <${FROM_EMAIL}>`,
+        from: `${businessName} <${fromEmail}>`,
         to,
         subject,
         html,
@@ -158,14 +186,14 @@ export async function testEmailDelivery(testTo: string): Promise<{ success: bool
   const testHtml = `
     <div style="font-family: Arial, sans-serif; padding: 20px;">
       <h2>Email Delivery Test</h2>
-      <p>This is a test email from ${BUSINESS_NAME}.</p>
+      <p>This is a test email from ${DEFAULT_BUSINESS_NAME}.</p>
       <p><strong>Time:</strong> ${new Date().toISOString()}</p>
       <p><strong>Environment:</strong> ${process.env.NODE_ENV || 'unknown'}</p>
       <p><strong>Platform:</strong> ${process.env.RAILWAY_PUBLIC_DOMAIN ? 'Railway' : process.env.REPLIT_DEPLOYMENT ? 'Replit Deployment' : 'Development'}</p>
       <p>If you receive this email, email delivery is working correctly.</p>
     </div>
   `;
-  const subject = `[TEST] Email Delivery Test - ${BUSINESS_NAME}`;
+  const subject = `[TEST] Email Delivery Test - ${DEFAULT_BUSINESS_NAME}`;
 
   const gmailApiResult = await sendViaGmailApi(testTo, subject, testHtml);
   if (gmailApiResult.success) {
@@ -218,6 +246,11 @@ export interface OrderDetails {
 }
 
 export async function sendCustomerOrderConfirmation(order: OrderDetails): Promise<void> {
+  const settings = await getEmailSettings();
+  const BUSINESS_NAME = settings.businessName;
+  const FROM_EMAIL = settings.fromEmail;
+  const venmoHandle = settings.venmoHandle;
+
   const itemsHtml = order.items.map(item => `
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.productName}${item.variantTitle ? ` - ${item.variantTitle}` : ''}</td>
@@ -288,7 +321,7 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
           
           <h3>Payment Instructions</h3>
           <p style="background: #fff3cd; padding: 15px; border-radius: 5px;">
-            Please send payment via <strong>Venmo to @Victor-Hadawar</strong>.<br>
+            Please send payment via <strong>Venmo to ${venmoHandle}</strong>.<br>
             Include your order number <strong>#${order.orderId}</strong> in the payment note.
           </p>
           
@@ -318,6 +351,8 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
 }
 
 export async function sendAdminOrderNotification(order: OrderDetails): Promise<void> {
+  const settings = await getEmailSettings();
+  const BUSINESS_NAME = settings.businessName;
   const adminEmail = process.env.ADMIN_EMAIL || 'cobblersbenchcapecod@gmail.com';
   
   const itemsHtml = order.items.map(item => `
@@ -412,6 +447,10 @@ export async function sendOrderStatusUpdate(
   status: string,
   trackingNumber?: string
 ): Promise<void> {
+  const settings = await getEmailSettings();
+  const BUSINESS_NAME = settings.businessName;
+  const FROM_EMAIL = settings.fromEmail;
+
   let statusMessage = '';
   switch (status) {
     case 'paid':
@@ -492,6 +531,10 @@ export async function sendOrderCancellationEmail(
   orderId: number,
   reason?: string
 ): Promise<void> {
+  const settings = await getEmailSettings();
+  const BUSINESS_NAME = settings.businessName;
+  const FROM_EMAIL = settings.fromEmail;
+
   const htmlBody = `
     <!DOCTYPE html>
     <html>

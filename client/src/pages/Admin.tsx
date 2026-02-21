@@ -3333,6 +3333,34 @@ function SiteContentManagement({ queryClient, toast }: {
   const [servicesTitle, setServicesTitle] = useState("");
   const [servicesDescription, setServicesDescription] = useState("");
   const [servicesImages, setServicesImages] = useState<string[]>([]);
+  const [servicesListsJson, setServicesListsJson] = useState<Record<string, any>>({});
+
+  const [slShoeRepair, setSlShoeRepair] = useState("");
+  const [slLeather, setSlLeather] = useState("");
+  const [slOrthopedic, setSlOrthopedic] = useState("");
+  const [slCanvas, setSlCanvas] = useState("");
+  const [slServiceTypes, setSlServiceTypes] = useState("");
+  const [slShoeRepairHeading, setSlShoeRepairHeading] = useState("");
+  const [slShoeRepairDesc, setSlShoeRepairDesc] = useState("");
+  const [slLeatherHeading, setSlLeatherHeading] = useState("");
+  const [slLeatherDesc, setSlLeatherDesc] = useState("");
+  const [slDesignerHeading, setSlDesignerHeading] = useState("");
+  const [slDesignerDesc, setSlDesignerDesc] = useState("");
+  const [slLouboutinDesc, setSlLouboutinDesc] = useState("");
+  const [slOrthopedicHeading, setSlOrthopedicHeading] = useState("");
+  const [slOrthopedicDesc, setSlOrthopedicDesc] = useState("");
+  const [slFittingTitle, setSlFittingTitle] = useState("");
+  const [slFittingDesc, setSlFittingDesc] = useState("");
+  const [slFittingNote, setSlFittingNote] = useState("");
+  const [slCanvasHeading, setSlCanvasHeading] = useState("");
+  const [slCanvasDesc, setSlCanvasDesc] = useState("");
+  const [slCanvasSubhead, setSlCanvasSubhead] = useState("");
+  const [slCanvasNote, setSlCanvasNote] = useState("");
+  const [slDogTitle, setSlDogTitle] = useState("");
+  const [slDogDesc, setSlDogDesc] = useState("");
+  const [slCustomTitle, setSlCustomTitle] = useState("");
+  const [slCustomDesc, setSlCustomDesc] = useState("");
+  const [slPhoneNumber, setSlPhoneNumber] = useState("");
 
   const [valueProp1Title, setValueProp1Title] = useState("");
   const [valueProp1Desc, setValueProp1Desc] = useState("");
@@ -3352,6 +3380,10 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const [termsTitle, setTermsTitle] = useState("");
   const [termsContent, setTermsContent] = useState("");
+
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [venmoHandle, setVenmoHandle] = useState("");
+  const [paymentInstructions, setPaymentInstructions] = useState("");
 
   const { data: siteContent = [], isLoading } = useQuery<SiteContent[]>({
     queryKey: ['/api/site-content'],
@@ -3410,6 +3442,40 @@ function SiteContentManagement({ queryClient, toast }: {
       setServicesDescription(services.content || '');
       setServicesImages(services.imageUrls || []);
     }
+    const servicesLists = siteContent.find(c => c.key === 'services-lists');
+    if (servicesLists) {
+      const ld = servicesLists.content ? (() => { try { return JSON.parse(servicesLists.content); } catch { return {}; } })() : {};
+      setSlShoeRepair((ld.shoeRepair || []).join('\n'));
+      setSlLeather((ld.leather || []).join('\n'));
+      setSlOrthopedic((ld.orthopedic || []).join('\n'));
+      setSlCanvas((ld.canvas || []).join('\n'));
+      setSlServiceTypes((ld.serviceTypes || []).join('\n'));
+      setSlShoeRepairHeading(ld.shoeRepairHeading || '');
+      setSlShoeRepairDesc(ld.shoeRepairDesc || '');
+      setSlLeatherHeading(ld.leatherHeading || '');
+      setSlLeatherDesc(ld.leatherDesc || '');
+      setSlDesignerHeading(ld.designerHeading || '');
+      setSlDesignerDesc(ld.designerDesc || '');
+      setSlLouboutinDesc(ld.louboutinDesc || '');
+      setSlOrthopedicHeading(ld.orthopedicHeading || '');
+      setSlOrthopedicDesc(ld.orthopedicDesc || '');
+      setSlFittingTitle(ld.fittingTitle || '');
+      setSlFittingDesc(ld.fittingDesc || '');
+      setSlFittingNote(ld.fittingNote || '');
+      setSlCanvasHeading(ld.canvasHeading || '');
+      setSlCanvasDesc(ld.canvasDesc || '');
+      setSlCanvasSubhead(ld.canvasSubhead || '');
+      setSlCanvasNote(ld.canvasNote || '');
+      setSlDogTitle(ld.dogTitle || '');
+      setSlDogDesc(ld.dogDesc || '');
+      setSlCustomTitle(ld.customTitle || '');
+      setSlCustomDesc(ld.customDesc || '');
+      setSlPhoneNumber(ld.phoneNumber || '');
+      try {
+        const parsed = JSON.parse(servicesLists.content || '{}');
+        setServicesListsJson(parsed);
+      } catch { /* ignore parse errors */ }
+    }
     const valueProps = siteContent.find(c => c.key === 'value-props');
     if (valueProps) {
       const props = valueProps.imageUrls || [];
@@ -3443,6 +3509,11 @@ function SiteContentManagement({ queryClient, toast }: {
     if (terms) {
       setTermsTitle(terms.title || '');
       setTermsContent(terms.content || '');
+    }
+    const paymentInfo = siteContent.find(c => c.key === 'payment-info');
+    if (paymentInfo) {
+      setVenmoHandle(paymentInfo.title || '');
+      setPaymentInstructions(paymentInfo.content || '');
     }
     setHasInitialized(true);
   }, [siteContent, hasInitialized]);
@@ -3669,6 +3740,37 @@ function SiteContentManagement({ queryClient, toast }: {
     },
   });
 
+  const savePaymentInfoMutation = useMutation({
+    mutationFn: async () => {
+      const response = await adminFetch('/api/site-content/payment-info', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: venmoHandle,
+          content: paymentInstructions,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save payment info');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
+      toast({
+        title: "Content Saved",
+        description: "Payment information has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save payment info. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const saveServicesMutation = useMutation({
     mutationFn: async () => {
       const response = await adminFetch('/api/site-content/services', {
@@ -3696,6 +3798,37 @@ function SiteContentManagement({ queryClient, toast }: {
       toast({
         title: "Error",
         description: "Failed to save services content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveServicesListsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await adminFetch('/api/site-content/services-lists', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Services Lists',
+          content: JSON.stringify(servicesListsJson),
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save services lists');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
+      toast({
+        title: "Content Saved",
+        description: "Services lists have been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save services lists. Please try again.",
         variant: "destructive",
       });
     },
@@ -3855,6 +3988,19 @@ function SiteContentManagement({ queryClient, toast }: {
       });
     },
   });
+
+  const updateServiceField = (key: string, value: any) => {
+    setServicesListsJson(prev => ({ ...prev, [key]: value }));
+  };
+
+  const getServiceList = (key: string): string => {
+    const list = servicesListsJson[key];
+    return Array.isArray(list) ? list.join('\n') : '';
+  };
+
+  const setServiceList = (key: string, value: string) => {
+    updateServiceField(key, value.split('\n').filter(s => s.trim()));
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12">Loading...</div>;
@@ -4187,6 +4333,153 @@ function SiteContentManagement({ queryClient, toast }: {
         </CardContent>
       </Card>
 
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Service Lists & Section Content
+          </CardTitle>
+          <CardDescription>
+            Edit individual service lists (one item per line) and section text. Changes update the Services page instantly.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Shoe Repair Services (one per line)</Label>
+              <Textarea
+                rows={12}
+                placeholder="Heel repair&#10;Resoling shoes&#10;Shoe stretching"
+                value={getServiceList('shoeRepair')}
+                onChange={(e) => setServiceList('shoeRepair', e.target.value)}
+                data-testid="input-shoe-repair-list"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Leather & Bag Services (one per line)</Label>
+              <Textarea
+                rows={12}
+                placeholder="Custom leather work&#10;Zipper repair"
+                value={getServiceList('leather')}
+                onChange={(e) => setServiceList('leather', e.target.value)}
+                data-testid="input-leather-list"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Orthopedic Services (one per line)</Label>
+              <Textarea
+                rows={12}
+                placeholder="Custom made orthotics&#10;Shoe elevations"
+                value={getServiceList('orthopedic')}
+                onChange={(e) => setServiceList('orthopedic', e.target.value)}
+                data-testid="input-orthopedic-list"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Boat Canvas Types (one per line)</Label>
+              <Textarea
+                rows={12}
+                placeholder="Bimini Tops&#10;Mooring Covers"
+                value={getServiceList('canvas')}
+                onChange={(e) => setServiceList('canvas', e.target.value)}
+                data-testid="input-canvas-list"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Service Types for Quote Form (one per line)</Label>
+            <Textarea
+              rows={6}
+              placeholder="Shoe Repair&#10;Boot Repair&#10;Leather & Bag Repair"
+              value={getServiceList('serviceTypes')}
+              onChange={(e) => setServiceList('serviceTypes', e.target.value)}
+              data-testid="input-service-types-list"
+            />
+          </div>
+
+          <Separator />
+          <h4 className="font-semibold text-sm">Section Headings & Descriptions</h4>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Shoe Repair Heading</Label>
+              <Input value={servicesListsJson.shoeRepairHeading || ''} onChange={(e) => updateServiceField('shoeRepairHeading', e.target.value)} placeholder="Shoe Repair Services" />
+            </div>
+            <div className="space-y-2">
+              <Label>Shoe Repair Description</Label>
+              <Textarea rows={2} value={servicesListsJson.shoeRepairDesc || ''} onChange={(e) => updateServiceField('shoeRepairDesc', e.target.value)} placeholder="From everyday wear..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Leather Heading</Label>
+              <Input value={servicesListsJson.leatherHeading || ''} onChange={(e) => updateServiceField('leatherHeading', e.target.value)} placeholder="Leather & Bag Repair" />
+            </div>
+            <div className="space-y-2">
+              <Label>Leather Description</Label>
+              <Textarea rows={2} value={servicesListsJson.leatherDesc || ''} onChange={(e) => updateServiceField('leatherDesc', e.target.value)} placeholder="We expertly restore..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Designer Heading</Label>
+              <Input value={servicesListsJson.designerHeading || ''} onChange={(e) => updateServiceField('designerHeading', e.target.value)} placeholder="Designer Shoe Repair" />
+            </div>
+            <div className="space-y-2">
+              <Label>Designer Description</Label>
+              <Textarea rows={2} value={servicesListsJson.designerDesc || ''} onChange={(e) => updateServiceField('designerDesc', e.target.value)} placeholder="Cobbler's Bench restores..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Louboutin Description</Label>
+              <Textarea rows={2} value={servicesListsJson.louboutinDesc || ''} onChange={(e) => updateServiceField('louboutinDesc', e.target.value)} placeholder="We specialize in restoring..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Orthopedic Heading</Label>
+              <Input value={servicesListsJson.orthopedicHeading || ''} onChange={(e) => updateServiceField('orthopedicHeading', e.target.value)} placeholder="Orthotics & Orthopedics" />
+            </div>
+            <div className="space-y-2">
+              <Label>Orthopedic Description</Label>
+              <Textarea rows={2} value={servicesListsJson.orthopedicDesc || ''} onChange={(e) => updateServiceField('orthopedicDesc', e.target.value)} placeholder="For over 3 generations..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Canvas Heading</Label>
+              <Input value={servicesListsJson.canvasHeading || ''} onChange={(e) => updateServiceField('canvasHeading', e.target.value)} placeholder="Boat Canvas & Sail Repair" />
+            </div>
+            <div className="space-y-2">
+              <Label>Canvas Description</Label>
+              <Textarea rows={2} value={servicesListsJson.canvasDesc || ''} onChange={(e) => updateServiceField('canvasDesc', e.target.value)} placeholder="At Cape Cod Shoe Repair..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Dog Section Title</Label>
+              <Input value={servicesListsJson.dogTitle || ''} onChange={(e) => updateServiceField('dogTitle', e.target.value)} placeholder="Do you have a Shoe-Eating Dog?" />
+            </div>
+            <div className="space-y-2">
+              <Label>Dog Section Description</Label>
+              <Textarea rows={2} value={servicesListsJson.dogDesc || ''} onChange={(e) => updateServiceField('dogDesc', e.target.value)} placeholder="Training a puppy is not always easy..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Custom Section Title</Label>
+              <Input value={servicesListsJson.customTitle || ''} onChange={(e) => updateServiceField('customTitle', e.target.value)} placeholder="Need Something Custom?" />
+            </div>
+            <div className="space-y-2">
+              <Label>Custom Section Description</Label>
+              <Textarea rows={2} value={servicesListsJson.customDesc || ''} onChange={(e) => updateServiceField('customDesc', e.target.value)} placeholder="We specialize in custom leather work..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone Number</Label>
+              <Input value={servicesListsJson.phoneNumber || ''} onChange={(e) => updateServiceField('phoneNumber', e.target.value)} placeholder="(508) 775-6221" />
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveServicesListsMutation.mutate()}
+              disabled={saveServicesListsMutation.isPending}
+              data-testid="button-save-services-lists"
+            >
+              {saveServicesListsMutation.isPending ? 'Saving...' : 'Save Service Lists & Content'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -4493,6 +4786,61 @@ function SiteContentManagement({ queryClient, toast }: {
               data-testid="button-save-knowledge"
             >
               {saveKnowledgePageMutation.isPending ? 'Saving...' : 'Save Knowledge'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Payment Info"
+        description="Venmo handle and payment instructions"
+        icon={FileEdit}
+        isOpen={paymentOpen}
+        onToggle={() => setPaymentOpen(!paymentOpen)}
+      >
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Payment Settings
+          </CardTitle>
+          <CardDescription>
+            Edit the Venmo handle and payment instructions shown on checkout, order confirmation, and email notifications.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="venmoHandle">Venmo Handle</Label>
+            <Input
+              id="venmoHandle"
+              placeholder="@Victor-Hadawar"
+              value={venmoHandle}
+              onChange={(e) => setVenmoHandle(e.target.value)}
+              data-testid="input-venmo-handle"
+            />
+            <p className="text-xs text-muted-foreground">Include the @ symbol (e.g., @Victor-Hadawar)</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paymentInstructions">Payment Instructions</Label>
+            <Textarea
+              id="paymentInstructions"
+              placeholder="No payment is taken now - you'll receive the exact amount and instructions after placing your order."
+              rows={3}
+              value={paymentInstructions}
+              onChange={(e) => setPaymentInstructions(e.target.value)}
+              data-testid="input-payment-instructions"
+            />
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => savePaymentInfoMutation.mutate()}
+              disabled={savePaymentInfoMutation.isPending}
+              data-testid="button-save-payment"
+            >
+              {savePaymentInfoMutation.isPending ? 'Saving...' : 'Save Payment Info'}
             </Button>
           </div>
         </CardContent>

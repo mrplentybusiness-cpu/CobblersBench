@@ -33,6 +33,16 @@ const DEFAULT_TERMS = `<h2>1. Abandoned Property Policy</h2>
 <p>Cobbler's Bench reserves the right to update these Terms of Service at any time. Continued use of our services or website constitutes acceptance of the most current version of these terms.</p>`;
 
 export default function Terms() {
+  const { data: businessInfo } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/business-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/business-info");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const { data: termsContent } = useQuery<SiteContent>({
     queryKey: ["/api/site-content/terms-of-service"],
     queryFn: async () => {
@@ -63,7 +73,7 @@ export default function Terms() {
         />
         <div className="h-px bg-border mt-12 mb-6" />
         <p className="text-xs text-muted-foreground text-center">
-          Cobbler's Bench &middot; 1600 Falmouth Rd, Centerville, MA 02632 &middot; cobblersbenchcapecod@gmail.com
+          Cobbler's Bench &middot; {businessInfo?.title || "1600 Falmouth Rd"}, {businessInfo?.content || "Centerville, MA 02632"}
         </p>
       </div>
     </Layout>

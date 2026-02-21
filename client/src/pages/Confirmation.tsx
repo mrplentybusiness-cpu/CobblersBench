@@ -5,7 +5,7 @@ import { CheckCircle2, Copy, Package, Wrench, MapPin, Phone, Mail } from "lucide
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/store";
 import { useQuery } from "@tanstack/react-query";
-import type { Order, OrderItem } from "@shared/schema";
+import type { Order, OrderItem, SiteContent } from "@shared/schema";
 
 export default function Confirmation() {
   const { toast } = useToast();
@@ -21,6 +21,30 @@ export default function Confirmation() {
     },
     enabled: !!lastOrderId,
   });
+
+  const { data: paymentInfo } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/payment-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/payment-info");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: businessInfo } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/business-info"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/business-info");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const venmoHandle = paymentInfo?.title || "@Victor-Hadawar";
+  const storeAddress = businessInfo?.title || "1600 Falmouth Rd";
+  const storeCityStateZip = businessInfo?.content || "Centerville, MA 02632";
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -145,8 +169,8 @@ export default function Confirmation() {
                 </p>
                 <address className="not-italic bg-background p-4 rounded border mb-4">
                   <strong>Cobbler's Bench</strong><br />
-                  1600 Falmouth Rd (Route 28)<br />
-                  Centerville, MA 02632
+                  {storeAddress}<br />
+                  {storeCityStateZip}
                 </address>
                 <p className="text-sm text-muted-foreground">
                   Print this confirmation page and include it with your package. 
@@ -166,12 +190,12 @@ export default function Confirmation() {
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg mb-4">
                 <div className="flex items-center gap-3">
                   <div className="bg-[#008CFF] text-white p-2 rounded font-bold text-xs">Venmo</div>
-                  <span className="font-medium">@Victor-Hadawar</span>
+                  <span className="font-medium">{venmoHandle}</span>
                 </div>
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={() => copyToClipboard("@Victor-Hadawar")}
+                  onClick={() => copyToClipboard(venmoHandle)}
                   data-testid="button-copy-venmo"
                 >
                   <Copy className="h-4 w-4" />

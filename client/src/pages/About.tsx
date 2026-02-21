@@ -22,6 +22,16 @@ export default function About() {
     },
   });
 
+  const { data: layoutContent } = useQuery<SiteContent | null>({
+    queryKey: ["/api/site-content/layout"],
+    queryFn: async () => {
+      const res = await fetch("/api/site-content/layout");
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+  const aboutQuote = layoutContent?.title || '"We doctor your shoes and save your sole."';
+
   const title = aboutContent?.title || "Our Story";
   const content = aboutContent?.content || "For over 35 years, Cobbler's Bench has been Cape Cod's trusted destination for expert shoe repair and leather restoration. Our skilled craftsmen combine time-honored techniques with modern expertise to breathe new life into your favorite footwear and leather goods.";
   const heroImage = aboutContent?.imageUrl || "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800";
@@ -152,7 +162,7 @@ export default function About() {
 
             <div className="mt-8 bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
               <p className="text-amber-800 font-medium italic text-lg">
-                "We doctor your shoes and save your sole."
+                {aboutQuote}
               </p>
             </div>
           </div>

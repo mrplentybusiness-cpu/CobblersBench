@@ -72,3 +72,4 @@ Preferred communication style: Simple, everyday language.
 ### Email Services
 - **Gmail API**: Primary for sending email notifications (order confirmations, admin alerts, status updates).
 - **Nodemailer (SMTP)**: Fallback for email sending.
+- **Dynamic Settings**: Email templates pull Venmo handle, business contact info, and from email dynamically from the database via `getEmailSettings()` in `server/email.ts`. Changes made in the Admin Portal are reflected in all outgoing emails automatically.
