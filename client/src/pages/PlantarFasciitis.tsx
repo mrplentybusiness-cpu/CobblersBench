@@ -2,6 +2,8 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ArrowRight, Footprints, AlertCircle, CheckCircle, Heart, Shield, Activity } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import type { SiteContent } from "@shared/schema";
 
 const symptoms = [
   "Sharp, stabbing heel pain, especially with first steps in the morning",
@@ -59,6 +61,16 @@ const treatments = [
 ];
 
 export default function PlantarFasciitis() {
+  const { data: knowledgeContent } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/knowledge-page'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/knowledge-page');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch content');
+      return response.json();
+    },
+  });
+
   return (
     <Layout>
       <section className="py-16 bg-muted/30">
@@ -70,10 +82,10 @@ export default function PlantarFasciitis() {
               </div>
             </div>
             <h1 className="font-serif text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Plantar Fasciitis
+              {knowledgeContent?.title || "Plantar Fasciitis"}
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Understanding this common foot condition and how proper sole support can bring lasting relief.
+              {knowledgeContent?.content || "Understanding this common foot condition and how proper sole support can bring lasting relief."}
             </p>
           </div>
         </div>

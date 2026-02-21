@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link } from "wouter";
 import { ArrowRight, Footprints, Briefcase, Sparkles, Heart, Ship, Accessibility, MessageSquare, Send, CheckCircle } from "lucide-react";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import type { SiteContent } from "@shared/schema";
 import bootRepair from "@assets/Screenshot_2025-12-29_at_7.34.18_PM_1767055015932.png";
 import boatCanvas from "@assets/Screenshot_2025-12-29_at_7.36.31_PM_1767055017502.png";
 import vuittonBefore from "@assets/vuitton-handbag01_1767055020889.jpg";
@@ -82,6 +83,16 @@ const serviceTypes = [
 ];
 
 export default function Services() {
+  const { data: servicesContent } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/services'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/services');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch content');
+      return response.json();
+    },
+  });
+
   const [formData, setFormData] = useState({
     customerName: "",
     customerEmail: "",
@@ -123,11 +134,10 @@ export default function Services() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h1 className="font-serif text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Our Services
+              {servicesContent?.title || "Our Services"}
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              For over 3 generations, Cobbler's Bench has been committed to providing the best craftsmanship 
-              and service in the Cape Cod area.
+              {servicesContent?.content || "For over 3 generations, Cobbler's Bench has been committed to providing the best craftsmanship and service in the Cape Cod area."}
             </p>
           </div>
         </div>

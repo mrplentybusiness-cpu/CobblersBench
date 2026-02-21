@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2, XCircle, Store, Film, Upload, Video, Loader2 } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2, XCircle, Store, Film, Upload, Video, Loader2, BookOpen } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -3297,8 +3297,10 @@ function SiteContentManagement({ queryClient, toast }: {
   const [homepageOpen, setHomepageOpen] = useState(true);
   const [shopOpen, setShopOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [cobblerLifeOpen, setCobblerLifeOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
+  const [reviewsOpen, setReviewsOpen] = useState(false);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [businessOpen, setBusinessOpen] = useState(false);
   const [layoutOpen, setLayoutOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
@@ -3318,8 +3320,14 @@ function SiteContentManagement({ queryClient, toast }: {
   const [businessPhone, setBusinessPhone] = useState("");
   const [businessHours, setBusinessHours] = useState("");
 
-  const [galleryTitle, setGalleryTitle] = useState("");
-  const [galleryDescription, setGalleryDescription] = useState("");
+  const [cobblerLifeTitle, setCobblerLifeTitle] = useState("");
+  const [cobblerLifeDescription, setCobblerLifeDescription] = useState("");
+
+  const [reviewsTitle, setReviewsTitle] = useState("");
+  const [reviewsDescription, setReviewsDescription] = useState("");
+
+  const [knowledgeTitle, setKnowledgeTitle] = useState("");
+  const [knowledgeDescription, setKnowledgeDescription] = useState("");
 
   const [servicesTitle, setServicesTitle] = useState("");
   const [servicesDescription, setServicesDescription] = useState("");
@@ -3377,10 +3385,20 @@ function SiteContentManagement({ queryClient, toast }: {
       setBusinessPhone(business.imageUrl || '');
       setBusinessHours((business.imageUrls || []).join('\n'));
     }
-    const gallery = siteContent.find(c => c.key === 'gallery');
-    if (gallery) {
-      setGalleryTitle(gallery.title || '');
-      setGalleryDescription(gallery.content || '');
+    const cobblerLife = siteContent.find(c => c.key === 'cobbler-life');
+    if (cobblerLife) {
+      setCobblerLifeTitle(cobblerLife.title || '');
+      setCobblerLifeDescription(cobblerLife.content || '');
+    }
+    const reviewsPage = siteContent.find(c => c.key === 'reviews-page');
+    if (reviewsPage) {
+      setReviewsTitle(reviewsPage.title || '');
+      setReviewsDescription(reviewsPage.content || '');
+    }
+    const knowledgePage = siteContent.find(c => c.key === 'knowledge-page');
+    if (knowledgePage) {
+      setKnowledgeTitle(knowledgePage.title || '');
+      setKnowledgeDescription(knowledgePage.content || '');
     }
     const services = siteContent.find(c => c.key === 'services');
     if (services) {
@@ -3518,17 +3536,17 @@ function SiteContentManagement({ queryClient, toast }: {
     },
   });
 
-  const saveGalleryMutation = useMutation({
+  const saveCobblerLifeMutation = useMutation({
     mutationFn: async () => {
-      const response = await adminFetch('/api/site-content/gallery', {
+      const response = await adminFetch('/api/site-content/cobbler-life', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: galleryTitle,
-          content: galleryDescription,
+          title: cobblerLifeTitle,
+          content: cobblerLifeDescription,
         }),
       });
-      if (!response.ok) throw new Error('Failed to save gallery content');
+      if (!response.ok) throw new Error('Failed to save cobbler\'s life content');
       return response.json();
     },
     onSuccess: () => {
@@ -3537,13 +3555,75 @@ function SiteContentManagement({ queryClient, toast }: {
       });
       toast({
         title: "Content Saved",
-        description: "Gallery section has been updated successfully.",
+        description: "Cobbler's Life section has been updated successfully.",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to save gallery content. Please try again.",
+        description: "Failed to save Cobbler's Life content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveReviewsPageMutation = useMutation({
+    mutationFn: async () => {
+      const response = await adminFetch('/api/site-content/reviews-page', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: reviewsTitle,
+          content: reviewsDescription,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save reviews page content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
+      toast({
+        title: "Content Saved",
+        description: "Reviews page has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save reviews page content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveKnowledgePageMutation = useMutation({
+    mutationFn: async () => {
+      const response = await adminFetch('/api/site-content/knowledge-page', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: knowledgeTitle,
+          content: knowledgeDescription,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save knowledge page content');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
+      toast({
+        title: "Content Saved",
+        description: "Knowledge page has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save knowledge page content. Please try again.",
         variant: "destructive",
       });
     },
@@ -3968,45 +4048,45 @@ function SiteContentManagement({ queryClient, toast }: {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5" />
-            Gallery Page
+            <Film className="h-5 w-5" />
+            Cobbler's Life Page
           </CardTitle>
           <CardDescription>
-            Edit the Gallery page title and description.
+            Edit the Cobbler's Life video gallery page title and description.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           
           <div className="space-y-2">
-            <Label htmlFor="galleryTitle">Page Title</Label>
+            <Label htmlFor="cobblerLifeTitle">Page Title</Label>
             <Input
-              id="galleryTitle"
-              placeholder="In-Store Gallery"
-              value={galleryTitle}
-              onChange={(e) => setGalleryTitle(e.target.value)}
-              data-testid="input-gallery-title"
+              id="cobblerLifeTitle"
+              placeholder="Cobbler's Life"
+              value={cobblerLifeTitle}
+              onChange={(e) => setCobblerLifeTitle(e.target.value)}
+              data-testid="input-cobbler-life-title"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="galleryDescription">Page Description</Label>
+            <Label htmlFor="cobblerLifeDescription">Page Description</Label>
             <Textarea
-              id="galleryDescription"
-              placeholder="Browse our exclusive collection..."
+              id="cobblerLifeDescription"
+              placeholder="Step into the workshop and watch the craft come alive..."
               rows={3}
-              value={galleryDescription}
-              onChange={(e) => setGalleryDescription(e.target.value)}
-              data-testid="input-gallery-description"
+              value={cobblerLifeDescription}
+              onChange={(e) => setCobblerLifeDescription(e.target.value)}
+              data-testid="input-cobbler-life-description"
             />
           </div>
 
           <div className="flex gap-4 pt-4">
             <Button 
-              onClick={() => saveGalleryMutation.mutate()}
-              disabled={saveGalleryMutation.isPending}
-              data-testid="button-save-gallery"
+              onClick={() => saveCobblerLifeMutation.mutate()}
+              disabled={saveCobblerLifeMutation.isPending}
+              data-testid="button-save-cobbler-life"
             >
-              {saveGalleryMutation.isPending ? 'Saving...' : 'Save Gallery'}
+              {saveCobblerLifeMutation.isPending ? 'Saving...' : "Save Cobbler's Life"}
             </Button>
           </div>
         </CardContent>
@@ -4263,6 +4343,116 @@ function SiteContentManagement({ queryClient, toast }: {
               disabled={saveShopCtaMutation.isPending}
             >
               {saveShopCtaMutation.isPending ? 'Saving...' : 'Save Shop CTA'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      </CollapsibleSection>
+
+      {/* Reviews Section */}
+      <CollapsibleSection
+        title="Reviews"
+        description="Reviews page title and description"
+        icon={Star}
+        isOpen={reviewsOpen}
+        onToggle={() => setReviewsOpen(!reviewsOpen)}
+      >
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5" />
+            Reviews Page
+          </CardTitle>
+          <CardDescription>
+            Edit the Reviews page title and description.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="reviewsTitle">Page Title</Label>
+            <Input
+              id="reviewsTitle"
+              placeholder="Customer Reviews"
+              value={reviewsTitle}
+              onChange={(e) => setReviewsTitle(e.target.value)}
+              data-testid="input-reviews-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reviewsDescription">Page Description</Label>
+            <Textarea
+              id="reviewsDescription"
+              placeholder="See what our customers have to say..."
+              rows={3}
+              value={reviewsDescription}
+              onChange={(e) => setReviewsDescription(e.target.value)}
+              data-testid="input-reviews-description"
+            />
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveReviewsPageMutation.mutate()}
+              disabled={saveReviewsPageMutation.isPending}
+              data-testid="button-save-reviews"
+            >
+              {saveReviewsPageMutation.isPending ? 'Saving...' : 'Save Reviews'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      </CollapsibleSection>
+
+      {/* Knowledge Section */}
+      <CollapsibleSection
+        title="Knowledge"
+        description="Knowledge page (Plantar Fasciitis) title and description"
+        icon={BookOpen}
+        isOpen={knowledgeOpen}
+        onToggle={() => setKnowledgeOpen(!knowledgeOpen)}
+      >
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Knowledge Page
+          </CardTitle>
+          <CardDescription>
+            Edit the Plantar Fasciitis / Knowledge page title and description.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="knowledgeTitle">Page Title</Label>
+            <Input
+              id="knowledgeTitle"
+              placeholder="Plantar Fasciitis"
+              value={knowledgeTitle}
+              onChange={(e) => setKnowledgeTitle(e.target.value)}
+              data-testid="input-knowledge-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="knowledgeDescription">Page Description</Label>
+            <Textarea
+              id="knowledgeDescription"
+              placeholder="Understanding this common foot condition and how proper sole support can bring lasting relief."
+              rows={3}
+              value={knowledgeDescription}
+              onChange={(e) => setKnowledgeDescription(e.target.value)}
+              data-testid="input-knowledge-description"
+            />
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveKnowledgePageMutation.mutate()}
+              disabled={saveKnowledgePageMutation.isPending}
+              data-testid="button-save-knowledge"
+            >
+              {saveKnowledgePageMutation.isPending ? 'Saving...' : 'Save Knowledge'}
             </Button>
           </div>
         </CardContent>

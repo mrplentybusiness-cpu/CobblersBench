@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Star, Send, CheckCircle, MapPin } from "lucide-react";
-import type { Review } from "@shared/schema";
+import type { Review, SiteContent } from "@shared/schema";
 
 export default function Reviews() {
   const [formData, setFormData] = useState({
@@ -18,6 +18,16 @@ export default function Reviews() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [hoveredRating, setHoveredRating] = useState(0);
+
+  const { data: reviewsPageContent } = useQuery<SiteContent | null>({
+    queryKey: ['/api/site-content/reviews-page'],
+    queryFn: async () => {
+      const response = await fetch('/api/site-content/reviews-page');
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error('Failed to fetch content');
+      return response.json();
+    },
+  });
 
   const { data: reviews = [], isLoading } = useQuery<Review[]>({
     queryKey: ['/api/reviews/published'],
@@ -89,11 +99,10 @@ export default function Reviews() {
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4" data-testid="reviews-title">
-            Customer Reviews
+            {reviewsPageContent?.title || "Customer Reviews"}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            See what our customers have to say about their experience with Cobbler's Bench. 
-            We take pride in our craftsmanship and customer service.
+            {reviewsPageContent?.content || "See what our customers have to say about their experience with Cobbler's Bench. We take pride in our craftsmanship and customer service."}
           </p>
         </div>
 
