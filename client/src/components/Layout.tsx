@@ -1,11 +1,12 @@
 import { Link, useLocation } from "wouter";
 import { useCart } from "@/lib/store";
-import { ShoppingBag, Menu, Hammer, Lock } from "lucide-react";
+import { Menu, Hammer, Lock } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import logo from "@assets/Cobbler's_Bench_Logo_1767715154008.png";
 import CompareTray from "@/components/CompareTray";
+import CartSummary from "@/components/CartSummary";
 import { useQuery } from "@tanstack/react-query";
 import type { SiteContent } from "@shared/schema";
 
@@ -95,30 +96,12 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
                 <Lock className="h-4 w-4" strokeWidth={1.5} />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" className="relative text-white hover:text-amber-400 hover:bg-gray-800" asChild>
-              <Link href="/cart">
-                <ShoppingBag className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-amber-500 text-[10px] font-bold text-black flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-            </Button>
+            <CartSummary />
           </nav>
 
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative text-white hover:bg-gray-800" asChild>
-              <Link href="/cart">
-                <ShoppingBag className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-amber-500 text-[10px] font-bold text-black flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-            </Button>
+            <CartSummary />
             
             <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
               <SheetTrigger asChild>
