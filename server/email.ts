@@ -138,18 +138,18 @@ async function sendViaSmtp(to: string, subject: string, html: string): Promise<{
 }
 
 async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
-  const smtpResult = await sendViaSmtp(to, subject, html);
-  if (smtpResult.success) {
-    return { success: true };
-  }
-
-  console.log(`[Email] SMTP failed, trying Gmail API (HTTPS) fallback...`);
   const gmailApiResult = await sendViaGmailApi(to, subject, html);
   if (gmailApiResult.success) {
     return { success: true };
   }
 
-  const fullError = `All methods failed. SMTP: ${smtpResult.error} | Gmail API: ${gmailApiResult.error}`;
+  console.log(`[Email] Gmail API failed, trying SMTP fallback...`);
+  const smtpResult = await sendViaSmtp(to, subject, html);
+  if (smtpResult.success) {
+    return { success: true };
+  }
+
+  const fullError = `All methods failed. Gmail API: ${gmailApiResult.error} | SMTP: ${smtpResult.error}`;
   console.error(`[Email] ${fullError}`);
   return { success: false, error: fullError };
 }
@@ -167,19 +167,19 @@ export async function testEmailDelivery(testTo: string): Promise<{ success: bool
   `;
   const subject = `[TEST] Email Delivery Test - ${BUSINESS_NAME}`;
 
-  const smtpResult = await sendViaSmtp(testTo, subject, testHtml);
-  if (smtpResult.success) {
-    return { success: true, method: smtpResult.method };
-  }
-
   const gmailApiResult = await sendViaGmailApi(testTo, subject, testHtml);
   if (gmailApiResult.success) {
     return { success: true, method: gmailApiResult.method };
   }
 
+  const smtpResult = await sendViaSmtp(testTo, subject, testHtml);
+  if (smtpResult.success) {
+    return { success: true, method: smtpResult.method };
+  }
+
   return {
     success: false,
-    error: `SMTP: ${smtpResult.error} | Gmail API: ${gmailApiResult.error}`,
+    error: `Gmail API: ${gmailApiResult.error} | SMTP: ${smtpResult.error}`,
   };
 }
 
