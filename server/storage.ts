@@ -809,6 +809,7 @@ export class DatabaseStorage implements IStorage {
 
   // Admin Settings
   async getAdminSetting(key: string): Promise<string | undefined> {
+    await this.getMigrationComplete();
     const results = await this.getDb()
       .select()
       .from(schema.adminSettings)
@@ -817,6 +818,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setAdminSetting(key: string, value: string): Promise<void> {
+    await this.getMigrationComplete();
     const existing = await this.getAdminSetting(key);
     if (existing !== undefined) {
       await this.getDb()
@@ -831,6 +833,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearAdminPasswordSettings(): Promise<void> {
+    await this.getMigrationComplete();
     await this.getDb()
       .delete(schema.adminSettings)
       .where(
