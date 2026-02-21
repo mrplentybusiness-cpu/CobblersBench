@@ -132,6 +132,9 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
                   <Link href="/about" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     About
                   </Link>
+                  <Link href="/terms" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)} data-testid="link-terms-mobile">
+                    Terms of Service
+                  </Link>
                   <Link href="/cart" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Cart ({cartCount})
                   </Link>
@@ -152,7 +155,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
       {!hideCompareTray && <CompareTray />}
 
       <footer className="bg-primary text-primary-foreground py-12">
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="font-serif text-xl font-bold mb-4 flex items-center gap-2">
               <Hammer className="h-5 w-5" /> Cobbler's Bench
@@ -177,6 +180,12 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
               ))}
             </p>
           </div>
+          <div>
+            <h4 className="font-bold mb-4">Legal</h4>
+            <Link href="/terms" className="text-sm text-primary-foreground/80 hover:text-amber-400 underline transition-colors" data-testid="link-terms-footer">
+              Terms of Service
+            </Link>
+          </div>
         </div>
         <div className="container mx-auto px-4 mt-8 pt-8 border-t border-primary-foreground/20 flex flex-col md:flex-row justify-between items-center text-xs text-primary-foreground/60">
           <span>© {new Date().getFullYear()} Cobbler's Bench. All rights reserved.</span>
@@ -184,11 +193,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
             <Lock className="h-3 w-3" strokeWidth={1.5} />
           </Link>
         </div>
-        <div className="container mx-auto px-4 mt-4 text-center text-xs text-primary-foreground/50 flex items-center justify-center gap-2 flex-wrap">
-          <Link href="/terms" className="underline hover:text-primary-foreground/80 transition-colors" data-testid="link-terms-footer">
-            Terms of Service
-          </Link>
-          <span>&middot;</span>
+        <div className="container mx-auto px-4 mt-4 text-center text-xs text-primary-foreground/50">
           <span>Built by </span>
           <a href="https://www.PlentyWebDesign.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary-foreground/80 transition-colors">
             Plenty Web Design
