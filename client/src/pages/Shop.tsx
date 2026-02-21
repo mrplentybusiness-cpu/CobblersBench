@@ -53,7 +53,12 @@ export default function Shop() {
 
   const availableCategories = useMemo(() => {
     const categories = products.map(p => p.category).filter(Boolean) as string[];
-    return Array.from(new Set(categories)).sort();
+    const unique = Array.from(new Set(categories)).sort();
+    if (!unique.includes('Unclaimed Products')) {
+      unique.push('Unclaimed Products');
+      unique.sort();
+    }
+    return unique;
   }, [products]);
 
   const availableBrands = useMemo(() => {
