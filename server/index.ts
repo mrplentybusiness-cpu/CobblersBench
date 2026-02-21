@@ -12,13 +12,10 @@ declare module "http" {
   }
 }
 
-// Health check endpoints - respond immediately for deployment health checks
-// These must be registered BEFORE any async setup to ensure fast response
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-// Track initialization state for graceful startup
 let isInitialized = false;
 export function setInitialized() {
   isInitialized = true;
@@ -27,24 +24,19 @@ export function getInitialized() {
   return isInitialized;
 }
 
-// In production, serve a minimal response at / before full initialization completes
-// This allows health checks on / to pass while the app is still starting
 if (process.env.NODE_ENV === "production") {
   const fs = require("fs");
   const path = require("path");
   const distPath = path.resolve(process.cwd(), "dist", "public");
   const indexPath = path.resolve(distPath, "index.html");
   
-  // Pre-read index.html so it's available immediately
   if (fs.existsSync(indexPath)) {
     const indexHtml = fs.readFileSync(indexPath, "utf-8");
     app.get("/", (_req, res, next) => {
       if (!isInitialized) {
-        // Serve cached index.html before full initialization
         res.setHeader("Content-Type", "text/html");
         res.send(indexHtml);
       } else {
-        // Once initialized, let the static middleware handle it
         next();
       }
     });
@@ -99,20 +91,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Start server FIRST so health checks pass immediately
-const port = parseInt(process.env.PORT || "3000", 10);
-httpServer.listen(
-  {
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  },
-  () => {
-    log(`serving on port ${port}`);
-  },
-);
-
-// Log email configuration status at startup
 console.log(`[Email Config] GMAIL_APP_PASSWORD: ${process.env.GMAIL_APP_PASSWORD ? 'SET (length ' + process.env.GMAIL_APP_PASSWORD.length + ')' : 'NOT SET'}`);
 console.log(`[Email Config] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`[Email Config] REPLIT_DEPLOYMENT: ${process.env.REPLIT_DEPLOYMENT || 'not set'}`);
@@ -123,10 +101,27 @@ console.log(`[Email Config] GMAIL_CLIENT_ID: ${_cid ? 'SET (length ' + _cid.leng
 console.log(`[Email Config] GMAIL_CLIENT_SECRET: ${_csec ? 'SET (length ' + _csec.length + ')' : 'NOT SET'}`);
 console.log(`[Email Config] GMAIL_REFRESH_TOKEN: ${_rtok ? 'SET (length ' + _rtok.length + ')' : 'NOT SET'}`);
 
-// Then do async setup (database, routes, and in development: Vite)
+const port = parseInt(process.env.PORT || "3000", 10);
+
+function startListening() {
+  httpServer.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+    },
+  );
+}
+
+if (process.env.NODE_ENV === "production") {
+  startListening();
+}
+
 (async () => {
   await registerRoutes(httpServer, app);
-  
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -136,9 +131,6 @@ console.log(`[Email Config] GMAIL_REFRESH_TOKEN: ${_rtok ? 'SET (length ' + _rto
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
@@ -147,5 +139,10 @@ console.log(`[Email Config] GMAIL_REFRESH_TOKEN: ${_rtok ? 'SET (length ' + _rto
   }
 
   setInitialized();
+
+  if (process.env.NODE_ENV !== "production") {
+    startListening();
+  }
+
   log("Server initialization complete");
 })();
