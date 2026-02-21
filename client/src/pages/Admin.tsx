@@ -5006,6 +5006,8 @@ function CobblerLifeManagement({ queryClient, toast }: { queryClient: any; toast
     },
   });
 
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -5015,34 +5017,97 @@ function CobblerLifeManagement({ queryClient, toast }: { queryClient: any; toast
       return;
     }
 
-    const maxSize = 100 * 1024 * 1024;
+    const maxSize = 2 * 1024 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast({ title: "File too large", description: "Maximum file size is 100MB", variant: "destructive" });
+      toast({ title: "File too large", description: "Maximum file size is 2GB", variant: "destructive" });
       return;
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
     try {
       const sigRes = await adminFetch('/api/uploads/cloudinary-video-signature', { method: 'POST' });
       if (!sigRes.ok) throw new Error('Failed to get upload signature');
       const sig = await sigRes.json();
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', sig.apiKey);
-      formData.append('timestamp', String(sig.timestamp));
-      formData.append('signature', sig.signature);
-      formData.append('folder', sig.folder);
-      formData.append('public_id', sig.publicId);
-      formData.append('resource_type', 'video');
+      let uploadData: any;
+      const CHUNK_SIZE = 20 * 1024 * 1024;
 
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/video/upload`, {
-        method: 'POST',
-        body: formData,
-      });
+      if (file.size > 100 * 1024 * 1024) {
+        const uniqueUploadId = `uqid-${Date.now()}`;
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+          const start = chunkIndex * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunk = file.slice(start, end);
+          
+          const formData = new FormData();
+          formData.append('file', chunk);
+          formData.append('api_key', sig.apiKey);
+          formData.append('timestamp', String(sig.timestamp));
+          formData.append('signature', sig.signature);
+          formData.append('folder', sig.folder);
+          formData.append('public_id', sig.publicId);
+          formData.append('resource_type', 'video');
 
-      if (!uploadRes.ok) throw new Error('Upload failed');
-      const uploadData = await uploadRes.json();
+          const headers: Record<string, string> = {
+            'X-Unique-Upload-Id': uniqueUploadId,
+            'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+          };
+
+          const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/video/upload`, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+
+          setUploadProgress(Math.round(((chunkIndex + 1) / totalChunks) * 90));
+
+          if (chunkIndex === totalChunks - 1) {
+            if (!uploadRes.ok) {
+              const errData = await uploadRes.json().catch(() => ({}));
+              throw new Error(errData.error?.message || 'Upload failed on final chunk');
+            }
+            uploadData = await uploadRes.json();
+          } else {
+            if (uploadRes.status >= 400) {
+              const errData = await uploadRes.json().catch(() => ({}));
+              throw new Error(errData.error?.message || `Upload failed on chunk ${chunkIndex + 1}`);
+            }
+          }
+        }
+      } else {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('api_key', sig.apiKey);
+        formData.append('timestamp', String(sig.timestamp));
+        formData.append('signature', sig.signature);
+        formData.append('folder', sig.folder);
+        formData.append('public_id', sig.publicId);
+        formData.append('resource_type', 'video');
+
+        const xhr = new XMLHttpRequest();
+        uploadData = await new Promise((resolve, reject) => {
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              setUploadProgress(Math.round((event.loaded / event.total) * 90));
+            }
+          });
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(JSON.parse(xhr.responseText));
+            } else {
+              reject(new Error('Upload failed'));
+            }
+          });
+          xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+          xhr.open('POST', `https://api.cloudinary.com/v1_1/${sig.cloudName}/video/upload`);
+          xhr.send(formData);
+        });
+      }
+
+      setUploadProgress(95);
 
       const thumbnailUrl = uploadData.secure_url.replace(/\.(mp4|mov|avi|webm)$/i, '.jpg');
 
@@ -5060,6 +5125,7 @@ function CobblerLifeManagement({ queryClient, toast }: { queryClient: any; toast
       });
 
       if (!createRes.ok) throw new Error('Failed to save video');
+      setUploadProgress(100);
       queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
       setVideoForm({ title: '', description: '', category: 'General' });
       toast({ title: "Video uploaded successfully" });
@@ -5067,6 +5133,7 @@ function CobblerLifeManagement({ queryClient, toast }: { queryClient: any; toast
       toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -5173,12 +5240,24 @@ function CobblerLifeManagement({ queryClient, toast }: { queryClient: any; toast
               data-testid="upload-video-button"
             >
               {isUploading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading {uploadProgress}%</>
               ) : (
                 <><Video className="mr-2 h-4 w-4" /> Choose Video File</>
               )}
             </Button>
-            <span className="ml-3 text-sm text-muted-foreground">Max 100MB. MP4 or MOV format.</span>
+            <span className="ml-3 text-sm text-muted-foreground">MP4 or MOV format. Large files supported.</span>
+            {isUploading && (
+              <div className="mt-3 w-full">
+                <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
+                  <div
+                    className="bg-amber-600 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                    data-testid="video-upload-progress"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{uploadProgress < 90 ? 'Uploading video...' : uploadProgress < 100 ? 'Saving...' : 'Done!'}</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
