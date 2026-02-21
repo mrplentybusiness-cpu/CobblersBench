@@ -1609,7 +1609,27 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/settings/shop_categories", async (_req, res) => {
+    try {
+      const value = await storage.getAdminSetting("shop_categories");
+      res.json({ value: value || "[]" });
+    } catch (error) {
+      res.json({ value: "[]" });
+    }
+  });
+
   // ===== ADMIN SETTINGS =====
+
+  app.post("/api/admin/categories/rename", requireAdmin, async (req, res) => {
+    try {
+      const { oldName, newName } = req.body;
+      if (!oldName || !newName) return res.status(400).json({ error: "oldName and newName are required" });
+      const count = await storage.bulkUpdateProductCategory(oldName.trim(), newName.trim());
+      res.json({ success: true, updatedCount: count });
+    } catch (error) {
+      sendError(res, 500, "Failed to rename category", error);
+    }
+  });
 
   app.get("/api/admin/settings/:key", requireAdmin, async (req, res) => {
     try {

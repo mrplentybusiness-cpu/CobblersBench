@@ -817,7 +817,7 @@ export default function Admin() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 items-center">
                     <Button
                       variant={productCategoryFilter === "all" ? "default" : "outline"}
                       size="sm"
@@ -839,6 +839,7 @@ export default function Admin() {
                         <Badge variant="secondary" className="ml-2 bg-background/20">{categoryCounts[cat] || 0}</Badge>
                       </Button>
                     ))}
+                    <CategoryManagementDialog categories={categories} categoryCounts={categoryCounts} queryClient={queryClient} toast={toast} />
                   </div>
 
                   <div className="flex flex-wrap gap-4 items-center">
@@ -1795,6 +1796,246 @@ interface ProductVariant {
   status: string;
 }
 
+function CategoryManagementDialog({ categories, categoryCounts, queryClient, toast }: { categories: string[]; categoryCounts: Record<string, number>; queryClient: any; toast: (props: { title: string; description?: string; variant?: "default" | "destructive" }) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [renamingCategory, setRenamingCategory] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  const [reassignTo, setReassignTo] = useState("");
+  const [savedCategories, setSavedCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      adminFetch('/api/admin/settings/shop_categories')
+        .then(res => res.json())
+        .then(data => {
+          if (data.value) {
+            try {
+              setSavedCategories(JSON.parse(data.value));
+            } catch { setSavedCategories([]); }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
+
+  const allCategories = Array.from(new Set([...savedCategories, ...categories])).sort();
+
+  const saveCategoriesToServer = async (cats: string[]) => {
+    await adminFetch('/api/admin/settings/shop_categories', {
+      method: 'PUT',
+      body: JSON.stringify({ value: JSON.stringify(cats) }),
+    });
+    setSavedCategories(cats);
+  };
+
+  const handleAddCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) {
+      toast({ title: "Please enter a category name", variant: "destructive" });
+      return;
+    }
+    if (allCategories.includes(name)) {
+      toast({ title: "Category already exists", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const updated = Array.from(new Set([...savedCategories, ...categories, name])).sort();
+      await saveCategoriesToServer(updated);
+      setNewCategoryName("");
+      toast({ title: `Category "${name}" added` });
+    } catch {
+      toast({ title: "Failed to add category", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRenameCategory = async () => {
+    const newName = renameValue.trim();
+    if (!newName || !renamingCategory) return;
+    if (newName === renamingCategory) {
+      setRenamingCategory(null);
+      return;
+    }
+    if (allCategories.includes(newName)) {
+      toast({ title: "A category with that name already exists", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const res = await adminFetch('/api/admin/categories/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldName: renamingCategory, newName }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      const updated = savedCategories.map(c => c === renamingCategory ? newName : c);
+      if (!updated.includes(newName)) updated.push(newName);
+      await saveCategoriesToServer(updated.filter(c => c !== renamingCategory || c === newName).sort());
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      setRenamingCategory(null);
+      toast({ title: `Category renamed to "${newName}"`, description: `${data.updatedCount} products updated` });
+    } catch {
+      toast({ title: "Failed to rename category", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!deletingCategory) return;
+    const target = reassignTo.trim();
+    if ((categoryCounts[deletingCategory] || 0) > 0 && !target) {
+      toast({ title: "Please select a category to move products to", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      if ((categoryCounts[deletingCategory] || 0) > 0 && target) {
+        await adminFetch('/api/admin/categories/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oldName: deletingCategory, newName: target }),
+        });
+      }
+      const updated = savedCategories.filter(c => c !== deletingCategory);
+      await saveCategoriesToServer(updated);
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      setDeletingCategory(null);
+      setReassignTo("");
+      toast({ title: `Category "${deletingCategory}" removed` });
+    } catch {
+      toast({ title: "Failed to delete category", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" data-testid="button-manage-categories">
+          <Settings className="h-3 w-3 mr-1" /> Manage
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif">Category Management</DialogTitle>
+          <DialogDescription>Add, rename, or delete product categories. Changes apply to all products in that category.</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="New category name..."
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+              data-testid="input-new-category"
+            />
+            <Button onClick={handleAddCategory} disabled={isLoading} data-testid="button-add-category">
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-1">
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">Current Categories</h4>
+            {allCategories.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4" data-testid="no-categories">No categories yet. Add one above.</p>
+            ) : (
+              <div className="space-y-2">
+                {allCategories.map(cat => (
+                  <div key={cat} className="flex items-center justify-between p-2 rounded border bg-card" data-testid={`category-row-${cat}`}>
+                    {renamingCategory === cat ? (
+                      <div className="flex gap-2 flex-1 mr-2">
+                        <Input
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleRenameCategory()}
+                          className="h-8 text-sm"
+                          autoFocus
+                          data-testid={`input-rename-category-${cat}`}
+                        />
+                        <Button size="sm" variant="default" className="h-8" onClick={handleRenameCategory} disabled={isLoading} data-testid={`button-confirm-rename-${cat}`}>
+                          Save
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8" onClick={() => setRenamingCategory(null)} data-testid={`button-cancel-rename-${cat}`}>
+                          <XCircle className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : deletingCategory === cat ? (
+                      <div className="flex-1 space-y-2">
+                        <p className="text-sm text-destructive font-medium">Delete "{cat}"?</p>
+                        {(categoryCounts[cat] || 0) > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{categoryCounts[cat]} products will be moved to:</p>
+                            <Select value={reassignTo} onValueChange={setReassignTo}>
+                              <SelectTrigger className="h-8 text-sm" data-testid={`select-reassign-${cat}`}>
+                                <SelectValue placeholder="Select category..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {allCategories.filter(c => c !== cat).map(c => (
+                                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={handleDeleteCategory} disabled={isLoading} data-testid={`button-confirm-delete-${cat}`}>
+                            Confirm Delete
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setDeletingCategory(null); setReassignTo(""); }} data-testid={`button-cancel-delete-${cat}`}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{cat}</span>
+                          <Badge variant="secondary" className="text-xs">{categoryCounts[cat] || 0}</Badge>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0"
+                            onClick={() => { setRenamingCategory(cat); setRenameValue(cat); }}
+                            data-testid={`button-rename-category-${cat}`}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            onClick={() => setDeletingCategory(cat)}
+                            data-testid={`button-delete-category-${cat}`}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ProductForm({ product, onSuccess, existingCategories = [], defaultCategory }: { product?: Product; onSuccess: () => void; existingCategories?: string[]; defaultCategory?: string }) {
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
@@ -1812,6 +2053,7 @@ function ProductForm({ product, onSuccess, existingCategories = [], defaultCateg
   const [sku, setSku] = useState(product?.sku || "");
   const [tags, setTags] = useState(product?.tags || "");
   const [inStoreOnly, setInStoreOnly] = useState(product?.inStoreOnly || false);
+  const [savedCategories, setSavedCategories] = useState<string[]>([]);
   
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
@@ -1820,6 +2062,19 @@ function ProductForm({ product, onSuccess, existingCategories = [], defaultCateg
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
+  useEffect(() => {
+    adminFetch('/api/admin/settings/shop_categories')
+      .then(res => res.json())
+      .then(data => {
+        if (data.value) {
+          try { setSavedCategories(JSON.parse(data.value)); } catch {}
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const allCategoryOptions = Array.from(new Set([...savedCategories, ...existingCategories])).sort();
+
   useEffect(() => {
     if (product?.id) {
       adminFetch(`/api/products/${product.id}/options`)
@@ -2163,16 +2418,11 @@ function ProductForm({ product, onSuccess, existingCategories = [], defaultCateg
                   data-testid="input-product-category"
                 />
                 <datalist id="category-suggestions">
-                  {existingCategories.map((cat) => (
+                  {allCategoryOptions.map((cat) => (
                     <option key={cat} value={cat} />
                   ))}
-                  <option value="Repair" />
-                  <option value="Shoe Care" />
-                  <option value="Leather Goods" />
-                  <option value="Orthotics" />
-                  <option value="Accessories" />
                 </datalist>
-                <p className="text-xs text-muted-foreground mt-1">Select existing or type a new category</p>
+                <p className="text-xs text-muted-foreground mt-1">Select an existing category or type a new one</p>
               </div>
 
               <div>

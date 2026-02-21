@@ -102,6 +102,9 @@ export interface IStorage {
   updateVideo(id: number, data: Partial<InsertCobblerLifeVideo>): Promise<CobblerLifeVideo | undefined>;
   deleteVideo(id: number): Promise<boolean>;
 
+  // Categories
+  bulkUpdateProductCategory(oldCategory: string, newCategory: string): Promise<number>;
+
   // Admin Settings
   getAdminSetting(key: string): Promise<string | undefined>;
   setAdminSetting(key: string, value: string): Promise<void>;
@@ -792,6 +795,16 @@ export class DatabaseStorage implements IStorage {
   async deleteVideo(id: number): Promise<boolean> {
     const result = await this.getDb().delete(schema.cobblerLifeVideos).where(eq(schema.cobblerLifeVideos.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Categories
+  async bulkUpdateProductCategory(oldCategory: string, newCategory: string): Promise<number> {
+    const results = await this.getDb()
+      .update(schema.products)
+      .set({ category: newCategory })
+      .where(eq(schema.products.category, oldCategory))
+      .returning();
+    return results.length;
   }
 
   // Admin Settings

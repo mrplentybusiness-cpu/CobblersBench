@@ -51,15 +51,29 @@ export default function Shop() {
     },
   });
 
+  const { data: savedCategories } = useQuery<string[]>({
+    queryKey: ['/api/settings/shop_categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/settings/shop_categories');
+      if (!response.ok) return [];
+      const data = await response.json();
+      if (data.value) {
+        try { return JSON.parse(data.value); } catch { return []; }
+      }
+      return [];
+    },
+  });
+
   const availableCategories = useMemo(() => {
-    const categories = products.map(p => p.category).filter(Boolean) as string[];
-    const unique = Array.from(new Set(categories)).sort();
+    const productCats = products.map(p => p.category).filter(Boolean) as string[];
+    const allCats = [...productCats, ...(savedCategories || [])];
+    const unique = Array.from(new Set(allCats)).sort();
     if (!unique.includes('Unclaimed Products')) {
       unique.push('Unclaimed Products');
       unique.sort();
     }
     return unique;
-  }, [products]);
+  }, [products, savedCategories]);
 
   const availableBrands = useMemo(() => {
     const brands = products.map(p => p.brand).filter(Boolean) as string[];
