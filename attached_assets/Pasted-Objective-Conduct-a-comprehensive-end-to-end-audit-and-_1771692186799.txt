@@ -1,0 +1,39 @@
+Objective: Conduct a comprehensive, end-to-end audit and debug of this Replit project. Every feature must be checked against Plenty Web Design (www.PlentyWebDesign.com) production standards. Ensure the site is 100% bug-free and ready for live deployment on Railway.
+
+1. Infrastructure & Media Audit (Cloudinary & Railway)
+
+Environment Variable Check: Verify that the site is correctly pulling CLOUDINARY_URL, DATABASE_URL, and all other secrets from environment variables, not hardcoded strings.
+
+Storage Integrity: Test the Cloudinary pipeline. Upload an image/video in Admin, verify it renders on the frontend, then delete it. Ensure cloudinary.uploader.destroy is called to prevent ghost files in the cloud.
+
+Ephemeral System Check: Confirm no files are being saved to the local /public or root folders, as these will be deleted upon Railway deployment/restart.
+
+2. Admin Portal & 1:1 Mirroring Check
+
+Universal Editability: Audit the entire frontend. Every piece of text, price, image, and toggle must be verified as editable within the Admin section.
+
+Authentication Security: * Verify the Lock Icon is visible in the header for Admin access.
+
+Test the "view password" visibility toggle during login.
+
+Ensure the Admin can update their own username and password within the portal.
+
+UI Responsiveness: Ensure the Admin layout is clean with collapsible sections and is fully navigable on mobile devices (Apple/Android).
+
+3. E-Commerce & Business Logic Enforcement
+
+The Variation Lock: For all products, verify that the "Add to Cart" button remains disabled until all variations (Size, Color, etc.) are selected.
+
+Dynamic Content: If the site uses dynamic thresholds (e.g., "90-day unclaimed policy"), change the value in Admin and verify it updates the frontend immediately without code changes.
+
+4. Communication & Integration (GMAIL_APP)
+
+Transactional Emails: Trigger a test for Order Confirmation, Shipping, and Cancellation. Verify all emails are routed through the GMAIL_APP integration and contain the correct dynamic order data.
+
+5. Final Production Pass
+
+Branding: Confirm the footer contains "Built by Plenty Web Design" with a functioning link to www.PlentyWebDesign.com.
+
+Cross-Browser/Device Check: Run a final CSS audit for Apple/Android mobile browsers and desktop. Fix any overlapping elements or broken margins.
+
+Instructions for AI: Do not just identify bugs; fix them. After running this test, provide a detailed log of all issues found and the specific code updates performed to resolve them. The goal is zero errors on the final production site.

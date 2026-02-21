@@ -38,6 +38,7 @@ export interface IStorage {
 
   // Product Images
   getProductImages(productId: number): Promise<ProductImage[]>;
+  getProductImageById(id: number): Promise<ProductImage | undefined>;
   addProductImage(productId: number, url: string, altText?: string, sortOrder?: number): Promise<ProductImage>;
   updateProductImage(id: number, data: { url?: string; altText?: string; sortOrder?: number }): Promise<ProductImage | undefined>;
   deleteProductImage(id: number): Promise<boolean>;
@@ -391,6 +392,12 @@ export class DatabaseStorage implements IStorage {
     return this.getDb().select().from(schema.productImages)
       .where(eq(schema.productImages.productId, productId))
       .orderBy(schema.productImages.sortOrder);
+  }
+
+  async getProductImageById(id: number): Promise<ProductImage | undefined> {
+    const results = await this.getDb().select().from(schema.productImages)
+      .where(eq(schema.productImages.id, id));
+    return results[0];
   }
 
   async addProductImage(productId: number, url: string, altText?: string, sortOrder?: number): Promise<ProductImage> {

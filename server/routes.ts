@@ -435,13 +435,37 @@ export async function registerRoutes(
   app.delete("/api/products/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteProduct(id);
       
+      const product = await storage.getProductById(id);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      const images = await storage.getProductImages(id);
+
+      const success = await storage.deleteProduct(id);
       if (!success) {
         return res.status(404).json({ error: "Product not found" });
       }
       
       res.status(204).send();
+
+      if (isCloudinaryConfigured()) {
+        (async () => {
+          try {
+            if (product.imageUrl) {
+              const pubId = cloudinaryService.getPublicIdFromUrl(product.imageUrl);
+              if (pubId) await cloudinaryService.deleteImage(pubId);
+            }
+            for (const img of images) {
+              const pubId = cloudinaryService.getPublicIdFromUrl(img.url);
+              if (pubId) await cloudinaryService.deleteImage(pubId);
+            }
+          } catch (err) {
+            console.error(`[Cloudinary] Cleanup failed for product ${id}:`, err);
+          }
+        })();
+      }
     } catch (error) {
       console.error("Error deleting product:", error);
       res.status(500).json({ error: "Failed to delete product" });
@@ -503,6 +527,9 @@ export async function registerRoutes(
   app.delete("/api/product-images/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      const image = await storage.getProductImageById(id);
+
       const success = await storage.deleteProductImage(id);
       
       if (!success) {
@@ -510,6 +537,15 @@ export async function registerRoutes(
       }
       
       res.status(204).send();
+
+      if (image?.url && isCloudinaryConfigured()) {
+        const pubId = cloudinaryService.getPublicIdFromUrl(image.url);
+        if (pubId) {
+          cloudinaryService.deleteImage(pubId).catch(err => 
+            console.error(`[Cloudinary] Failed to delete image ${pubId}:`, err)
+          );
+        }
+      }
     } catch (error) {
       console.error("Error deleting product image:", error);
       res.status(500).json({ error: "Failed to delete image" });
@@ -1395,6 +1431,9 @@ export async function registerRoutes(
   app.delete("/api/reviews/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      const review = await storage.getReviewById(id);
+      
       const success = await storage.deleteReview(id);
       
       if (!success) {
@@ -1402,6 +1441,15 @@ export async function registerRoutes(
       }
       
       res.status(204).send();
+
+      if (review?.imageUrl && isCloudinaryConfigured()) {
+        const pubId = cloudinaryService.getPublicIdFromUrl(review.imageUrl);
+        if (pubId) {
+          cloudinaryService.deleteImage(pubId).catch(err => 
+            console.error(`[Cloudinary] Failed to delete review image ${pubId}:`, err)
+          );
+        }
+      }
     } catch (error) {
       console.error("Error deleting review:", error);
       res.status(500).json({ error: "Failed to delete review" });

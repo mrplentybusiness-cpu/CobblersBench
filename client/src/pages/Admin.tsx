@@ -415,8 +415,43 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/20 flex">
-      <div className="w-64 bg-card border-r p-6 hidden md:block">
+    <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row">
+      {/* Mobile Navigation */}
+      <div className="md:hidden bg-card border-b p-3 sticky top-0 z-50">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <img src={logo} alt="Logo" className="h-6 w-6 object-contain" />
+            <span className="font-bold font-serif text-sm">Admin Panel</span>
+          </div>
+          <Link href="/" className="text-xs text-primary" data-testid="link-back-to-store-mobile">Back to Store</Link>
+        </div>
+        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          {([
+            { key: 'orders' as const, label: 'Orders', icon: <Package className="h-3 w-3" /> },
+            { key: 'products' as const, label: 'Products', icon: <Plus className="h-3 w-3" /> },
+            { key: 'inquiries' as const, label: 'Inquiries', icon: <MessageSquare className="h-3 w-3" /> },
+            { key: 'reviews' as const, label: 'Reviews', icon: <Star className="h-3 w-3" /> },
+            { key: 'videos' as const, label: "Videos", icon: <Film className="h-3 w-3" /> },
+            { key: 'content' as const, label: 'Content', icon: <FileEdit className="h-3 w-3" /> },
+            { key: 'settings' as const, label: 'Settings', icon: <Settings className="h-3 w-3" /> },
+          ]).map(tab => (
+            <Button
+              key={tab.key}
+              variant={activeTab === tab.key ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs whitespace-nowrap flex-shrink-0 h-8 px-2.5"
+              onClick={() => setActiveTab(tab.key)}
+              data-testid={`mobile-tab-${tab.key}`}
+            >
+              {tab.icon}
+              <span className="ml-1">{tab.label}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="w-64 bg-card border-r p-6 hidden md:block flex-shrink-0">
         <div className="flex items-center gap-2 mb-8">
            <img src={logo} alt="Logo" className="h-8 w-8 object-contain" />
            <span className="font-bold font-serif">Admin Panel</span>
