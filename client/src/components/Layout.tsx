@@ -91,6 +91,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
             <NavLink href="/gallery">Cobbler's Life</NavLink>
             <NavLink href="/reviews">Reviews</NavLink>
             <NavLink href="/about">About</NavLink>
+            <NavLink href="/terms">Terms</NavLink>
             <Button variant="ghost" size="icon" className="text-white/50 hover:text-amber-400 hover:bg-gray-800" asChild data-testid="link-admin-desktop">
               <Link href="/admin">
                 <Lock className="h-4 w-4" strokeWidth={1.5} />
