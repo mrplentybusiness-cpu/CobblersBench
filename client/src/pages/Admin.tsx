@@ -58,7 +58,7 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!getAdminToken());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews' | 'content' | 'settings' | 'videos'>('orders');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews' | 'content' | 'settings' | 'videos' | 'unclaimed'>('orders');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<(Order & { items: OrderItem[] }) | null>(null);
@@ -123,7 +123,7 @@ export default function Admin() {
       if (!response.ok) throw new Error('Failed to fetch products');
       return response.json();
     },
-    enabled: isAuthenticated && activeTab === 'products',
+    enabled: isAuthenticated && (activeTab === 'products' || activeTab === 'unclaimed'),
   });
 
   const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<ServiceInquiry[]>({
@@ -431,6 +431,7 @@ export default function Admin() {
             { key: 'products' as const, label: 'Products', icon: <Plus className="h-3 w-3" /> },
             { key: 'inquiries' as const, label: 'Inquiries', icon: <MessageSquare className="h-3 w-3" /> },
             { key: 'reviews' as const, label: 'Reviews', icon: <Star className="h-3 w-3" /> },
+            { key: 'unclaimed' as const, label: 'Unclaimed', icon: <Archive className="h-3 w-3" /> },
             { key: 'videos' as const, label: "Videos", icon: <Film className="h-3 w-3" /> },
             { key: 'content' as const, label: 'Content', icon: <FileEdit className="h-3 w-3" /> },
             { key: 'settings' as const, label: 'Settings', icon: <Settings className="h-3 w-3" /> },
@@ -494,6 +495,14 @@ export default function Admin() {
             <Star className="mr-2 h-4 w-4" /> Reviews
           </Button>
           <Button 
+            variant={activeTab === 'unclaimed' ? 'default' : 'ghost'} 
+            className="w-full justify-start"
+            onClick={() => setActiveTab('unclaimed')}
+            data-testid="tab-unclaimed"
+          >
+            <Archive className="mr-2 h-4 w-4" /> Unclaimed Products
+          </Button>
+          <Button 
             variant={activeTab === 'videos' ? 'default' : 'ghost'} 
             className="w-full justify-start"
             onClick={() => setActiveTab('videos')}
@@ -528,7 +537,7 @@ export default function Admin() {
 
       <div className="flex-1 p-8 overflow-auto">
         <div className="flex justify-between items-center mb-8">
-           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : activeTab === 'reviews' ? 'Reviews' : activeTab === 'videos' ? "Cobbler's Life Videos" : activeTab === 'settings' ? 'Settings' : 'Site Content'}</h1>
+           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : activeTab === 'reviews' ? 'Reviews' : activeTab === 'unclaimed' ? 'Unclaimed Products' : activeTab === 'videos' ? "Cobbler's Life Videos" : activeTab === 'settings' ? 'Settings' : 'Site Content'}</h1>
            <div className="md:hidden">
               <Link href="/" className="text-sm text-primary">
                 Back to Store
@@ -1209,6 +1218,8 @@ export default function Admin() {
           <CobblerLifeManagement queryClient={queryClient} toast={toast} />
         ) : activeTab === 'content' ? (
           <SiteContentManagement queryClient={queryClient} toast={toast} />
+        ) : activeTab === 'unclaimed' ? (
+          <UnclaimedProductsManagement products={products} isLoading={productsLoading} queryClient={queryClient} toast={toast} />
         ) : activeTab === 'settings' ? (
           <SettingsManagement toast={toast} />
         ) : null}
@@ -1784,13 +1795,13 @@ interface ProductVariant {
   status: string;
 }
 
-function ProductForm({ product, onSuccess, existingCategories = [] }: { product?: Product; onSuccess: () => void; existingCategories?: string[] }) {
+function ProductForm({ product, onSuccess, existingCategories = [], defaultCategory }: { product?: Product; onSuccess: () => void; existingCategories?: string[]; defaultCategory?: string }) {
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
   const [price, setPrice] = useState(product?.price?.toString() || "");
   const [compareAtPrice, setCompareAtPrice] = useState(product?.compareAtPrice?.toString() || "");
   const [cost, setCost] = useState(product?.cost?.toString() || "");
-  const [category, setCategory] = useState(product?.category || "");
+  const [category, setCategory] = useState(product?.category || defaultCategory || "");
   const [productType, setProductType] = useState(product?.productType || "");
   const [brand, setBrand] = useState(product?.brand || "");
   const [color, setColor] = useState(product?.color || "");
@@ -4365,6 +4376,292 @@ function CobblerLifeManagement({ queryClient, toast }: { queryClient: any; toast
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function UnclaimedProductsManagement({ products, isLoading, queryClient, toast }: { products: Product[]; isLoading: boolean; queryClient: any; toast: (props: { title: string; description?: string; variant?: "default" | "destructive" }) => void }) {
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [unclaimedDays, setUnclaimedDays] = useState("90");
+  const [isSavingDays, setIsSavingDays] = useState(false);
+
+  const unclaimedProducts = products.filter(p => p.category === 'Unclaimed Products');
+  const nonUnclaimedProducts = products.filter(p => p.category !== 'Unclaimed Products' && p.status === 'active');
+  const existingCategories = Array.from(new Set(products.map(p => p.category).filter(c => c && c.trim()))).sort();
+
+  useEffect(() => {
+    adminFetch('/api/admin/settings/unclaimed_policy_days')
+      .then(res => res.json())
+      .then(data => {
+        if (data.value) setUnclaimedDays(data.value);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveUnclaimedDays = async () => {
+    const days = parseInt(unclaimedDays);
+    if (isNaN(days) || days < 1) {
+      toast({ title: "Please enter a valid number of days", variant: "destructive" });
+      return;
+    }
+    setIsSavingDays(true);
+    try {
+      const res = await adminFetch('/api/admin/settings/unclaimed_policy_days', {
+        method: 'PUT',
+        body: JSON.stringify({ value: String(days) }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      toast({ title: "Unclaimed policy days updated" });
+    } catch {
+      toast({ title: "Failed to save setting", variant: "destructive" });
+    } finally {
+      setIsSavingDays(false);
+    }
+  };
+
+  const moveToUnclaimedMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      const response = await adminFetch(`/api/products/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: 'Unclaimed Products' }),
+      });
+      if (!response.ok) throw new Error('Failed to move product');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({ title: "Product moved to Unclaimed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to move product", variant: "destructive" });
+    },
+  });
+
+  const removeFromUnclaimedMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      const response = await adminFetch(`/api/products/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: 'General' }),
+      });
+      if (!response.ok) throw new Error('Failed to remove product');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({ title: "Product removed from Unclaimed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove product", variant: "destructive" });
+    },
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      const response = await adminFetch(`/api/products/${productId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete product');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({ title: "Product deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete product", variant: "destructive" });
+    },
+  });
+
+  if (isLoading) {
+    return <div className="p-8 text-center text-muted-foreground" data-testid="loading-unclaimed">Loading unclaimed products...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" data-testid="unclaimed-policy-banner">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <h3 className="font-medium text-amber-800">Unclaimed Products Policy</h3>
+            <p className="text-sm text-amber-700 mt-1">
+              Per Massachusetts state law, items not picked up within the grace period after completion of repair become the property of the shop. These items appear in the "Unclaimed Products" category on the storefront.
+            </p>
+            <div className="flex items-center gap-3 mt-3">
+              <Label htmlFor="unclaimedDaysInput" className="text-sm text-amber-800 whitespace-nowrap">Grace Period:</Label>
+              <Input
+                id="unclaimedDaysInput"
+                type="number"
+                min="1"
+                className="w-24 h-8 text-sm"
+                value={unclaimedDays}
+                onChange={(e) => setUnclaimedDays(e.target.value)}
+                data-testid="input-unclaimed-grace-days"
+              />
+              <span className="text-sm text-amber-700">days</span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={handleSaveUnclaimedDays}
+                disabled={isSavingDays}
+                data-testid="button-save-unclaimed-grace-days"
+              >
+                {isSavingDays ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div>
+          <p className="text-muted-foreground text-sm">
+            {unclaimedProducts.length} unclaimed {unclaimedProducts.length === 1 ? 'product' : 'products'} currently listed
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-add-unclaimed-product">
+                <Plus className="mr-2 h-4 w-4" /> Add Unclaimed Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add Unclaimed Product</DialogTitle>
+                <DialogDescription className="sr-only">Create a new unclaimed product listing</DialogDescription>
+              </DialogHeader>
+              <ProductForm onSuccess={() => setIsAddOpen(false)} existingCategories={existingCategories} defaultCategory="Unclaimed Products" />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {nonUnclaimedProducts.length > 0 && (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full justify-between" data-testid="button-move-existing-to-unclaimed">
+              <span className="flex items-center gap-2">
+                <ArchiveRestore className="h-4 w-4" />
+                Move Existing Product to Unclaimed
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
+              {nonUnclaimedProducts.map(p => (
+                <div key={p.id} className="flex items-center justify-between p-3 hover:bg-muted/50" data-testid={`move-product-row-${p.id}`}>
+                  <div className="flex items-center gap-3">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="w-10 h-10 object-cover rounded" />
+                    ) : (
+                      <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                        <ImageOff className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.category} · ${p.price}</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => moveToUnclaimedMutation.mutate(p.id)}
+                    disabled={moveToUnclaimedMutation.isPending}
+                    data-testid={`button-move-to-unclaimed-${p.id}`}
+                  >
+                    <Archive className="mr-1 h-3 w-3" /> Move
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {unclaimedProducts.length === 0 ? (
+        <div className="text-center py-12 bg-card rounded-lg border" data-testid="no-unclaimed-products">
+          <Archive className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No Unclaimed Products</h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            Add unclaimed repair items that are available for sale.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {unclaimedProducts.map(product => (
+            <Card key={product.id} className="overflow-hidden" data-testid={`unclaimed-product-card-${product.id}`}>
+              <div className="aspect-square relative bg-muted">
+                {product.imageUrl ? (
+                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageOff className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+                <Badge className={`absolute top-2 right-2 ${product.status === 'active' ? 'bg-green-600' : product.status === 'draft' ? 'bg-yellow-600' : 'bg-gray-600'}`}>
+                  {product.status}
+                </Badge>
+              </div>
+              <CardContent className="p-4 space-y-2">
+                <h3 className="font-medium text-sm leading-tight">{product.name}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">${product.price}</span>
+                  {product.compareAtPrice && (
+                    <span className="text-xs text-muted-foreground line-through">${product.compareAtPrice}</span>
+                  )}
+                </div>
+                {product.sku && <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>}
+                {product.trackInventory && (
+                  <p className="text-xs text-muted-foreground">
+                    Stock: {product.inventory ?? 0}
+                  </p>
+                )}
+                <div className="flex gap-1 pt-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="flex-1" data-testid={`button-edit-unclaimed-${product.id}`}>
+                        <Edit className="h-3 w-3 mr-1" /> Edit
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Edit Unclaimed Product</DialogTitle>
+                        <DialogDescription className="sr-only">Edit this unclaimed product</DialogDescription>
+                      </DialogHeader>
+                      <ProductForm product={product} onSuccess={() => queryClient.invalidateQueries({ queryKey: ['/api/products'] })} existingCategories={existingCategories} />
+                    </DialogContent>
+                  </Dialog>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => removeFromUnclaimedMutation.mutate(product.id)}
+                    disabled={removeFromUnclaimedMutation.isPending}
+                    data-testid={`button-remove-unclaimed-${product.id}`}
+                    title="Move back to General"
+                  >
+                    <ArchiveRestore className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      if (confirm(`Delete "${product.name}" permanently?`)) {
+                        deleteProductMutation.mutate(product.id);
+                      }
+                    }}
+                    data-testid={`button-delete-unclaimed-${product.id}`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
