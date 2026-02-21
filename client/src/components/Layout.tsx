@@ -87,7 +87,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
             <NavLink href="/services">Our Services</NavLink>
             <NavLink href="/plantar-fasciitis">Knowledge</NavLink>
             <NavLink href="/shop">Shop</NavLink>
-            <NavLink href="/gallery">Gallery</NavLink>
+            <NavLink href="/gallery">Cobbler's Life</NavLink>
             <NavLink href="/reviews">Reviews</NavLink>
             <NavLink href="/about">About</NavLink>
             <Button variant="ghost" size="icon" className="text-white/50 hover:text-amber-400 hover:bg-gray-800" asChild data-testid="link-admin-desktop">
@@ -141,7 +141,7 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
                     Shop
                   </Link>
                   <Link href="/gallery" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
-                    Gallery
+                    Cobbler's Life
                   </Link>
                   <Link href="/reviews" className="text-lg font-medium" onClick={() => setIsMobileOpen(false)}>
                     Reviews
@@ -200,6 +200,12 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
           <Link href="/admin" className="hover:text-primary-foreground transition-colors mt-2 md:mt-0 flex items-center gap-1" data-testid="link-admin-footer">
             <Lock className="h-3 w-3" strokeWidth={1.5} />
           </Link>
+        </div>
+        <div className="container mx-auto px-4 mt-4 text-center text-xs text-primary-foreground/50">
+          <span>Built by </span>
+          <a href="https://www.PlentyWebDesign.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary-foreground/80 transition-colors">
+            Plenty Web Design
+          </a>
         </div>
       </footer>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,12 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2, XCircle, Store } from "lucide-react";
+import { Trash2, Plus, Package, Edit, Eye, EyeOff, Mail, MapPin, Archive, AlertCircle, CheckCircle, DollarSign, Truck, FileText, ArchiveRestore, Phone, Filter, MessageSquare, Clock, Star, User, Search, LayoutGrid, List, ImageOff, FileEdit, Settings, Key, ChevronDown, ChevronRight, Home, ShoppingBag, Info, Image, Wrench, Building2, XCircle, Store, Film, Upload, Video, Loader2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import logo from "@assets/Transparent_Cobbler's_Bench_Logo_1767042558581.png";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Product, Order, OrderItem, ServiceInquiry, Review, SiteContent } from "@shared/schema";
-import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
+import type { Product, Order, OrderItem, ServiceInquiry, Review, SiteContent, CobblerLifeVideo } from "@shared/schema";
+import { PRODUCT_TYPES, BRANDS, VIDEO_CATEGORIES } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploader } from "@/components/ImageUploader";
 import CloudinaryUpload from "@/components/CloudinaryUpload";
@@ -58,7 +58,7 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!getAdminToken());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews' | 'content' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'inquiries' | 'reviews' | 'content' | 'settings' | 'videos'>('orders');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<(Order & { items: OrderItem[] }) | null>(null);
@@ -459,6 +459,14 @@ export default function Admin() {
             <Star className="mr-2 h-4 w-4" /> Reviews
           </Button>
           <Button 
+            variant={activeTab === 'videos' ? 'default' : 'ghost'} 
+            className="w-full justify-start"
+            onClick={() => setActiveTab('videos')}
+            data-testid="tab-videos"
+          >
+            <Film className="mr-2 h-4 w-4" /> Cobbler's Life
+          </Button>
+          <Button 
             variant={activeTab === 'content' ? 'default' : 'ghost'} 
             className="w-full justify-start"
             onClick={() => setActiveTab('content')}
@@ -485,7 +493,7 @@ export default function Admin() {
 
       <div className="flex-1 p-8 overflow-auto">
         <div className="flex justify-between items-center mb-8">
-           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : activeTab === 'reviews' ? 'Reviews' : activeTab === 'settings' ? 'Settings' : 'Site Content'}</h1>
+           <h1 className="text-3xl font-bold font-serif">{activeTab === 'orders' ? 'Order Management' : activeTab === 'products' ? 'Product Management' : activeTab === 'inquiries' ? 'Service Inquiries' : activeTab === 'reviews' ? 'Reviews' : activeTab === 'videos' ? "Cobbler's Life Videos" : activeTab === 'settings' ? 'Settings' : 'Site Content'}</h1>
            <div className="md:hidden">
               <Link href="/" className="text-sm text-primary">
                 Back to Store
@@ -1162,6 +1170,8 @@ export default function Admin() {
           </div>
         ) : activeTab === 'reviews' ? (
           <ReviewsManagement reviews={reviews} isLoading={reviewsLoading} queryClient={queryClient} toast={toast} />
+        ) : activeTab === 'videos' ? (
+          <CobblerLifeManagement queryClient={queryClient} toast={toast} />
         ) : activeTab === 'content' ? (
           <SiteContentManagement queryClient={queryClient} toast={toast} />
         ) : activeTab === 'settings' ? (
@@ -4071,6 +4081,282 @@ function SiteContentManagement({ queryClient, toast }: {
   );
 }
 
+function CobblerLifeManagement({ queryClient, toast }: { queryClient: any; toast: (props: { title: string; description?: string; variant?: "default" | "destructive" }) => void }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<CobblerLifeVideo | null>(null);
+  const [videoForm, setVideoForm] = useState({ title: '', description: '', category: 'General' as string });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: videos = [], isLoading } = useQuery<CobblerLifeVideo[]>({
+    queryKey: ['/api/videos'],
+    queryFn: async () => {
+      const res = await adminFetch('/api/videos');
+      if (!res.ok) throw new Error('Failed to fetch videos');
+      return res.json();
+    },
+  });
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!videoForm.title.trim()) {
+      toast({ title: "Title required", description: "Please enter a title before uploading", variant: "destructive" });
+      return;
+    }
+
+    const maxSize = 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: "File too large", description: "Maximum file size is 100MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const sigRes = await adminFetch('/api/uploads/cloudinary-video-signature', { method: 'POST' });
+      if (!sigRes.ok) throw new Error('Failed to get upload signature');
+      const sig = await sigRes.json();
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', sig.apiKey);
+      formData.append('timestamp', String(sig.timestamp));
+      formData.append('signature', sig.signature);
+      formData.append('folder', sig.folder);
+      formData.append('public_id', sig.publicId);
+      formData.append('resource_type', 'video');
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/video/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadRes.ok) throw new Error('Upload failed');
+      const uploadData = await uploadRes.json();
+
+      const thumbnailUrl = uploadData.secure_url.replace(/\.(mp4|mov|avi|webm)$/i, '.jpg');
+
+      const createRes = await adminFetch('/api/videos', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: videoForm.title,
+          description: videoForm.description || null,
+          category: videoForm.category,
+          videoUrl: uploadData.secure_url,
+          thumbnailUrl,
+          cloudinaryPublicId: uploadData.public_id,
+          published: true,
+        }),
+      });
+
+      if (!createRes.ok) throw new Error('Failed to save video');
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      setVideoForm({ title: '', description: '', category: 'General' });
+      toast({ title: "Video uploaded successfully" });
+    } catch (err) {
+      toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDelete = async (video: CobblerLifeVideo) => {
+    if (!confirm(`Delete "${video.title}"? This cannot be undone.`)) return;
+    try {
+      const res = await adminFetch(`/api/videos/${video.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      toast({ title: "Video deleted" });
+    } catch (err) {
+      toast({ title: "Failed to delete video", variant: "destructive" });
+    }
+  };
+
+  const handleTogglePublished = async (video: CobblerLifeVideo) => {
+    try {
+      const res = await adminFetch(`/api/videos/${video.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ published: !video.published }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+    } catch (err) {
+      toast({ title: "Failed to update video", variant: "destructive" });
+    }
+  };
+
+  const handleUpdateVideo = async () => {
+    if (!editingVideo) return;
+    try {
+      const res = await adminFetch(`/api/videos/${editingVideo.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: editingVideo.title,
+          description: editingVideo.description,
+          category: editingVideo.category,
+        }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      queryClient.invalidateQueries({ queryKey: ['/api/videos'] });
+      setEditingVideo(null);
+      toast({ title: "Video updated" });
+    } catch (err) {
+      toast({ title: "Failed to update video", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" /> Upload New Video</CardTitle>
+          <CardDescription>Upload MP4/MOV videos directly to Cloudinary. Optimized for 9:16 vertical (POV) footage.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Title *</Label>
+              <Input
+                value={videoForm.title}
+                onChange={(e) => setVideoForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="e.g., Sole Repair Timelapse"
+                data-testid="video-title-input"
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select value={videoForm.category} onValueChange={(v) => setVideoForm(f => ({ ...f, category: v }))}>
+                <SelectTrigger data-testid="video-category-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VIDEO_CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Input
+                value={videoForm.description}
+                onChange={(e) => setVideoForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Optional description"
+                data-testid="video-description-input"
+              />
+            </div>
+          </div>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov"
+              onChange={handleVideoUpload}
+              className="hidden"
+              data-testid="video-file-input"
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading || !videoForm.title.trim()}
+              className="bg-amber-600 hover:bg-amber-700"
+              data-testid="upload-video-button"
+            >
+              {isUploading ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+              ) : (
+                <><Video className="mr-2 h-4 w-4" /> Choose Video File</>
+              )}
+            </Button>
+            <span className="ml-3 text-sm text-muted-foreground">Max 100MB. MP4 or MOV format.</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Film className="h-5 w-5" /> Published Videos ({videos.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : videos.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No videos uploaded yet.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {videos.map((video) => (
+                <div key={video.id} className="border rounded-lg overflow-hidden group" data-testid={`admin-video-${video.id}`}>
+                  <div className="aspect-[9/16] bg-stone-100 relative">
+                    {video.thumbnailUrl ? (
+                      <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-stone-200">
+                        <Film className="h-8 w-8 text-stone-400" />
+                      </div>
+                    )}
+                    {!video.published && (
+                      <Badge className="absolute top-2 left-2 bg-red-500">Draft</Badge>
+                    )}
+                    <Badge className="absolute top-2 right-2 bg-amber-600 text-[10px]">{video.category}</Badge>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    <h4 className="font-semibold text-sm truncate">{video.title}</h4>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingVideo(video)}>
+                        <Edit className="h-3 w-3 mr-1" /> Edit
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleTogglePublished(video)}>
+                        {video.published ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                        {video.published ? 'Hide' : 'Show'}
+                      </Button>
+                      <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => handleDelete(video)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!editingVideo} onOpenChange={() => setEditingVideo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Video</DialogTitle>
+            <DialogDescription>Update video details</DialogDescription>
+          </DialogHeader>
+          {editingVideo && (
+            <div className="space-y-4">
+              <div>
+                <Label>Title</Label>
+                <Input value={editingVideo.title} onChange={(e) => setEditingVideo({ ...editingVideo, title: e.target.value })} />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Select value={editingVideo.category} onValueChange={(v) => setEditingVideo({ ...editingVideo, category: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {VIDEO_CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea value={editingVideo.description || ''} onChange={(e) => setEditingVideo({ ...editingVideo, description: e.target.value })} />
+              </div>
+              <Button onClick={handleUpdateVideo} className="w-full bg-amber-600 hover:bg-amber-700">Save Changes</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function SettingsManagement({ toast }: { toast: (props: { title: string; description?: string; variant?: "default" | "destructive" }) => void }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -4082,6 +4368,38 @@ function SettingsManagement({ toast }: { toast: (props: { title: string; descrip
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [testEmailAddress, setTestEmailAddress] = useState("");
   const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; method?: string; error?: string } | null>(null);
+  const [unclaimedDays, setUnclaimedDays] = useState("90");
+  const [isSavingDays, setIsSavingDays] = useState(false);
+
+  useEffect(() => {
+    adminFetch('/api/admin/settings/unclaimed_policy_days')
+      .then(res => res.json())
+      .then(data => {
+        if (data.value) setUnclaimedDays(data.value);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveUnclaimedDays = async () => {
+    const days = parseInt(unclaimedDays);
+    if (isNaN(days) || days < 1) {
+      toast({ title: "Please enter a valid number of days", variant: "destructive" });
+      return;
+    }
+    setIsSavingDays(true);
+    try {
+      const res = await adminFetch('/api/admin/settings/unclaimed_policy_days', {
+        method: 'PUT',
+        body: JSON.stringify({ value: String(days) }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      toast({ title: "Unclaimed policy days updated" });
+    } catch {
+      toast({ title: "Failed to save setting", variant: "destructive" });
+    } finally {
+      setIsSavingDays(false);
+    }
+  };
 
   const handleTestEmail = async () => {
     setIsTestingEmail(true);
@@ -4304,6 +4622,44 @@ function SettingsManagement({ toast }: { toast: (props: { title: string; descrip
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Unclaimed Products Policy
+          </CardTitle>
+          <CardDescription>
+            Set the grace period (in days) before unclaimed repaired items become available for sale. This notice appears on the Shop page when customers view the "Unclaimed Products" category.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-end gap-3 max-w-md">
+            <div className="flex-1">
+              <Label htmlFor="unclaimedDays">Grace Period (days)</Label>
+              <Input
+                id="unclaimedDays"
+                type="number"
+                min="1"
+                value={unclaimedDays}
+                onChange={(e) => setUnclaimedDays(e.target.value)}
+                placeholder="90"
+                data-testid="input-unclaimed-days"
+              />
+            </div>
+            <Button
+              onClick={handleSaveUnclaimedDays}
+              disabled={isSavingDays}
+              data-testid="button-save-unclaimed-days"
+            >
+              {isSavingDays ? "Saving..." : "Save"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Default is 90 days. Products in the "Unclaimed Products" category will show a notice: "Items not picked up within {unclaimedDays} days are offered for sale."
+          </p>
         </CardContent>
       </Card>
     </div>

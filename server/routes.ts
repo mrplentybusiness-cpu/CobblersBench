@@ -1453,5 +1453,135 @@ export async function registerRoutes(
     }
   });
 
+  // ===== COBBLER'S LIFE VIDEOS =====
+
+  app.get("/api/videos", requireAdmin, async (_req, res) => {
+    try {
+      const videos = await storage.getAllVideos();
+      res.json(videos);
+    } catch (error) {
+      sendError(res, 500, "Failed to fetch videos", error);
+    }
+  });
+
+  app.get("/api/videos/published", async (_req, res) => {
+    try {
+      const videos = await storage.getPublishedVideos();
+      res.json(videos);
+    } catch (error) {
+      sendError(res, 500, "Failed to fetch published videos", error);
+    }
+  });
+
+  app.get("/api/videos/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const video = await storage.getVideoById(id);
+      if (!video) return res.status(404).json({ error: "Video not found" });
+      res.json(video);
+    } catch (error) {
+      sendError(res, 500, "Failed to fetch video", error);
+    }
+  });
+
+  app.post("/api/videos", requireAdmin, async (req, res) => {
+    try {
+      const { title, description, category, videoUrl, thumbnailUrl, cloudinaryPublicId, published } = req.body;
+      if (!title || !videoUrl) {
+        return res.status(400).json({ error: "Title and video URL are required" });
+      }
+      const video = await storage.createVideo({
+        title,
+        description: description || null,
+        category: category || "General",
+        videoUrl,
+        thumbnailUrl: thumbnailUrl || null,
+        cloudinaryPublicId: cloudinaryPublicId || null,
+        sortOrder: 0,
+        published: published ?? true,
+      });
+      res.status(201).json(video);
+    } catch (error) {
+      sendError(res, 500, "Failed to create video", error);
+    }
+  });
+
+  app.patch("/api/videos/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const video = await storage.updateVideo(id, req.body);
+      if (!video) return res.status(404).json({ error: "Video not found" });
+      res.json(video);
+    } catch (error) {
+      sendError(res, 500, "Failed to update video", error);
+    }
+  });
+
+  app.delete("/api/videos/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const video = await storage.getVideoById(id);
+      if (!video) return res.status(404).json({ error: "Video not found" });
+
+      if (video.cloudinaryPublicId && isCloudinaryConfigured()) {
+        try {
+          await cloudinaryService.deleteResource(video.cloudinaryPublicId, "video");
+        } catch (e) {
+          console.error("Failed to delete video from Cloudinary:", e);
+        }
+      }
+
+      await storage.deleteVideo(id);
+      res.status(204).send();
+    } catch (error) {
+      sendError(res, 500, "Failed to delete video", error);
+    }
+  });
+
+  app.post("/api/uploads/cloudinary-video-signature", requireAdmin, async (_req, res) => {
+    try {
+      if (!isCloudinaryConfigured()) {
+        return res.status(400).json({ error: "Cloudinary not configured" });
+      }
+      const result = cloudinaryService.getVideoSignature();
+      res.json(result);
+    } catch (error) {
+      sendError(res, 500, "Failed to get video upload signature", error);
+    }
+  });
+
+  // ===== PUBLIC SETTINGS =====
+
+  app.get("/api/settings/unclaimed_policy_days", async (_req, res) => {
+    try {
+      const value = await storage.getAdminSetting("unclaimed_policy_days");
+      res.json({ value: value || "90" });
+    } catch (error) {
+      res.json({ value: "90" });
+    }
+  });
+
+  // ===== ADMIN SETTINGS =====
+
+  app.get("/api/admin/settings/:key", requireAdmin, async (req, res) => {
+    try {
+      const value = await storage.getAdminSetting(req.params.key);
+      res.json({ key: req.params.key, value: value || null });
+    } catch (error) {
+      sendError(res, 500, "Failed to get setting", error);
+    }
+  });
+
+  app.put("/api/admin/settings/:key", requireAdmin, async (req, res) => {
+    try {
+      const { value } = req.body;
+      if (value === undefined) return res.status(400).json({ error: "Value is required" });
+      await storage.setAdminSetting(req.params.key, String(value));
+      res.json({ key: req.params.key, value: String(value) });
+    } catch (error) {
+      sendError(res, 500, "Failed to save setting", error);
+    }
+  });
+
   return httpServer;
 }

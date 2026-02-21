@@ -19,7 +19,9 @@ import type {
   Review,
   InsertReview,
   SiteContent,
-  InsertSiteContent
+  InsertSiteContent,
+  CobblerLifeVideo,
+  InsertCobblerLifeVideo
 } from "@shared/schema";
 
 const { Pool } = pg;
@@ -90,6 +92,14 @@ export interface IStorage {
   getSiteContentByKey(key: string): Promise<SiteContent | undefined>;
   getAllSiteContent(): Promise<SiteContent[]>;
   upsertSiteContent(data: InsertSiteContent): Promise<SiteContent>;
+
+  // Cobbler's Life Videos
+  getAllVideos(): Promise<CobblerLifeVideo[]>;
+  getPublishedVideos(): Promise<CobblerLifeVideo[]>;
+  getVideoById(id: number): Promise<CobblerLifeVideo | undefined>;
+  createVideo(video: InsertCobblerLifeVideo): Promise<CobblerLifeVideo>;
+  updateVideo(id: number, data: Partial<InsertCobblerLifeVideo>): Promise<CobblerLifeVideo | undefined>;
+  deleteVideo(id: number): Promise<boolean>;
 
   // Admin Settings
   getAdminSetting(key: string): Promise<string | undefined>;
@@ -276,6 +286,21 @@ export class DatabaseStorage implements IStorage {
           key TEXT NOT NULL UNIQUE,
           value TEXT NOT NULL,
           updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS cobbler_life_videos (
+          id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+          title TEXT NOT NULL,
+          description TEXT,
+          category TEXT NOT NULL DEFAULT 'General',
+          video_url TEXT NOT NULL,
+          thumbnail_url TEXT,
+          cloudinary_public_id TEXT,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          published BOOLEAN DEFAULT true,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
         )
       `);
 
@@ -725,6 +750,41 @@ export class DatabaseStorage implements IStorage {
       const results = await this.getDb().insert(schema.siteContent).values(data).returning();
       return results[0];
     }
+  }
+
+  // Cobbler's Life Videos
+  async getAllVideos(): Promise<CobblerLifeVideo[]> {
+    return this.getDb().select().from(schema.cobblerLifeVideos).orderBy(desc(schema.cobblerLifeVideos.createdAt));
+  }
+
+  async getPublishedVideos(): Promise<CobblerLifeVideo[]> {
+    return this.getDb().select().from(schema.cobblerLifeVideos)
+      .where(eq(schema.cobblerLifeVideos.published, true))
+      .orderBy(desc(schema.cobblerLifeVideos.createdAt));
+  }
+
+  async getVideoById(id: number): Promise<CobblerLifeVideo | undefined> {
+    const results = await this.getDb().select().from(schema.cobblerLifeVideos).where(eq(schema.cobblerLifeVideos.id, id));
+    return results[0];
+  }
+
+  async createVideo(video: InsertCobblerLifeVideo): Promise<CobblerLifeVideo> {
+    const results = await this.getDb().insert(schema.cobblerLifeVideos).values(video).returning();
+    return results[0];
+  }
+
+  async updateVideo(id: number, data: Partial<InsertCobblerLifeVideo>): Promise<CobblerLifeVideo | undefined> {
+    const results = await this.getDb()
+      .update(schema.cobblerLifeVideos)
+      .set(data)
+      .where(eq(schema.cobblerLifeVideos.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteVideo(id: number): Promise<boolean> {
+    const result = await this.getDb().delete(schema.cobblerLifeVideos).where(eq(schema.cobblerLifeVideos.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   // Admin Settings

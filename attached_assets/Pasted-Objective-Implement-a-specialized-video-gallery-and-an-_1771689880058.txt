@@ -1,0 +1,55 @@
+Objective: Implement a specialized video gallery and an "Unclaimed Product" shop category for the existing Cobbler’s Bench site. This site is built by Plenty Web Design (www.PlentyWebDesign.com) and is deployed on Railway. DO NOT modify existing styles, homepage layout, or core functionality beyond the specific requests below.
+
+1. Infrastructure & Media Pipeline (Cloudinary Integration)
+
+Media Storage: Integrate Cloudinary for all video and image hosting. Do NOT use local server storage or Replit storage.
+
+Credentials: Use the following credentials for the media configuration:
+
+Cloud Name: dicm5snxa
+
+API Key: 384915293832891
+
+API Secret: 8xP2bzGLSh8kl8jnqwCNwLQRgao
+
+Logic: Implement server-side signed uploads to Cloudinary for security. When a media item is deleted in Admin, ensure the code triggers cloudinary.uploader.destroy using the stored public_id.
+
+2. "Cobbler’s Life" Video Gallery Transformation
+
+Rename: Change the "Gallery" section to "Cobbler’s Life" across the site (Navigation, Headings, and Admin).
+
+Meta Ray-Ban Optimization: The video feed must be styled specifically for 9:16 vertical POV footage. Use a responsive grid/player that maintains this aspect ratio on both mobile and desktop.
+
+Organization: Add a "Category" system (e.g., Sole Repair, Restoration, Deep Clean) with a frontend filter bar.
+
+Admin Management: * Add a "Cobbler's Life" tab in the Admin portal.
+
+Allow Admin to upload MP4/MOV files directly to Cloudinary with category assignment.
+
+Provide a video preview/thumbnail in the Admin for all live content.
+
+3. "Unclaimed Product" Category & Logic
+
+Shop Category: Create a new category in the shop titled "Unclaimed Products".
+
+Dynamic Admin Control: In Admin "Site Settings," add an editable integer field for "Unclaimed Items Policy Days".
+
+Default value: 90.
+
+Logic: All frontend text regarding the unclaimed grace period must dynamically pull this value.
+
+Plenty Variation Rule: Enforce strict variation selection. The "Add to Cart" button for all shop products must remain disabled until a Size and/or Color is selected.
+
+4. Plenty Brands Mandatory Standards
+
+1:1 Mirroring: Ensure the Admin portal has 100% editing capabilities for all new fields and sections.
+
+Admin Access: The Lock Icon must remain in the header for Admin login. Admin must be able to view their password while typing and change credentials in settings.
+
+Email System: Use the GMAIL_APP integration for all automated order status emails (Confirmation, Shipping, Cancellation).
+
+Attribution: Ensure the footer credit "Built by Plenty Web Design" with a link to www.PlentyWebDesign.com is maintained on all pages.
+
+Production Readiness: Code must be fully responsive (Apple/Android) and 100% compatible with the existing Railway deployment environment and environment variables.
+
+Instructions for Replit AI: Proceed with these updates carefully. Update the database schema first to handle video metadata and the dynamic grace period variable, then update the Admin UI, followed by the frontend components. Ensure no existing project dependencies are broken.

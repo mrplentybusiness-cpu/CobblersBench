@@ -233,6 +233,37 @@ export const insertSiteContentSchema = createInsertSchema(siteContent).omit({
 export type InsertSiteContent = z.infer<typeof insertSiteContentSchema>;
 export type SiteContent = typeof siteContent.$inferSelect;
 
+export const cobblerLifeVideos = pgTable("cobbler_life_videos", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category").notNull().default("General"),
+  videoUrl: text("video_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  cloudinaryPublicId: text("cloudinary_public_id"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  published: boolean("published").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCobblerLifeVideoSchema = createInsertSchema(cobblerLifeVideos).omit({
+  id: true as never,
+  createdAt: true as never,
+});
+
+export type InsertCobblerLifeVideo = z.infer<typeof insertCobblerLifeVideoSchema>;
+export type CobblerLifeVideo = typeof cobblerLifeVideos.$inferSelect;
+
+export const VIDEO_CATEGORIES = [
+  "General",
+  "Sole Repair",
+  "Restoration",
+  "Deep Clean",
+  "Leather Care",
+  "Custom Work",
+  "Before & After",
+] as const;
+
 export const adminSettings = pgTable("admin_settings", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   key: text("key").notNull().unique(),

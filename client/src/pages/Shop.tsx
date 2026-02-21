@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import type { Product, SiteContent } from "@shared/schema";
 import { PRODUCT_TYPES, BRANDS } from "@shared/schema";
-import { Loader2, Grid3X3, LayoutGrid, X, Filter } from "lucide-react";
+import { Loader2, Grid3X3, LayoutGrid, X, Filter, AlertCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Shop() {
@@ -38,6 +38,15 @@ export default function Shop() {
       const response = await fetch('/api/site-content/shop-cta');
       if (response.status === 404) return null;
       if (!response.ok) throw new Error('Failed to fetch shop CTA');
+      return response.json();
+    },
+  });
+
+  const { data: unclaimedPolicy } = useQuery<{ value: string }>({
+    queryKey: ['/api/settings/unclaimed_policy_days'],
+    queryFn: async () => {
+      const response = await fetch('/api/settings/unclaimed_policy_days');
+      if (!response.ok) return { value: "90" };
       return response.json();
     },
   });
@@ -219,6 +228,18 @@ export default function Shop() {
                 Clear filters
               </Button>
             )}
+          </div>
+        )}
+
+        {filter?.toLowerCase().includes('unclaimed') && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3" data-testid="unclaimed-notice">
+            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">Unclaimed Products Policy</p>
+              <p className="text-sm text-amber-700 mt-1">
+                Per Massachusetts state law, items not picked up within {unclaimedPolicy?.value || "90"} days after completion of repair become the property of the shop and are offered for sale at a discounted price.
+              </p>
+            </div>
           </div>
         )}
 
