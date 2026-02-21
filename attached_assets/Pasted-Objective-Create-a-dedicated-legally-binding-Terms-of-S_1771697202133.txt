@@ -1,0 +1,41 @@
+Objective: Create a dedicated, legally-binding Terms of Service page for cbshoerepair.com and integrate a mandatory agreement checkpoint.
+
+STRICT CONSTRAINT: Do NOT modify any existing CSS, shop logic, gallery features, or database structures unrelated to this specific task. All existing site functions must remain 100% operational and debugged.
+
+1. Dedicated Terms of Service Page (/terms)
+
+Route & UI: Create a new page route at /terms. Use a clean, professional, typography-focused layout that is 100% responsive on Apple/Android and desktop.
+
+Legal Content:
+
+Abandoned Property: Explicitly state the 90-day abandonment policy (referencing the dynamic "Grace Period" variable in Admin).
+
+Unclaimed Sales: State that all "Unclaimed Product" sales are final and sold AS-IS.
+
+Notification Logic: Define "Notice" as any communication sent via the GMAIL_APP integration.
+
+Liability: Include the Massachusetts-specific liability protections for repair services.
+
+Admin Control: This entire page’s text must be 100% editable in the Admin portal. If I change the text in Admin, it must mirror 1:1 on the frontend instantly.
+
+2. Checkout Agreement Logic (The "Ironclad" Fix)
+
+Mandatory Checkbox: On the checkout page (for both repairs and unclaimed products), add a mandatory checkbox: "I have read and agree to the Terms of Service."
+
+Validation: The "Place Order" or "Proceed to Payment" button must remain disabled and unclickable until this box is checked. This ensures the 90-day policy is legally binding for every transaction.
+
+3. Site-Wide Integration
+
+Footer: Add a small "Terms of Service" link in the footer next to the "Built by Plenty Web Design" credit.
+
+GMAIL_APP Sync: Add a single-sentence footer to all automated emails: "All services are subject to our Terms of Service."
+
+4. Production & Debugging Guardrails
+
+Zero-Interference Policy: Verify that the new /terms route and checkout checkbox do not break existing Stripe/Payment integrations or Cloudinary video rendering.
+
+Railway Ready: Ensure all new code uses existing environment variables.
+
+Final Audit: After implementation, perform a background "health check" to ensure zero console errors and 100% mobile functionality.
+
+Instructions for AI: Process this as a standalone module. Build the /terms page first, then the Admin fields, then the checkout checkbox. Test the button-disable logic on mobile before confirming completion.

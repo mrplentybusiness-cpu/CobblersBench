@@ -3301,6 +3301,7 @@ function SiteContentManagement({ queryClient, toast }: {
   const [servicesOpen, setServicesOpen] = useState(false);
   const [reviewsOpen, setReviewsOpen] = useState(false);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [businessOpen, setBusinessOpen] = useState(false);
   const [layoutOpen, setLayoutOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
@@ -3348,6 +3349,9 @@ function SiteContentManagement({ queryClient, toast }: {
 
   const [shopCtaTitle, setShopCtaTitle] = useState("");
   const [shopCtaDescription, setShopCtaDescription] = useState("");
+
+  const [termsTitle, setTermsTitle] = useState("");
+  const [termsContent, setTermsContent] = useState("");
 
   const { data: siteContent = [], isLoading } = useQuery<SiteContent[]>({
     queryKey: ['/api/site-content'],
@@ -3434,6 +3438,11 @@ function SiteContentManagement({ queryClient, toast }: {
     if (shopCta) {
       setShopCtaTitle(shopCta.title || '');
       setShopCtaDescription(shopCta.content || '');
+    }
+    const terms = siteContent.find(c => c.key === 'terms-of-service');
+    if (terms) {
+      setTermsTitle(terms.title || '');
+      setTermsContent(terms.content || '');
     }
     setHasInitialized(true);
   }, [siteContent, hasInitialized]);
@@ -3624,6 +3633,37 @@ function SiteContentManagement({ queryClient, toast }: {
       toast({
         title: "Error",
         description: "Failed to save knowledge page content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveTermsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await adminFetch('/api/site-content/terms-of-service', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: termsTitle,
+          content: termsContent,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to save terms of service');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (query) => 
+        Array.isArray(query.queryKey) && String(query.queryKey[0]).startsWith('/api/site-content')
+      });
+      toast({
+        title: "Content Saved",
+        description: "Terms of Service has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save Terms of Service. Please try again.",
         variant: "destructive",
       });
     },
@@ -4453,6 +4493,65 @@ function SiteContentManagement({ queryClient, toast }: {
               data-testid="button-save-knowledge"
             >
               {saveKnowledgePageMutation.isPending ? 'Saving...' : 'Save Knowledge'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      </CollapsibleSection>
+
+      {/* Terms of Service Section */}
+      <CollapsibleSection
+        title="Terms of Service"
+        description="Legal terms displayed at /terms"
+        icon={FileEdit}
+        isOpen={termsOpen}
+        onToggle={() => setTermsOpen(!termsOpen)}
+      >
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileEdit className="h-5 w-5" />
+            Terms of Service Page
+          </CardTitle>
+          <CardDescription>
+            Edit the Terms of Service page content. Supports HTML formatting (headings, paragraphs, lists). Changes appear instantly at /terms.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="termsTitle">Page Title</Label>
+            <Input
+              id="termsTitle"
+              placeholder="Terms of Service"
+              value={termsTitle}
+              onChange={(e) => setTermsTitle(e.target.value)}
+              data-testid="input-terms-title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="termsContent">Page Content (HTML)</Label>
+            <Textarea
+              id="termsContent"
+              placeholder="<h2>1. Abandoned Property Policy</h2><p>Items left for more than 90 days...</p>"
+              rows={20}
+              value={termsContent}
+              onChange={(e) => setTermsContent(e.target.value)}
+              data-testid="input-terms-content"
+              className="font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Use HTML tags for formatting: &lt;h2&gt; for headings, &lt;p&gt; for paragraphs, &lt;ul&gt;&lt;li&gt; for lists, &lt;strong&gt; for bold.
+            </p>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button 
+              onClick={() => saveTermsMutation.mutate()}
+              disabled={saveTermsMutation.isPending}
+              data-testid="button-save-terms"
+            >
+              {saveTermsMutation.isPending ? 'Saving...' : 'Save Terms of Service'}
             </Button>
           </div>
         </CardContent>

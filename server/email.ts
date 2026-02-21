@@ -295,6 +295,7 @@ export async function sendCustomerOrderConfirmation(order: OrderDetails): Promis
           <p>If you have any questions, please reply to this email or contact us at ${FROM_EMAIL}.</p>
         </div>
         <div class="footer">
+          <p>All services are subject to our <a href="${getBaseUrl()}/terms" style="color: #8B4513;">Terms of Service</a>.</p>
           <p>&copy; ${new Date().getFullYear()} ${BUSINESS_NAME}. All rights reserved.</p>
           <p>Cape Cod's Premier Shoe & Leather Repair</p>
         </div>
@@ -386,6 +387,7 @@ export async function sendAdminOrderNotification(order: OrderDetails): Promise<v
       <p style="margin-top: 20px;">
         <a href="${getBaseUrl()}/admin" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Admin Dashboard</a>
       </p>
+      <p style="margin-top: 20px; font-size: 12px; color: #666;">All services are subject to our <a href="${getBaseUrl()}/terms" style="color: #8B4513;">Terms of Service</a>.</p>
     </body>
     </html>
   `;
@@ -462,6 +464,7 @@ export async function sendOrderStatusUpdate(
           <p>If you have any questions, please reply to this email or contact us at ${FROM_EMAIL}.</p>
         </div>
         <div class="footer">
+          <p>All services are subject to our <a href="${getBaseUrl()}/terms" style="color: #8B4513;">Terms of Service</a>.</p>
           <p>&copy; ${new Date().getFullYear()} ${BUSINESS_NAME}. All rights reserved.</p>
           <p>Cape Cod's Premier Shoe & Leather Repair</p>
         </div>
@@ -524,6 +527,7 @@ export async function sendOrderCancellationEmail(
           <p>We apologize for any inconvenience and hope to serve you again soon.</p>
         </div>
         <div class="footer">
+          <p>All services are subject to our <a href="${getBaseUrl()}/terms" style="color: #8B4513;">Terms of Service</a>.</p>
           <p>&copy; ${new Date().getFullYear()} ${BUSINESS_NAME}. All rights reserved.</p>
           <p>Cape Cod's Premier Shoe & Leather Repair</p>
         </div>

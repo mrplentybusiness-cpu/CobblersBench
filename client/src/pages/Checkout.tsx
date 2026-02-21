@@ -12,7 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useState, useMemo } from "react";
-import { AlertCircle, Wrench, Truck, Store, MapPin, Clock } from "lucide-react";
+import { AlertCircle, Wrench, Truck, Store, MapPin, Clock, ExternalLink } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
@@ -46,6 +47,7 @@ export default function Checkout() {
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const hasRepairItems = useMemo(() => {
     return items.some(item => item.category === 'repair');
@@ -377,17 +379,38 @@ export default function Checkout() {
                   </>
                 )}
 
-                <div className="pt-4">
+                <div className="pt-4 space-y-4">
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
+                    <Checkbox
+                      id="terms-agreement"
+                      checked={agreedToTerms}
+                      onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                      data-testid="checkbox-terms-agreement"
+                      className="mt-0.5"
+                    />
+                    <label htmlFor="terms-agreement" className="text-sm leading-relaxed cursor-pointer select-none">
+                      I have read and agree to the{" "}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline hover:text-primary/80 inline-flex items-center gap-0.5"
+                        data-testid="link-terms-checkout"
+                      >
+                        Terms of Service
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </label>
+                  </div>
                   <Button 
                     type="submit" 
                     className="w-full text-lg h-12"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !agreedToTerms}
                     data-testid="button-submit-order"
                   >
                     {isSubmitting ? "Placing Order..." : `Place Order ($${currentTotal.toFixed(2)})`}
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-4 text-center">
-                    By placing this order, you agree to our Terms of Service. 
+                  <p className="text-xs text-muted-foreground text-center">
                     Payment instructions will be provided on the next page.
                   </p>
                 </div>

@@ -184,7 +184,11 @@ export default function Layout({ children, hideCompareTray = false }: LayoutProp
             <Lock className="h-3 w-3" strokeWidth={1.5} />
           </Link>
         </div>
-        <div className="container mx-auto px-4 mt-4 text-center text-xs text-primary-foreground/50">
+        <div className="container mx-auto px-4 mt-4 text-center text-xs text-primary-foreground/50 flex items-center justify-center gap-2 flex-wrap">
+          <Link href="/terms" className="underline hover:text-primary-foreground/80 transition-colors" data-testid="link-terms-footer">
+            Terms of Service
+          </Link>
+          <span>&middot;</span>
           <span>Built by </span>
           <a href="https://www.PlentyWebDesign.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary-foreground/80 transition-colors">
             Plenty Web Design
